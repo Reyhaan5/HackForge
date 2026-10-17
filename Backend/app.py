@@ -178,6 +178,13 @@ async def process_receipt(
         shutil.copyfileobj(file.file, buffer)
 
     try:
+        # If PDF was uploaded, rasterize page 0 to companion PNG for browser preview
+        if file_ext.lower() == ".pdf":
+            from extractor import rasterize_pdf_if_needed
+            rendered_png = rasterize_pdf_if_needed(saved_file_path)
+            if rendered_png != saved_file_path and os.path.exists(rendered_png):
+                temp_filename = os.path.basename(rendered_png)
+
         # 1. Cloud Model Vision Extraction
         extracted = extract_receipt(saved_file_path)
         

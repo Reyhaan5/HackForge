@@ -12,7 +12,9 @@ import {
   Globe,
   MessageSquare,
   Mail,
-  Smartphone
+  Smartphone,
+  ExternalLink,
+  Check
 } from 'lucide-react';
 import { useReceipts } from '../../context/ReceiptContext';
 import { getEmployees, processReceipt } from '../../services/api';
@@ -21,6 +23,109 @@ import ReceiptSplitView from '../../components/ReceiptSplitView/ReceiptSplitView
 import AuditStatusPill from '../../components/AuditStatusPill/AuditStatusPill';
 import AiProcessingStepper from '../../components/AiProcessingStepper/AiProcessingStepper';
 import styles from './SmartSubmit.module.css';
+
+export const DEMO_PRESETS = [
+  {
+    id: 'approved_lunch',
+    label: 'Clean Lunch',
+    icon: '🍽️',
+    sublabel: 'NYC ($84.00)',
+    badge: 'Approved',
+    badgeType: 'success',
+    fileUrl: '/demo_receipts/6_client_lunch_approved.jpg',
+    fileName: '6_client_lunch_approved.jpg',
+    city: 'New York',
+    category: 'Meals',
+    client: 'Acme Corp Review Dinner',
+    description: 'Compliant business lunch meeting within daily NYC cap.'
+  },
+  {
+    id: 'alcohol_flag',
+    label: 'Alcohol Policy Flag',
+    icon: '🍷',
+    sublabel: 'Chicago (Flagged)',
+    badge: 'Disallowed Items',
+    badgeType: 'warning',
+    fileUrl: '/demo_receipts/5_dinner_cocktails_alcohol.jpg',
+    fileName: '5_dinner_cocktails_alcohol.jpg',
+    city: 'Chicago',
+    category: 'Meals',
+    client: 'Team Happy Hour',
+    description: 'Itemized cocktails and wine automatically detected and deducted.'
+  },
+  {
+    id: 'messy_thermal',
+    label: 'Messy Thermal Paper',
+    icon: '📄',
+    sublabel: 'Microsoft AI Dataset',
+    badge: 'Crumpled OCR',
+    badgeType: 'info',
+    fileUrl: '/demo_receipts/1_messy_thermal_receipt.jpg',
+    fileName: '1_messy_thermal_receipt.jpg',
+    city: 'New York',
+    category: 'Meals',
+    client: 'Field Site Operations Lunch',
+    description: 'Real wrinkled, crumpled paper testing camera angle & skew OCR.'
+  },
+  {
+    id: 'bistro_dining',
+    label: 'Multi-Item Bistro',
+    icon: '☕',
+    sublabel: 'Mindee Dataset',
+    badge: '12 Line Items',
+    badgeType: 'info',
+    fileUrl: '/demo_receipts/2_restaurant_bistro_receipt.jpg',
+    fileName: '2_restaurant_bistro_receipt.jpg',
+    city: 'San Francisco',
+    category: 'Meals',
+    client: 'Executive Partner Dinner',
+    description: 'High-density French bistro bill with multi-tax breakdown.'
+  },
+  {
+    id: 'uber_transit',
+    label: 'Uber Ride Receipt',
+    icon: '🚗',
+    sublabel: 'Transit PDF / Doc',
+    badge: 'PDF / Transit',
+    badgeType: 'purple',
+    fileUrl: '/demo_receipts/3_corporate_uber_receipt.png',
+    pdfUrl: '/demo_receipts/3_corporate_uber_receipt.pdf',
+    fileName: '3_corporate_uber_receipt.png',
+    city: 'New York',
+    category: 'Travel',
+    client: 'JFK Airport to Client HQ',
+    description: 'Corporate ground transit PDF receipt with distance, route & tip.'
+  },
+  {
+    id: 'hotel_invoice',
+    label: 'Hotel Folio Invoice',
+    icon: '🏨',
+    sublabel: 'Corporate Lodging PDF',
+    badge: 'PDF / Lodging',
+    badgeType: 'purple',
+    fileUrl: '/demo_receipts/4_hotel_flight_invoice.png',
+    pdfUrl: '/demo_receipts/4_hotel_flight_invoice.pdf',
+    fileName: '4_hotel_flight_invoice.png',
+    city: 'Austin',
+    category: 'Lodging',
+    client: 'Tech Summit Accommodation',
+    description: 'Corporate hotel folio invoice with room charges, tax & parking.'
+  },
+  {
+    id: 'wrinkled_market',
+    label: 'Faded Thermal Slip',
+    icon: '🧾',
+    sublabel: 'Weathered Slip',
+    badge: 'Contrast Boost',
+    badgeType: 'warning',
+    fileUrl: '/demo_receipts/7_wrinkled_market_receipt.jpg',
+    fileName: '7_wrinkled_market_receipt.jpg',
+    city: 'Austin',
+    category: 'Other',
+    client: 'Hardware Supplies Sprint',
+    description: 'Aged weathered register tape testing auto-contrast boost.'
+  }
+];
 
 const SUBMISSION_CHANNELS = [
   { id: 'web', label: 'Web Portal', icon: Globe, hint: 'Direct browser upload' },
@@ -53,6 +158,7 @@ export const SmartSubmit = () => {
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
   const [pasteNotice, setPasteNotice] = useState(null);
+  const [activePresetId, setActivePresetId] = useState(null);
 
   useEffect(() => {
     if (!isPrivileged) return;
@@ -74,17 +180,31 @@ export const SmartSubmit = () => {
   }, [previewUrl]);
 
   const selectFile = (selectedFile) => {
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(selectedFile?.type)) {
-      setError('Choose a JPG, PNG, or WEBP image. PDF uploads are not supported by the receipt processor.');
+    const isImage = ['image/jpeg', 'image/png', 'image/webp'].includes(selectedFile?.type);
+    const isPdf = selectedFile?.type === 'application/pdf' || selectedFile?.name?.toLowerCase().endsWith('.pdf');
+
+    if (!isImage && !isPdf) {
+      setError('Choose a JPG, PNG, WEBP image or PDF receipt document.');
       return;
     }
+    setActivePresetId(null);
     setFile(selectedFile);
     setError(null);
     setResult(null);
 
-    // Create preview
-    const url = URL.createObjectURL(selectedFile);
-    setPreviewUrl(url);
+    // If PDF, check if it matches one of our demo presets for crisp PNG preview
+    const matchedDemo = DEMO_PRESETS.find(p =>
+      selectedFile.name.toLowerCase().includes(p.id) ||
+      selectedFile.name.toLowerCase().includes(p.fileName.toLowerCase().replace('.png', '')) ||
+      (p.pdfUrl && selectedFile.name.toLowerCase().includes(p.pdfUrl.split('/').pop().toLowerCase()))
+    );
+
+    if (matchedDemo) {
+      setPreviewUrl(matchedDemo.fileUrl);
+    } else {
+      const url = URL.createObjectURL(selectedFile);
+      setPreviewUrl(url);
+    }
   };
 
   // Direct Clipboard (Ctrl+V) listener
@@ -141,57 +261,20 @@ export const SmartSubmit = () => {
   };
 
   // Helper to load authentic real sample receipts for live judge demonstrations
-  const loadQuickSample = async (sampleType) => {
+  const loadPreset = async (preset) => {
     setError(null);
     setResult(null);
+    setActivePresetId(preset.id);
 
-    let sampleFileUrl = '/demo_receipts/6_client_lunch_approved.jpg';
-    let sampleFileName = 'client_lunch_approved.jpg';
-    let sampleCity = 'New York';
-    let sampleCat = 'Meals';
-    let sampleClient = 'Acme Corp Review Dinner';
-
-    if (sampleType === 'approved') {
-      sampleFileUrl = '/demo_receipts/6_client_lunch_approved.jpg';
-      sampleFileName = 'client_lunch_approved.jpg';
-      sampleCity = 'New York';
-      sampleCat = 'Meals';
-      sampleClient = 'Acme Corp Review Dinner';
-    } else if (sampleType === 'alcohol') {
-      sampleFileUrl = '/demo_receipts/5_dinner_cocktails_alcohol.jpg';
-      sampleFileName = 'dinner_cocktails_alcohol.jpg';
-      sampleCity = 'Chicago';
-      sampleCat = 'Meals';
-      sampleClient = 'Team Happy Hour';
-    } else if (sampleType === 'messy_thermal') {
-      sampleFileUrl = '/demo_receipts/1_messy_thermal_receipt.jpg';
-      sampleFileName = 'messy_thermal_receipt.jpg';
-      sampleCity = 'New York';
-      sampleCat = 'Meals';
-      sampleClient = 'Client Field Lunch';
-    } else if (sampleType === 'bistro_dining') {
-      sampleFileUrl = '/demo_receipts/2_restaurant_bistro_receipt.jpg';
-      sampleFileName = 'restaurant_bistro_receipt.jpg';
-      sampleCity = 'San Francisco';
-      sampleCat = 'Meals';
-      sampleClient = 'Executive Partner Dinner';
-    } else if (sampleType === 'wrinkled_market') {
-      sampleFileUrl = '/demo_receipts/7_wrinkled_market_receipt.jpg';
-      sampleFileName = 'wrinkled_market_receipt.jpg';
-      sampleCity = 'Austin';
-      sampleCat = 'Meals';
-      sampleClient = 'Hardware Supplies Sprint';
-    }
-
-    setCity(sampleCity);
-    setCategory(sampleCat);
-    setClientName(sampleClient);
+    setCity(preset.city);
+    setCategory(preset.category);
+    setClientName(preset.client);
 
     try {
-      const response = await fetch(sampleFileUrl);
-      if (!response.ok) throw new Error(`Could not fetch ${sampleFileName}`);
+      const response = await fetch(preset.fileUrl);
+      if (!response.ok) throw new Error(`Could not fetch ${preset.fileName}`);
       const blob = await response.blob();
-      const fileObj = new File([blob], sampleFileName, { type: blob.type || 'image/jpeg' });
+      const fileObj = new File([blob], preset.fileName, { type: blob.type || 'image/png' });
       setFile(fileObj);
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
@@ -202,7 +285,7 @@ export const SmartSubmit = () => {
 
   const handleProcess = async () => {
     if (!file) {
-      setError('Please select or drop a receipt image first.');
+      setError('Please select or drop a receipt image or PDF first.');
       return;
     }
     if (isPrivileged && !employeeId) {
@@ -239,12 +322,15 @@ export const SmartSubmit = () => {
   };
 
   const handleReset = () => {
+    setActivePresetId(null);
     setFile(null);
     setPreviewUrl(null);
     setResult(null);
     setError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const activePreset = DEMO_PRESETS.find(p => p.id === activePresetId);
 
   return (
     <div className={styles.container}>
@@ -255,49 +341,90 @@ export const SmartSubmit = () => {
           Drop receipt photos, scans, or itemized slips. The backend extracts the receipt, checks it against the active expense policy, and stores the result in your expense history.
         </p>
 
-        {/* Quick Sample Selector for Live Judge Demonstrations */}
-        <div className={styles.quickPills}>
-          <span className={styles.pillLabel}>Judge Demo Presets:</span>
-          <button
-            type="button"
-            className={styles.samplePill}
-            onClick={() => loadQuickSample('approved')}
-            title="Clean, in-policy business lunch ($84)"
-          >
-            🍽️ Clean Lunch (NYC $84)
-          </button>
-          <button
-            type="button"
-            className={styles.samplePill}
-            onClick={() => loadQuickSample('alcohol')}
-            title="Dinner check with itemized alcohol - triggers policy warning"
-          >
-            🍷 Alcohol Policy Flag
-          </button>
-          <button
-            type="button"
-            className={styles.samplePill}
-            onClick={() => loadQuickSample('messy_thermal')}
-            title="Real-world crumpled thermal receipt (Microsoft AI dataset)"
-          >
-            📄 Messy Thermal Paper
-          </button>
-          <button
-            type="button"
-            className={styles.samplePill}
-            onClick={() => loadQuickSample('bistro_dining')}
-            title="High-density multi-item French bistro check (Mindee dataset)"
-          >
-            ☕ Multi-Item Bistro
-          </button>
-          <button
-            type="button"
-            className={styles.samplePill}
-            onClick={() => loadQuickSample('wrinkled_market')}
-            title="Faded degraded paper receipt"
-          >
-            🧾 Faded Thermal Slip
-          </button>
+        {/* Dedicated Judge Demonstration Suite with 7 Authentic Receipts */}
+        <div className={styles.presetSection}>
+          <div className={styles.presetSectionHeader}>
+            <div className={styles.presetTitleWrap}>
+              <h4 className={styles.presetTitle}>
+                <Sparkles size={16} />
+                Judge Demo Presets
+              </h4>
+              <span className={styles.presetCountBadge}>7 Authentic Receipts</span>
+            </div>
+            <p className={styles.presetSubtitle}>
+              Click any scenario below to instantly load real receipts (clean dining, alcohol violations, messy thermal paper, French bistro, Uber transit PDF, hotel invoice):
+            </p>
+          </div>
+
+          <div className={styles.presetGrid}>
+            {DEMO_PRESETS.map((preset) => {
+              const isActive = activePresetId === preset.id;
+              const tagClass =
+                preset.badgeType === 'success'
+                  ? styles.tagSuccess
+                  : preset.badgeType === 'warning'
+                  ? styles.tagWarning
+                  : preset.badgeType === 'purple'
+                  ? styles.tagPurple
+                  : styles.tagInfo;
+
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={`${styles.presetCard} ${isActive ? styles.presetCardActive : ''}`}
+                  onClick={() => loadPreset(preset)}
+                  title={`${preset.label} - ${preset.description}`}
+                >
+                  <div className={styles.presetCardTop}>
+                    <div className={styles.presetIconLabel}>
+                      <span className={styles.presetEmoji}>{preset.icon}</span>
+                      <div className={styles.presetTextWrap}>
+                        <span className={styles.presetLabel}>{preset.label}</span>
+                        <span className={styles.presetSublabel}>{preset.sublabel}</span>
+                      </div>
+                    </div>
+                    <span className={`${styles.presetTag} ${tagClass}`}>
+                      {isActive ? 'Active' : preset.badge}
+                    </span>
+                  </div>
+                  <p className={styles.presetDesc}>{preset.description}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          {activePreset && (
+            <div className={styles.presetActiveBar}>
+              <div className={styles.presetActiveBarLeft}>
+                <Sparkles size={16} className={styles.activeSparkle} />
+                <span>
+                  Loaded preset: <strong>{activePreset.label}</strong> ({activePreset.sublabel}) • Category: <strong>{activePreset.category}</strong> • City: <strong>{activePreset.city}</strong>
+                </span>
+              </div>
+              <div className={styles.presetActiveBarRight}>
+                {activePreset.pdfUrl && (
+                  <a
+                    href={activePreset.pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.pdfSourceLink}
+                    title="Open original vector PDF in new tab"
+                  >
+                    <ExternalLink size={13} />
+                    <span>View Raw PDF</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  className={styles.clearPresetBtn}
+                  onClick={handleReset}
+                >
+                  Clear Preset
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -427,15 +554,15 @@ export const SmartSubmit = () => {
                 type="file"
                 ref={fileInputRef}
                 className={styles.hiddenInput}
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
                 onChange={handleFileInput}
               />
               <div className={styles.uploadIconWrap}>
                 <UploadCloud size={32} />
               </div>
-              <h3 className={styles.dropPrompt}>Drop receipt image here, or click to browse</h3>
+              <h3 className={styles.dropPrompt}>Drop receipt image or PDF here, or click to browse</h3>
               <p className={styles.dropSub}>
-                Supports JPG, PNG, and WEBP receipt images
+                Supports JPG, PNG, WEBP, and PDF corporate receipts
               </p>
               <div className={styles.pasteShortcutPill}>
                 <span className={styles.kbdBadge}>Ctrl</span>
@@ -447,7 +574,7 @@ export const SmartSubmit = () => {
           ) : (
             <div className={styles.filePreviewCard}>
               <div className={styles.filePreviewInfo}>
-                {previewUrl && file.type.startsWith('image/') ? (
+                {previewUrl && (file.type.startsWith('image/') || previewUrl.endsWith('.png') || previewUrl.endsWith('.jpg')) ? (
                   <img src={previewUrl} alt="Receipt preview" className={styles.previewThumb} />
                 ) : (
                   <FileText size={32} />

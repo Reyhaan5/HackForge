@@ -67,12 +67,31 @@ def compute_image_hash(image_path: str) -> str:
         except Exception:
             return hashlib.md5(str(image_path).encode()).hexdigest()
 
+def rasterize_pdf_if_needed(file_path: str) -> str:
+    """
+    If file is a PDF, renders page 0 to high-res PNG for OCR vision extraction
+    and returns the rendered PNG path.
+    """
+    if file_path.lower().endswith(".pdf"):
+        try:
+            import pymupdf
+            doc = pymupdf.open(file_path)
+            if len(doc) > 0:
+                pix = doc[0].get_pixmap(dpi=200)
+                png_path = file_path.rsplit(".", 1)[0] + ".png"
+                pix.save(png_path)
+                return png_path
+        except Exception as e:
+            print(f"[WARN] PDF rasterization failed: {e}")
+    return file_path
+
 def extract_receipt(image_path: str) -> ExtractedReceipt:
     """
     Extracts structured receipt data using the Gemini multimodal model via standard REST API.
     Pre-processes the image and falls back gracefully.
     """
-    # 1. Preprocess & Hash
+    # 1. Ensure file is rasterized if PDF, then Preprocess & Hash
+    image_path = rasterize_pdf_if_needed(image_path)
     preprocess_receipt_image(image_path)
     img_hash = compute_image_hash(image_path)
 
