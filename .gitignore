@@ -78,3 +78,13 @@ desktop.ini
 .settings/
 .classpath
 .project
+
+# Python & Uploads
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+Backend/uploads/
+venv/
+.venv/

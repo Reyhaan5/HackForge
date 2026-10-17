@@ -178,7 +178,132 @@ def test_policy_rules():
     print(f"  Flags: {d4.flags}")
     assert d4.status == "PENDING_APPROVAL"
     assert any("Requires manager sign-off" in f for f in d4.flags)
-    print("  ✓ Expense over $200 flagged for manager sign-off.")
+    # ------------------------------------------------------------------
+    # 5. Unitemized Receipt Breakdown Heuristic
+    # ------------------------------------------------------------------
+    print("\n[Case 5] Unitemized Receipt Breakdown Warning")
+    unitemized_lunch = ExtractedReceipt(
+        vendor="Corner Diner",
+        date="2026-10-18",
+        total_amount=60.00,
+        currency="USD",
+        category="Meals",
+        line_items=[],
+        is_itemized=False,
+        image_hash="hash_case_5_unitemized"
+    )
+
+    d5 = validate_receipt(
+        receipt=unitemized_lunch,
+        employee_id="EMP-101",
+        submission_channel="web",
+        city="Default",
+        category="Meals",
+        client_name="",
+        attendee_count=1,
+        db=db
+    )
+    print(f"  Status: {d5.status}")
+    print(f"  Flags: {d5.flags}")
+    assert any("UNITEMIZED RECEIPT" in f for f in d5.flags)
+    assert d5.status == "PENDING_APPROVAL"
+    print("  ✓ Unitemized receipt flagged and escalated to PENDING_APPROVAL for verification.")
+
+    # ------------------------------------------------------------------
+    # 6. Category Cap Enforcement (e.g. $10 cap for Office Supplies)
+    # ------------------------------------------------------------------
+    print("\n[Case 6] Category Cap Enforcement (Office Supplies configured with $10.00 cap)")
+    from database import Policy
+    active_policy = db.query(Policy).filter_by(is_active=True).first()
+    original_rules = dict(active_policy.rules)
+    modified_rules = dict(original_rules)
+    modified_rules["category_caps"] = dict(original_rules.get("category_caps", {}))
+    modified_rules["category_caps"]["Office Supplies"] = 10.0
+    active_policy.rules = modified_rules
+    db.commit()
+
+    office_supplies_receipt = ExtractedReceipt(
+        vendor="Staples",
+        date="2026-10-18",
+        total_amount=80.00,
+        currency="USD",
+        category="Office Supplies",
+        line_items=[LineItem(description="Printer Paper & Toner", amount=80.00)],
+        is_itemized=True,
+        image_hash="hash_case_6_office_supplies"
+    )
+
+    d6 = validate_receipt(
+        receipt=office_supplies_receipt,
+        employee_id="EMP-102",
+        submission_channel="web",
+        city="Default",
+        category="Office Supplies",
+        client_name="",
+        attendee_count=1,
+        db=db
+    )
+    print(f"  Status: {d6.status}")
+    print(f"  Approved Amount: ${d6.approved_amount:.2f} (Requested: $80.00)")
+    print(f"  Flags: {d6.flags}")
+    assert d6.approved_amount == 10.00, f"Expected 10.00, got {d6.approved_amount}"
+    assert d6.status == "PARTIAL"
+    assert any("Exceeds Office Supplies cap ($10.00 USD)" in f for f in d6.flags)
+    print("  ✓ With $10 cap configured for Office Supplies, an $80 claim was capped at $10.00!")
+
+    # Restore original rules
+    active_policy.rules = original_rules
+    db.commit()
+
+    # ------------------------------------------------------------------
+    # 7. Structuring / Threshold Evasion Detection ($150-$199 within 48h)
+    # ------------------------------------------------------------------
+    print("\n[Case 7] Structuring / Threshold Evasion Detection ($150-$199 within 48h)")
+    # Save a receipt for EMP-103 on 2026-10-18 for $185
+    r_struct1 = Receipt(
+        employee_id="EMP-103",
+        image_path="/tmp/fake1.jpg",
+        image_hash="fake_hash_struct_1",
+        submission_channel="web",
+        vendor="Tech Gear",
+        transaction_date=date(2026, 10, 18),
+        category="Office Supplies",
+        currency="USD",
+        original_amount=185.00,
+        base_amount_usd=185.00,
+        status="APPROVED",
+        approved_amount=185.00
+    )
+    db.add(r_struct1)
+    db.commit()
+
+    # Next day (2026-10-19), EMP-103 submits another $190 receipt just below the $200 threshold
+    struct2_receipt = ExtractedReceipt(
+        vendor="Desk Depot",
+        date="2026-10-19",
+        total_amount=190.00,
+        currency="USD",
+        category="Office Supplies",
+        line_items=[LineItem(description="Ergonomic Keyboard", amount=190.00)],
+        is_itemized=True,
+        image_hash="hash_case_7_structuring"
+    )
+
+    d7 = validate_receipt(
+        receipt=struct2_receipt,
+        employee_id="EMP-103",
+        submission_channel="web",
+        city="Default",
+        category="Office Supplies",
+        client_name="",
+        attendee_count=1,
+        db=db
+    )
+    print(f"  Status: {d7.status}")
+    print(f"  Flags: {d7.flags}")
+    assert d7.status == "PENDING_APPROVAL"
+    assert any("STRUCTURING ALERT" in f for f in d7.flags)
+    print("  ✓ Structuring pattern detected: repeated expenses near $200 threshold flagged for audit!")
 
     print("\n✓ All policy engine rule tests passed!\n")
 

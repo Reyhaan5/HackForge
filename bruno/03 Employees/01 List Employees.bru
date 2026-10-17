@@ -1,0 +1,25 @@
+meta {
+  name: List Employees
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/employees
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{employeeToken}}
+}
+
+tests {
+  test("employee listing includes employee summaries", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()).to.be.an("array");
+    expect(res.getBody()).to.have.length(1);
+    expect(res.getBody()[0].id).to.equal(bru.getVar("employeeId"));
+    expect(res.getBody()[0]).to.have.property("monthly_spent");
+  });
+}

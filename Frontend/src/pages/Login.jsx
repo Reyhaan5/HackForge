@@ -19,7 +19,7 @@ function Login() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     const { theme } = useTheme();
-    const { loginUser } = useReceipts();
+    const { loginUser, refreshSession } = useReceipts();
     const trailColor = theme === "dark" ? "#f97316" : "#ea580c";
 
     function handleChange(e) {
@@ -45,6 +45,7 @@ function Login() {
 
             // Set user in Context (No localStorage!)
             loginUser(authenticatedUser);
+            await refreshSession();
 
             if ((authenticatedUser.role || "").toLowerCase() === "admin") {
                 navigate("/admin/queue");
@@ -82,6 +83,7 @@ function Login() {
 
             // Set user in Context (No localStorage!)
             loginUser(registeredUser);
+            await refreshSession();
 
             if ((registeredUser.role || "").toLowerCase() === "admin") {
                 navigate("/admin/queue");

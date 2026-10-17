@@ -27,8 +27,8 @@ class ExtractedReceipt(BaseModel):
     currency: str = "USD"
     category: str = "Meals"
     line_items: List[LineItem] = Field(default_factory=list)
-    calculated_tax: float = 0.0
-    calculated_tip: float = 0.0
+    calculated_tax: Optional[float] = 0.0
+    calculated_tip: Optional[float] = 0.0
     is_itemized: bool = False
     image_hash: str = ""
 
@@ -126,6 +126,11 @@ Important Extraction Rules:
                 raw_text = re.sub(r"\s*```$", "", raw_text)
                 data = json.loads(raw_text)
                 data["currency"] = normalize_currency(data.get("currency", "USD"))
+                data["calculated_tax"] = float(data.get("calculated_tax") or 0.0)
+                data["calculated_tip"] = float(data.get("calculated_tip") or 0.0)
+                data["total_amount"] = float(data.get("total_amount") or 0.0)
+                data["image_hash"] = img_hash
+                return ExtractedReceipt(**data)
             else:
                 print(f"⚠️ Gemini API returned status {response.status_code}: {response.text}")
         except Exception as e:

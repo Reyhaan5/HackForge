@@ -1,0 +1,31 @@
+meta {
+  name: Register
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/register
+  body: json
+  auth: none
+}
+
+script:pre-request {
+  bru.setVar("registrationUsername", "bruno_api_" + Date.now());
+}
+
+body:json {
+  {
+    "username": "{{registrationUsername}}",
+    "password": "brunoPass123"
+  }
+}
+
+tests {
+  test("registration creates an employee account", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.user.role).to.equal("Employee");
+    expect(body.user.employee_id).to.be.a("string");
+  });
+}

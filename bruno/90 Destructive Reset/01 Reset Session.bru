@@ -1,0 +1,26 @@
+meta {
+  name: DANGEROUS - Reset Session
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/reset-session
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+docs {
+  Deletes every receipt in the connected database. Run only against a disposable test database.
+}
+
+tests {
+  test("admin reset-session returns success", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+  });
+}

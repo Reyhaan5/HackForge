@@ -1,0 +1,43 @@
+meta {
+  name: Update Policy
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/policy
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "monthly_limit": 2000,
+    "approval_threshold": 200,
+    "city_daily_caps": {
+      "New York": 100,
+      "San Francisco": 90,
+      "Chicago": 75,
+      "Austin": 75,
+      "Default": 75
+    },
+    "category_caps": {
+      "Office Supplies": 150,
+      "Transport": 100
+    },
+    "client_meal_per_person_limit": 60,
+    "non_reimbursable_keywords": ["alcohol", "wine", "beer", "liquor", "cocktail", "spa", "massage", "movie", "casino", "gift", "tobacco"]
+  }
+}
+
+tests {
+  test("admin can update the active policy", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+    expect(res.getBody()).to.have.property("rules");
+  });
+}

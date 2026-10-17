@@ -116,7 +116,6 @@ def init_db():
                         "Default": 75.0
                     },
                     "category_caps": {
-                        "Meals": 100.0,
                         "Office Supplies": 150.0,
                         "Transport": 100.0
                     },
@@ -139,7 +138,8 @@ def init_db():
             if not db.query(Employee).filter_by(id=emp_id).first():
                 db.add(Employee(id=emp_id, name=name, email=email, department=dept))
 
-        # Seed sample logins from schema.sql
+        # Seed sample logins with secure PBKDF2 hashes
+        from auth import hash_password
         sample_logins = [
             ("alice", "password123", "Employee", "EMP-101"),
             ("bob", "password123", "Employee", "EMP-102"),
@@ -148,8 +148,12 @@ def init_db():
             ("finance", "finance123", "Admin", None),
         ]
         for uname, pwd, r, empid in sample_logins:
-            if not db.query(Login).filter_by(username=uname).first():
-                db.add(Login(username=uname, password_hash=pwd, role=r, employee_id=empid))
+            user_entry = db.query(Login).filter_by(username=uname).first()
+            if not user_entry:
+                db.add(Login(username=uname, password_hash=hash_password(pwd), role=r, employee_id=empid))
+            elif not "$" in user_entry.password_hash:
+                # Upgrade legacy plaintext password to secure hash
+                user_entry.password_hash = hash_password(pwd)
         
         db.commit()
     finally:

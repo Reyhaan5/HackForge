@@ -78,7 +78,6 @@ INSERT INTO policies (id, is_active, rules) VALUES (
             "Default": 75.0
         },
         "category_caps": {
-            "Meals": 100.0,
             "Office Supplies": 150.0,
             "Transport": 100.0
         },

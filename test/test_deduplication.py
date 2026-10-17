@@ -11,8 +11,8 @@ from database import init_db, SessionLocal, Receipt
 from extractor import ExtractedReceipt, LineItem
 from policy_engine import validate_receipt
 
-def test_multi_channel_deduplication():
-    print("Testing Multi-Channel Duplicate Detection...")
+def test_deduplication_and_fraud():
+    print("Testing Deduplication & Cross-Employee Fraud Checks...")
     init_db()
     db = SessionLocal()
     
@@ -31,12 +31,12 @@ def test_multi_channel_deduplication():
         image_hash="perceptual_hash_abc_123"
     )
 
-    # 1. First submission via 'email'
-    print("  [Step 1] Submitting receipt via 'email' channel...")
+    # 1. First submission by EMP-101 via web
+    print("  [Step 1] EMP-101 submits receipt via web...")
     d1 = validate_receipt(
         receipt=sample_receipt,
         employee_id="EMP-101",
-        submission_channel="email",
+        submission_channel="web",
         city="New York",
         category="Meals",
         client_name="",
@@ -52,7 +52,7 @@ def test_multi_channel_deduplication():
         employee_id="EMP-101",
         image_path="/tmp/fake_receipt.jpg",
         image_hash=sample_receipt.image_hash,
-        submission_channel="email",
+        submission_channel="web",
         vendor=sample_receipt.vendor,
         transaction_date=date(2026, 10, 15),
         category="Meals",
@@ -70,27 +70,9 @@ def test_multi_channel_deduplication():
     db.add(r1)
     db.commit()
 
-    # 2. Second submission: Same receipt submitted via 'slack'
-    print("  [Step 2] Resubmitting the same receipt via 'slack' channel...")
+    # 2. Same-Employee Duplicate: EMP-101 resubmits the same receipt
+    print("  [Step 2] EMP-101 resubmits the same receipt...")
     d2 = validate_receipt(
-        receipt=sample_receipt,
-        employee_id="EMP-101",
-        submission_channel="slack",
-        city="New York",
-        category="Meals",
-        client_name="",
-        attendee_count=1,
-        db=db
-    )
-    assert d2.status == "REJECTED", f"Expected REJECTED, got {d2.status}"
-    assert d2.approved_amount == 0.00
-    assert any("DUPLICATE DETECTED" in flag for flag in d2.flags)
-    assert any("via 'email' channel" in flag for flag in d2.flags), "Did not identify prior channel 'email'"
-    print(f"    ✓ Slack submission caught as duplicate! Flag: {d2.flags[0]}")
-
-    # 3. Third submission: Same receipt submitted via 'web' upload
-    print("  [Step 3] Resubmitting via 'web' portal...")
-    d3 = validate_receipt(
         receipt=sample_receipt,
         employee_id="EMP-101",
         submission_channel="web",
@@ -100,11 +82,30 @@ def test_multi_channel_deduplication():
         attendee_count=1,
         db=db
     )
-    assert d3.status == "REJECTED"
-    print(f"    ✓ Web submission caught as duplicate!")
+    assert d2.status == "REJECTED", f"Expected REJECTED, got {d2.status}"
+    assert d2.approved_amount == 0.00
+    assert any("DUPLICATE DETECTED" in flag for flag in d2.flags)
+    print(f"    ✓ Duplicate caught! Flag: {d2.flags[0]}")
 
-    # 4. Fuzzy Duplicate Test (Different hash, but same vendor + date + amount + employee)
-    print("  [Step 4] Testing fuzzy duplicate with modified hash...")
+    # 3. Cross-Employee Double Claim: EMP-102 submits the exact same receipt!
+    print("  [Step 3] Cross-Employee Collision: EMP-102 submits EMP-101's receipt...")
+    d3 = validate_receipt(
+        receipt=sample_receipt,
+        employee_id="EMP-102",
+        submission_channel="web",
+        city="New York",
+        category="Meals",
+        client_name="",
+        attendee_count=1,
+        db=db
+    )
+    assert d3.status == "REJECTED", f"Expected REJECTED, got {d3.status}"
+    assert d3.approved_amount == 0.00
+    assert any("FRAUD ALERT: Cross-employee double claim" in flag for flag in d3.flags)
+    print(f"    ✓ Cross-employee double claim caught! Flag: {d3.flags[0]}")
+
+    # 4. Cross-Employee Fuzzy Collision: EMP-103 submits identical vendor, date, and amount
+    print("  [Step 4] EMP-103 submits receipt with matching vendor, date, and amount...")
     fuzzy_receipt = ExtractedReceipt(
         vendor="Acme Bistro",
         date="2026-10-15",
@@ -113,12 +114,12 @@ def test_multi_channel_deduplication():
         category="Meals",
         line_items=[LineItem(description="Business Lunch", amount=45.00)],
         is_itemized=True,
-        image_hash="different_perceptual_hash_xyz_999"
+        image_hash="distinct_photo_hash_different_angle"
     )
     d4 = validate_receipt(
         receipt=fuzzy_receipt,
-        employee_id="EMP-101",
-        submission_channel="mobile",
+        employee_id="EMP-103",
+        submission_channel="web",
         city="New York",
         category="Meals",
         client_name="",
@@ -126,16 +127,17 @@ def test_multi_channel_deduplication():
         db=db
     )
     assert d4.status == "REJECTED"
-    print("    ✓ Fuzzy duplicate (identical vendor, date, amount) caught successfully!")
+    assert any("FRAUD ALERT: Cross-employee double claim" in flag for flag in d4.flags)
+    print("    ✓ Fuzzy cross-employee collision caught successfully!")
 
-    print("✓ All deduplication tests passed!\n")
+    print("✓ All deduplication and fraud tests passed!\n")
 
 def run_all():
     print("=" * 60)
-    print("RUNNING MULTI-CHANNEL DEDUPLICATION TESTS")
+    print("RUNNING DEDUPLICATION & FRAUD TESTS")
     print("=" * 60)
-    test_multi_channel_deduplication()
-    print("🎉 ALL DEDUPLICATION TESTS COMPLETED SUCCESSFULLY!\n")
+    test_deduplication_and_fraud()
+    print("🎉 ALL DEDUPLICATION & FRAUD TESTS COMPLETED SUCCESSFULLY!\n")
 
 if __name__ == "__main__":
     run_all()

@@ -2,6 +2,7 @@ import { useState } from "react";
 import styles from "../styles/Modal.module.css";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
+import { clearAccessToken } from "../../services/api";
 
 export default function ProfileModal({ isOpen, onClose }){
     const navigate=useNavigate();
@@ -26,6 +27,7 @@ export default function ProfileModal({ isOpen, onClose }){
             console.log("Logout Error Occured: ", err);
         } 
         finally{
+            clearAccessToken();
             localStorage.removeItem("token");
             localStorage.removeItem("user");
             onClose();
