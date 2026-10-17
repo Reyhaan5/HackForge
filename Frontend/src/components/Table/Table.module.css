@@ -16,7 +16,7 @@
 }
 
 .tableHead {
-  background-color: #F8FAFC;
+  background-color: var(--bg);
   border-bottom: 2px solid var(--border-color);
 }
 
@@ -55,7 +55,7 @@
 }
 
 .tr:hover {
-  background-color: #F8FAFC;
+  background-color: var(--card-hover);
 }
 
 .td {

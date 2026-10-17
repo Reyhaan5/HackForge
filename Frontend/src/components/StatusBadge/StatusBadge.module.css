@@ -31,9 +31,9 @@
 }
 
 .pending {
-  background-color: #FEF3C7;
-  color: #B45309;
-  border: 1px solid #F59E0B;
+  background-color: var(--warning-light);
+  color: var(--warning-color);
+  border: 1px solid var(--warning-color);
 }
 
 .rejected {
@@ -43,7 +43,7 @@
 }
 
 .default {
-  background-color: #F3F4F6;
+  background-color: var(--bg);
   color: var(--text-secondary);
   border: 1px solid var(--border-color);
 }

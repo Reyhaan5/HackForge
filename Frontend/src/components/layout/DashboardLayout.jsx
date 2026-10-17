@@ -1,6 +1,7 @@
 import { useState } from "react";
 import StaggeredMenu from "../StaggeredMenu";
 import { Bell } from "lucide-react";
+import ThemeToggle from "../ThemeToggle";
 import styles from "../../pages/styles/Dashboard.module.css";
 import modalStyles from "../../pages/styles/Modal.module.css";
 import { STUDENT_MENU_ITEMS, SOCIAL_ITEMS } from "../../constants/navigation";
@@ -40,14 +41,17 @@ export default function DashboardLayout({
             {subtitle && <p className={styles.topSubtitle}>{subtitle}</p>}
           </div>
 
-          <button
-            className={styles.notificationButton}
-            aria-label="Alerts"
-            onClick={() => setIsNotifOpen(true)}
-          >
-            <Bell size={20} />
-            <span className={styles.notificationDot} />
-          </button>
+          <div className={styles.headerActions}>
+            <ThemeToggle />
+            <button
+              className={styles.notificationButton}
+              aria-label="Alerts"
+              onClick={() => setIsNotifOpen(true)}
+            >
+              <Bell size={20} />
+              <span className={styles.notificationDot} />
+            </button>
+          </div>
         </header>
 
         <section className={styles.contentGrid}>
