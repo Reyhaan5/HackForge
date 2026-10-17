@@ -5,9 +5,6 @@ import {
   FileText,
   Scan,
   AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Clock,
   Sparkles,
   ArrowRight,
   RotateCcw,
@@ -21,7 +18,6 @@ import { useReceipts } from '../../context/ReceiptContext';
 import { getEmployees, processReceipt } from '../../services/api';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import ReceiptSplitView from '../../components/ReceiptSplitView/ReceiptSplitView';
-import AuditTrafficBanner from '../../components/AuditTrafficBanner/AuditTrafficBanner';
 import AuditStatusPill from '../../components/AuditStatusPill/AuditStatusPill';
 import styles from './SmartSubmit.module.css';
 
@@ -33,7 +29,9 @@ const SUBMISSION_CHANNELS = [
 ];
 
 export const SmartSubmit = () => {
-  const { addProcessedReceipt, updateProcessedReceipt } = useReceipts();
+  const { user, addProcessedReceipt, refreshSession, policyRules } = useReceipts();
+  const isPrivileged = ['Admin', 'Finance'].includes(user?.role);
+  const cityCaps = policyRules?.city_daily_caps || {};
 
   // Form states
   const [channel, setChannel] = useState('web');
@@ -55,12 +53,19 @@ export const SmartSubmit = () => {
   const [result, setResult] = useState(null);
 
   useEffect(() => {
-    if (!['Admin', 'Finance'].includes(user?.role)) return;
+    if (!isPrivileged) return;
+    let isCurrent = true;
     getEmployees().then(list => {
+      if (!isCurrent) return;
       setEmployees(list);
       setEmployeeId(current => current || list[0]?.id || '');
-    }).catch(err => setError(err.message || 'Could not load employees from the backend.'));
-  }, [user?.role]);
+    }).catch(err => {
+      if (isCurrent) setError(err.message || 'Could not load employees from the backend.');
+    });
+    return () => {
+      isCurrent = false;
+    };
+  }, [isPrivileged]);
 
   useEffect(() => () => {
     if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
@@ -91,6 +96,10 @@ export const SmartSubmit = () => {
   };
 
   const selectFile = (selectedFile) => {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(selectedFile?.type)) {
+      setError('Choose a JPG, PNG, or WEBP image. PDF uploads are not supported by the receipt processor.');
+      return;
+    }
     setFile(selectedFile);
     setError(null);
     setResult(null);
@@ -168,7 +177,7 @@ export const SmartSubmit = () => {
       setError('Please select or drop a receipt image first.');
       return;
     }
-    if (['Admin', 'Finance'].includes(user?.role) && !employeeId) {
+    if (isPrivileged && !employeeId) {
       setError('Select an employee before submitting a receipt for them.');
       return;
     }
@@ -178,7 +187,13 @@ export const SmartSubmit = () => {
 
     try {
       // Call FastAPI backend POST /api/process-receipt
-      const res = await processReceipt(file, city, category, clientName);
+      const res = await processReceipt(file, city, category, clientName, {
+        employeeId: user?.employee_id || employeeId,
+        submissionChannel: channel
+      });
+      if (!res?.success || !res.extracted || !res.validation) {
+        throw new Error('The backend returned an incomplete receipt decision. Please try again.');
+      }
       setResult(res);
       addProcessedReceipt(res, {
         city,
@@ -200,6 +215,7 @@ export const SmartSubmit = () => {
     setPreviewUrl(null);
     setResult(null);
     setError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -246,7 +262,7 @@ export const SmartSubmit = () => {
       </div>
 
       {error && (
-        <div className={styles.errorBanner}>
+        <div className={styles.errorBanner} role="alert">
           <AlertCircle size={20} />
           <span>{error}</span>
         </div>
@@ -330,7 +346,7 @@ export const SmartSubmit = () => {
                 onChange={e => setClientName(e.target.value)}
               />
             </div>
-            {['Admin', 'Finance'].includes(user?.role) && (
+            {isPrivileged && (
               <div className={styles.formGroup}>
                 <label className={styles.label} htmlFor="receipt-employee">Submitting for</label>
                 <select
@@ -364,7 +380,7 @@ export const SmartSubmit = () => {
                 type="file"
                 ref={fileInputRef}
                 className={styles.hiddenInput}
-                accept="image/*,.pdf"
+                accept="image/jpeg,image/png,image/webp"
                 onChange={handleFileInput}
               />
               <div className={styles.uploadIconWrap}>
@@ -372,7 +388,7 @@ export const SmartSubmit = () => {
               </div>
               <h3 className={styles.dropPrompt}>Drop receipt image here, or click to browse</h3>
               <p className={styles.dropSub}>
-                Supports JPG, PNG, WEBP, or PDF camera captures of itemized receipts
+                Supports JPG, PNG, and WEBP receipt images
               </p>
             </div>
           ) : (
@@ -432,11 +448,11 @@ export const SmartSubmit = () => {
       {result && !isProcessing && (
         <AuditStatusPill
           status={result.validation.status}
-          requestedAmount={result.extracted?.total_amount || 0}
+          requestedAmount={result.base_amount_usd ?? result.extracted?.total_amount ?? 0}
           approvedAmount={result.validation.reimbursement_amount}
           flags={result.validation.flags}
-          currency={result.extracted?.currency || 'USD'}
-          explanation={result.validation.explanation || ''}
+          currency="USD"
+          explanation={result.decision?.explanation || ''}
         />
       )}
 

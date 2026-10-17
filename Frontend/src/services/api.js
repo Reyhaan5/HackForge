@@ -131,11 +131,7 @@ export async function processReceipt(
   if (empId) formData.append('employee_id', empId);
 
   try {
-    const response = await apiClient.post('/api/process-receipt', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await apiClient.post('/api/process-receipt', formData);
     return response.data;
   } catch (error) {
     console.error('Failed to process receipt with backend:', error);
