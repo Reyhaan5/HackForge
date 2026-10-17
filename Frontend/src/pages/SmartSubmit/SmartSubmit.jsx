@@ -27,103 +27,66 @@ import styles from './SmartSubmit.module.css';
 export const DEMO_PRESETS = [
   {
     id: 'approved_lunch',
-    label: 'Clean Lunch',
-    icon: '🍽️',
-    sublabel: 'NYC ($84.00)',
-    badge: 'Approved',
-    badgeType: 'success',
+    label: 'Clean Lunch (NYC $84)',
     fileUrl: '/demo_receipts/6_client_lunch_approved.jpg',
     fileName: '6_client_lunch_approved.jpg',
     city: 'New York',
     category: 'Meals',
     client: 'Acme Corp Review Dinner',
-    description: 'Compliant business lunch meeting within daily NYC cap.'
   },
   {
     id: 'alcohol_flag',
     label: 'Alcohol Policy Flag',
-    icon: '🍷',
-    sublabel: 'Chicago (Flagged)',
-    badge: 'Disallowed Items',
-    badgeType: 'warning',
     fileUrl: '/demo_receipts/5_dinner_cocktails_alcohol.jpg',
     fileName: '5_dinner_cocktails_alcohol.jpg',
     city: 'Chicago',
     category: 'Meals',
     client: 'Team Happy Hour',
-    description: 'Itemized cocktails and wine automatically detected and deducted.'
   },
   {
     id: 'messy_thermal',
     label: 'Messy Thermal Paper',
-    icon: '📄',
-    sublabel: 'Microsoft AI Dataset',
-    badge: 'Crumpled OCR',
-    badgeType: 'info',
     fileUrl: '/demo_receipts/1_messy_thermal_receipt.jpg',
     fileName: '1_messy_thermal_receipt.jpg',
     city: 'New York',
     category: 'Meals',
     client: 'Field Site Operations Lunch',
-    description: 'Real wrinkled, crumpled paper testing camera angle & skew OCR.'
   },
   {
     id: 'bistro_dining',
     label: 'Multi-Item Bistro',
-    icon: '☕',
-    sublabel: 'Mindee Dataset',
-    badge: '12 Line Items',
-    badgeType: 'info',
     fileUrl: '/demo_receipts/2_restaurant_bistro_receipt.jpg',
     fileName: '2_restaurant_bistro_receipt.jpg',
     city: 'San Francisco',
     category: 'Meals',
     client: 'Executive Partner Dinner',
-    description: 'High-density French bistro bill with multi-tax breakdown.'
   },
   {
     id: 'uber_transit',
-    label: 'Uber Ride Receipt',
-    icon: '🚗',
-    sublabel: 'Transit PDF / Doc',
-    badge: 'PDF / Transit',
-    badgeType: 'purple',
+    label: 'Uber Transit (PDF)',
     fileUrl: '/demo_receipts/3_corporate_uber_receipt.png',
-    pdfUrl: '/demo_receipts/3_corporate_uber_receipt.pdf',
     fileName: '3_corporate_uber_receipt.png',
     city: 'New York',
     category: 'Travel',
     client: 'JFK Airport to Client HQ',
-    description: 'Corporate ground transit PDF receipt with distance, route & tip.'
   },
   {
     id: 'hotel_invoice',
-    label: 'Hotel Folio Invoice',
-    icon: '🏨',
-    sublabel: 'Corporate Lodging PDF',
-    badge: 'PDF / Lodging',
-    badgeType: 'purple',
+    label: 'Hotel Folio (PDF)',
     fileUrl: '/demo_receipts/4_hotel_flight_invoice.png',
-    pdfUrl: '/demo_receipts/4_hotel_flight_invoice.pdf',
     fileName: '4_hotel_flight_invoice.png',
     city: 'Austin',
     category: 'Lodging',
     client: 'Tech Summit Accommodation',
-    description: 'Corporate hotel folio invoice with room charges, tax & parking.'
   },
   {
     id: 'wrinkled_market',
     label: 'Faded Thermal Slip',
-    icon: '🧾',
-    sublabel: 'Weathered Slip',
-    badge: 'Contrast Boost',
-    badgeType: 'warning',
     fileUrl: '/demo_receipts/7_wrinkled_market_receipt.jpg',
     fileName: '7_wrinkled_market_receipt.jpg',
     city: 'Austin',
     category: 'Other',
     client: 'Hardware Supplies Sprint',
-    description: 'Aged weathered register tape testing auto-contrast boost.'
   }
 ];
 
@@ -341,90 +304,22 @@ export const SmartSubmit = () => {
           Drop receipt photos, scans, or itemized slips. The backend extracts the receipt, checks it against the active expense policy, and stores the result in your expense history.
         </p>
 
-        {/* Dedicated Judge Demonstration Suite with 7 Authentic Receipts */}
-        <div className={styles.presetSection}>
-          <div className={styles.presetSectionHeader}>
-            <div className={styles.presetTitleWrap}>
-              <h4 className={styles.presetTitle}>
-                <Sparkles size={16} />
-                Judge Demo Presets
-              </h4>
-              <span className={styles.presetCountBadge}>7 Authentic Receipts</span>
-            </div>
-            <p className={styles.presetSubtitle}>
-              Click any scenario below to instantly load real receipts (clean dining, alcohol violations, messy thermal paper, French bistro, Uber transit PDF, hotel invoice):
-            </p>
-          </div>
-
-          <div className={styles.presetGrid}>
-            {DEMO_PRESETS.map((preset) => {
-              const isActive = activePresetId === preset.id;
-              const tagClass =
-                preset.badgeType === 'success'
-                  ? styles.tagSuccess
-                  : preset.badgeType === 'warning'
-                  ? styles.tagWarning
-                  : preset.badgeType === 'purple'
-                  ? styles.tagPurple
-                  : styles.tagInfo;
-
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className={`${styles.presetCard} ${isActive ? styles.presetCardActive : ''}`}
-                  onClick={() => loadPreset(preset)}
-                  title={`${preset.label} - ${preset.description}`}
-                >
-                  <div className={styles.presetCardTop}>
-                    <div className={styles.presetIconLabel}>
-                      <span className={styles.presetEmoji}>{preset.icon}</span>
-                      <div className={styles.presetTextWrap}>
-                        <span className={styles.presetLabel}>{preset.label}</span>
-                        <span className={styles.presetSublabel}>{preset.sublabel}</span>
-                      </div>
-                    </div>
-                    <span className={`${styles.presetTag} ${tagClass}`}>
-                      {isActive ? 'Active' : preset.badge}
-                    </span>
-                  </div>
-                  <p className={styles.presetDesc}>{preset.description}</p>
-                </button>
-              );
-            })}
-          </div>
-
-          {activePreset && (
-            <div className={styles.presetActiveBar}>
-              <div className={styles.presetActiveBarLeft}>
-                <Sparkles size={16} className={styles.activeSparkle} />
-                <span>
-                  Loaded preset: <strong>{activePreset.label}</strong> ({activePreset.sublabel}) • Category: <strong>{activePreset.category}</strong> • City: <strong>{activePreset.city}</strong>
-                </span>
-              </div>
-              <div className={styles.presetActiveBarRight}>
-                {activePreset.pdfUrl && (
-                  <a
-                    href={activePreset.pdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.pdfSourceLink}
-                    title="Open original vector PDF in new tab"
-                  >
-                    <ExternalLink size={13} />
-                    <span>View Raw PDF</span>
-                  </a>
-                )}
-                <button
-                  type="button"
-                  className={styles.clearPresetBtn}
-                  onClick={handleReset}
-                >
-                  Clear Preset
-                </button>
-              </div>
-            </div>
-          )}
+        {/* Quick Sample Selector for Live Judge Demonstrations */}
+        <div className={styles.quickPills}>
+          <span className={styles.pillLabel}>Judge Demo Presets:</span>
+          {DEMO_PRESETS.map((preset) => {
+            const isActive = activePresetId === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                className={`${styles.samplePill} ${isActive ? styles.samplePillActive : ''}`}
+                onClick={() => loadPreset(preset)}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
