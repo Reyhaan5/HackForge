@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-18T00:00:00+05:30",
+  "title": "Design System: Receipt Graveyard Resolver",
+  "extensions": {
+    "colorMeta": {
+      "ledger-orange": {
+        "role": "primary",
+        "displayName": "Ledger Orange",
+        "canonical": "#ea580c"
+      },
+      "ledger-orange-hover": {
+        "role": "primary",
+        "displayName": "Deep Ledger Orange",
+        "canonical": "#c2410c"
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Soft Canvas",
+        "canonical": "#f9fafb"
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper White",
+        "canonical": "#ffffff"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Warm Ink",
+        "canonical": "#1c1917"
+      },
+      "muted-ink": {
+        "role": "neutral",
+        "displayName": "Muted Stone",
+        "canonical": "#78716c"
+      },
+      "divider": {
+        "role": "neutral",
+        "displayName": "Warm Divider",
+        "canonical": "#e7e5e4"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Page Display",
+        "purpose": "Primary page and dashboard headings."
+      },
+      "body": {
+        "displayName": "Interface Body",
+        "purpose": "Everyday interface copy and supporting explanations."
+      },
+      "label": {
+        "displayName": "Operational Label",
+        "purpose": "Metadata, compact labels, and table headings."
+      }
+    },
+    "shadows": [
+      {
+        "name": "legacy-card",
+        "value": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+        "purpose": "Existing dashboard card shadow; current preference is to minimize this treatment."
+      },
+      {
+        "name": "legacy-card-hover",
+        "value": "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        "purpose": "Existing hover elevation; reserve for meaningful interactive feedback."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile-navigation",
+        "value": "900px"
+      },
+      {
+        "name": "submission-stack",
+        "value": "768px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action with Ledger Orange and a visible keyboard focus ring.",
+      "html": "<button class=\"ds-button-primary\">Submit receipt</button>",
+      "css": ".ds-button-primary { background: #ea580c; color: #fff; border: 1px solid transparent; border-radius: 8px; padding: 12px 20px; font: 600 0.92rem/1.2 'Geist Variable', sans-serif; cursor: pointer; transition: background-color 0.2s ease, box-shadow 0.2s ease; } .ds-button-primary:hover { background: #c2410c; } .ds-button-primary:focus-visible { outline: 3px solid rgba(234, 88, 12, 0.35); outline-offset: 2px; } .ds-button-primary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Neutral action for secondary choices.",
+      "html": "<button class=\"ds-button-secondary\">View details</button>",
+      "css": ".ds-button-secondary { background: #fff; color: #1c1917; border: 1px solid #e7e5e4; border-radius: 8px; padding: 10px 14px; font: 500 0.9rem/1.2 'Geist Variable', sans-serif; cursor: pointer; transition: background-color 0.2s ease, border-color 0.2s ease; } .ds-button-secondary:hover { background: #f5f5f4; border-color: #d6d3d1; } .ds-button-secondary:focus-visible { outline: 3px solid rgba(234, 88, 12, 0.3); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Full-width field with a clear orange focus state.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Vendor name\" aria-label=\"Vendor name\" />",
+      "css": ".ds-input { width: 100%; min-width: 0; background: #fff; color: #1c1917; border: 1px solid #e7e5e4; border-radius: 8px; padding: 10px 12px; font: 400 0.9rem/1.4 'Geist Variable', sans-serif; transition: border-color 0.2s ease, box-shadow 0.2s ease; } .ds-input::placeholder { color: #78716c; } .ds-input:focus-visible { border-color: #ea580c; outline: 3px solid rgba(234, 88, 12, 0.2); outline-offset: 1px; } .ds-input:disabled { opacity: 0.55; cursor: not-allowed; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "status-chip",
+      "description": "Compact text-led receipt status with a semantic tint.",
+      "html": "<span class=\"ds-status-chip\"><span class=\"ds-status-dot\" aria-hidden=\"true\"></span>Approved</span>",
+      "css": ".ds-status-chip { display: inline-flex; align-items: center; gap: 6px; background: #ecfdf5; color: #047857; border: 1px solid #059669; border-radius: 9999px; padding: 4px 10px; font: 600 0.75rem/1.2 'Geist Variable', sans-serif; letter-spacing: 0.025em; } .ds-status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }"
+    },
+    {
+      "name": "Content Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Border-defined content surface with restrained depth.",
+      "html": "<article class=\"ds-card\"><h3>Recent activity</h3><p>Review your latest expense submissions.</p></article>",
+      "css": ".ds-card { background: #fff; color: #1c1917; border: 1px solid #e7e5e4; border-radius: 8px; padding: 20px 24px; } .ds-card h3 { margin: 0 0 8px; font: 700 1.15rem/1.2 'Geist Variable', sans-serif; } .ds-card p { margin: 0; color: #78716c; font: 400 0.9rem/1.5 'Geist Variable', sans-serif; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Digital Finance Ledger",
+    "overview": "The interface should feel calm, trustworthy, and structured, with the warmth of a practical finance tool rather than a cold enterprise template. Geist Variable keeps expense information direct and easy to scan. Ledger Orange is the action accent; neutral surfaces carry the working content. The code contains both a legacy indigo layer and a newer orange layer; orange is the chosen primary for future work. The preferred depth language is flat, using borders and tonal surfaces first and minimizing shadows.",
+    "keyCharacteristics": [
+      "Warm, precise, and operational",
+      "Orange actions against calm neutral surfaces",
+      "Clear status colors with text labels",
+      "Border-led structure with restrained depth"
+    ],
+    "rules": [
+      {
+        "name": "The Status-Has-a-Label Rule",
+        "body": "Color reinforces a status; the status text remains visible and understandable without color.",
+        "section": "colors"
+      },
+      {
+        "name": "The Scan-First Rule",
+        "body": "Keep amounts, statuses, and vendor names visually distinct from supporting metadata.",
+        "section": "typography"
+      }
+    ],
+    "dos": [
+      "Use Ledger Orange as the primary accent for future surfaces.",
+      "Use warm neutral surfaces and thin borders to organize expense information.",
+      "Pair semantic status colors with plain status text.",
+      "Preserve visible focus states and adapt navigation and grids for smaller screens."
+    ],
+    "donts": [
+      "Don't extend the legacy indigo accent into new components.",
+      "Don't use shadows as the default separator between cards.",
+      "Don't make status meaning depend on color alone.",
+      "Don't add decorative display typography that competes with receipt data."
+    ]
+  }
+}

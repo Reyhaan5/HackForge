@@ -59,7 +59,7 @@
 }
 
 .exportBtn:hover {
-  background-color: #F8FAFC;
+  background-color: var(--bg);
   border-color: #CBD5E1;
 }
 
@@ -163,7 +163,7 @@
   border-radius: 6px;
   font-size: 0.88rem;
   color: var(--text-primary);
-  background-color: #FFFFFF;
+  background-color: var(--surface);
   outline: none;
   cursor: pointer;
 }
@@ -227,7 +227,7 @@
 }
 
 .closeBtn:hover {
-  background-color: #F1F5F9;
+  background-color: var(--card-hover);
   color: var(--text-primary);
 }
 
@@ -262,7 +262,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background-color: #F8FAFC;
+  background-color: var(--bg);
   padding: 14px;
   border-radius: 8px;
 }
@@ -279,10 +279,10 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background-color: #FEF3C7;
+  background-color: var(--warning-light);
   padding: 10px 14px;
   border-radius: 8px;
-  border: 1px solid #FDE68A;
+  border: 1px solid var(--warning-color);
 }
 
 .warningText {

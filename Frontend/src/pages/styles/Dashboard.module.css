@@ -66,6 +66,13 @@
   transition: all 0.2s ease;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
 .notificationButton:hover {
   border-color: var(--primary);
   background: var(--card-hover);

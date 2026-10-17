@@ -14,6 +14,7 @@ import {
   UserCircle
 } from 'lucide-react';
 import { useReceipts } from '../../context/ReceiptContext';
+import ThemeToggle from '../ThemeToggle';
 import styles from './Layout.module.css';
 
 export const Layout = ({ children }) => {
@@ -169,6 +170,7 @@ export const Layout = ({ children }) => {
           </div>
 
           <div className={styles.headerRight}>
+            <ThemeToggle />
             {/* Reset Session button */}
             <button
               type="button"

@@ -47,7 +47,7 @@
   font-size: 0.78rem;
   font-weight: 600;
   padding: 5px 12px;
-  background-color: #F1F5F9;
+  background-color: var(--card-hover);
   border: 1px solid #CBD5E1;
   border-radius: 9999px;
   cursor: pointer;
@@ -92,7 +92,7 @@
   border-radius: var(--border-radius);
   font-size: 0.9rem;
   color: var(--text-primary);
-  background-color: #FFFFFF;
+  background-color: var(--surface);
   outline: none;
   transition: border-color 0.2s ease;
 }
@@ -106,7 +106,7 @@
   position: relative;
   border: 2px dashed #CBD5E1;
   border-radius: 12px;
-  background-color: #FAFAFA;
+  background-color: var(--bg);
   padding: 48px 24px;
   text-align: center;
   cursor: pointer;
@@ -133,7 +133,7 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background-color: #FFFFFF;
+  background-color: var(--surface);
   border: 1px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -383,8 +383,8 @@
 }
 
 .bannerPending {
-  background-color: #FEF3C7;
-  border: 1px solid #F59E0B;
+  background-color: var(--warning-light);
+  border: 1px solid var(--warning-color);
   color: #78350F;
 }
 
@@ -423,8 +423,8 @@
 
 /* Flags list */
 .flagsSection {
-  background-color: #FFFBEB;
-  border: 1px solid #FDE68A;
+  background-color: var(--warning-light);
+  border: 1px solid var(--warning-color);
   border-radius: var(--border-radius);
   padding: 16px 20px;
   display: flex;
@@ -461,7 +461,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background-color: #F1F5F9;
+  background-color: var(--card-hover);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
@@ -472,7 +472,7 @@
 }
 
 .newReceiptBtn:hover {
-  background-color: #E2E8F0;
+  background-color: var(--border);
 }
 
 .viewExpensesBtn {

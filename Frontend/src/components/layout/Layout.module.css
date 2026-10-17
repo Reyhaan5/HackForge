@@ -101,7 +101,7 @@
 }
 
 .navLink:hover {
-  background-color: #F3F4F6;
+  background-color: var(--card-hover);
   color: var(--text-primary);
 }
 
@@ -124,7 +124,7 @@
 .sidebarFooter {
   padding: 16px 20px;
   border-top: 1px solid var(--border-color);
-  background-color: #F8FAFC;
+  background-color: var(--bg);
 }
 
 .budgetCard {
@@ -156,11 +156,11 @@
   border-radius: 9999px;
   overflow: hidden;
   margin-bottom: 6px;
-  background-color: #E2E8F0;
+  background-color: var(--border);
 }
 
 .progressBar::-webkit-progress-bar {
-  background-color: #E2E8F0;
+  background-color: var(--border);
   border-radius: 9999px;
 }
 
@@ -245,7 +245,7 @@
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-secondary);
-  background-color: #F8FAFC;
+  background-color: var(--bg);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   cursor: pointer;
@@ -263,7 +263,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background-color: #F8FAFC;
+  background-color: var(--bg);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   font-size: 0.82rem;
@@ -279,7 +279,7 @@
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-secondary);
-  background-color: #F8FAFC;
+  background-color: var(--bg);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   cursor: pointer;
@@ -287,7 +287,7 @@
 }
 
 .logoutButton:hover {
-  background-color: #F1F5F9;
+  background-color: var(--card-hover);
   color: var(--text-primary);
 }
 

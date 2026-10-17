@@ -184,8 +184,9 @@ export const AdminAnalytics = () => {
                 <Tooltip
                   formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Spend']}
                   contentStyle={{
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #CBD5E1',
+                    backgroundColor: 'var(--card)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                   }}
@@ -230,8 +231,9 @@ export const AdminAnalytics = () => {
                 <Tooltip
                   formatter={(value, name) => [`${value} receipts`, name]}
                   contentStyle={{
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #CBD5E1',
+                    backgroundColor: 'var(--card)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                   }}

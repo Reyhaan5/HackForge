@@ -65,7 +65,7 @@
   border-radius: var(--border-radius);
   font-size: 0.9rem;
   color: var(--text-primary);
-  background-color: #FFFFFF;
+  background-color: var(--surface);
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -82,7 +82,7 @@
   border-radius: var(--border-radius);
   font-size: 0.9rem;
   color: var(--text-primary);
-  background-color: #FFFFFF;
+  background-color: var(--surface);
   outline: none;
   cursor: pointer;
   transition: border-color 0.2s ease;

@@ -38,31 +38,34 @@ export const EmployeeDashboard = () => {
 
   return (
     <div className={styles.dashboard}>
-      {/* Welcome Banner */}
       <div className={styles.welcomeBanner}>
         <div className={styles.welcomeText}>
-          <h2 className={styles.greeting}>Welcome to Receipt Graveyard Resolver</h2>
+          <h2 className={styles.greeting}>Your expenses, at a glance</h2>
           <p className={styles.subgreeting}>
-            Eliminate expense report dread. Upload receipts and let the AI vision engine validate policy compliance instantly.
+            Receipts in, reimbursements moving. Here’s what needs your attention.
           </p>
         </div>
         <Link to="/submit" className={styles.ctaButton}>
           <UploadCloud size={18} />
-          <span>Smart Submit Receipt</span>
+          <span>Add a receipt</span>
         </Link>
       </div>
 
-      {/* 4 Stat Cards */}
+      <div className={styles.sectionIntro}>
+        <h3 className={styles.sectionTitle}>This month</h3>
+        <span>A quick read on your expense activity</span>
+      </div>
+
       <div className={styles.statsGrid}>
         <StatCard
           title="Total Reimbursed"
           value={`$${totalReimbursed.toFixed(2)}`}
-          subtitle="Processed this period"
+          subtitle="Approved so far"
           icon={DollarSign}
           variant="success"
         />
         <StatCard
-          title="Pending Approval"
+          title="In review"
           value={`${pendingCount} receipts`}
           subtitle="Awaiting manager review"
           icon={Clock}
@@ -71,7 +74,7 @@ export const EmployeeDashboard = () => {
         <StatCard
           title="Rejected"
           value={`${rejectedCount} receipts`}
-          subtitle="Violated policy parameters"
+          subtitle="Open the review notes to see why"
           icon={AlertCircle}
           variant="danger"
         />
@@ -84,12 +87,11 @@ export const EmployeeDashboard = () => {
         />
       </div>
 
-      {/* Policy Rules Quick Reference */}
       <div className={styles.policyBanner}>
         <ShieldAlert size={22} className={styles.policyIcon} />
         <div className={styles.policyContent}>
-          <span className={styles.policyTitle}>Automated Corporate Expense Guardrails Active</span>
-          <span>Receipts are checked automatically against company compliance guidelines:</span>
+          <span className={styles.policyTitle}>A heads-up on expense rules</span>
+          <span>Each receipt is checked against these limits. Anything outside them can be reviewed by your team.</span>
           <div className={styles.policyRules}>
             <span className={styles.policyRuleTag}>NYC Meals Cap: $100</span>
             <span className={styles.policyRuleTag}>SF Meals Cap: $90</span>
@@ -101,12 +103,11 @@ export const EmployeeDashboard = () => {
         </div>
       </div>
 
-      {/* Recent Activity Section */}
       <div className={styles.activityCard}>
         <div className={styles.sectionHeader}>
           <h3 className={styles.sectionTitle}>Recent Activity</h3>
           <Link to="/expenses" className={styles.viewAllLink}>
-            <span>View All Records ({history.length})</span>
+            <span>All expenses ({history.length})</span>
             <ArrowRight size={15} />
           </Link>
         </div>
@@ -114,7 +115,8 @@ export const EmployeeDashboard = () => {
         {recentSubmissions.length === 0 ? (
           <div className={styles.emptyState}>
             <Receipt size={40} />
-            <p>No receipt submissions yet. Drop your first receipt into Smart Submit!</p>
+            <p>No receipts here yet. When you add one, its review and reimbursement status will show up here.</p>
+            <Link to="/submit" className={styles.emptyAction}>Add your first receipt <ArrowRight size={15} /></Link>
           </div>
         ) : (
           <div className={styles.activityList}>
