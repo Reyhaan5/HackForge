@@ -1,77 +1,39 @@
-import React from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ReceiptProvider } from './context/ReceiptContext';
 import { ThemeProvider } from './context/ThemeProvider';
-import Layout from './components/Layout/Layout';
+import Layout from './components/layout/Layout';
 
 // Receipt Graveyard Resolver Pages
-import Login from './pages/Login';
-import EmployeeDashboard from './pages/EmployeeDashboard/EmployeeDashboard';
-import SmartSubmit from './pages/SmartSubmit/SmartSubmit';
-import Expenses from './pages/Expenses/Expenses';
-import AdminQueue from './pages/AdminQueue/AdminQueue';
-import AdminAnalytics from './pages/AdminAnalytics/AdminAnalytics';
+const Login = lazy(() => import('./pages/Login'));
+const EmployeeDashboard = lazy(() => import('./pages/EmployeeDashboard/EmployeeDashboard'));
+const SmartSubmit = lazy(() => import('./pages/SmartSubmit/SmartSubmit'));
+const Expenses = lazy(() => import('./pages/Expenses/Expenses'));
+const AdminQueue = lazy(() => import('./pages/AdminQueue/AdminQueue'));
+const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics/AdminAnalytics'));
+
+const pageWithLayout = page => <Layout>{page}</Layout>;
 
 export function App() {
   return (
     <ThemeProvider>
       <ReceiptProvider>
         <BrowserRouter>
-          <Routes>
-            {/* Authentication */}
-            <Route path="/login" element={<Login />} />
+          <Suspense fallback={<p role="status">Loading page...</p>}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
 
-            {/* Employee Portal Routes */}
-            <Route
-              path="/"
-              element={
-                <Layout>
-                  <EmployeeDashboard />
-                </Layout>
-              }
-            />
-            <Route
-              path="/submit"
-              element={
-                <Layout>
-                  <SmartSubmit />
-                </Layout>
-              }
-            />
-            <Route
-              path="/expenses"
-              element={
-                <Layout>
-                  <Expenses />
-                </Layout>
-              }
-            />
+              <Route path="/" element={pageWithLayout(<EmployeeDashboard />)} />
+              <Route path="/submit" element={pageWithLayout(<SmartSubmit />)} />
+              <Route path="/expenses" element={pageWithLayout(<Expenses />)} />
 
-            {/* Admin & Finance Routes */}
-            <Route
-              path="/admin/queue"
-              element={
-                <Layout>
-                  <AdminQueue />
-                </Layout>
-              }
-            />
-            <Route
-              path="/admin/analytics"
-              element={
-                <Layout>
-                  <AdminAnalytics />
-                </Layout>
-              }
-            />
-            <Route
-              path="/admin"
-              element={<Navigate to="/admin/queue" replace />}
-            />
+              <Route path="/admin/queue" element={pageWithLayout(<AdminQueue />)} />
+              <Route path="/admin/analytics" element={pageWithLayout(<AdminAnalytics />)} />
+              <Route path="/admin" element={<Navigate to="/admin/queue" replace />} />
 
-            {/* Fallback to Employee Dashboard */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </ReceiptProvider>
     </ThemeProvider>

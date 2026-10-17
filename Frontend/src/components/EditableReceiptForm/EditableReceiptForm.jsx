@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Trash2, Check, Sparkles } from 'lucide-react';
 import styles from './EditableReceiptForm.module.css';
 
@@ -16,7 +16,6 @@ export const EditableReceiptForm = ({
   const [city, setCity] = useState(initialCity || 'New York');
   const [category, setCategory] = useState(initialCategory || 'Meals');
   const [clientName, setClientName] = useState(initialClientName || '');
-  const [isItemized, setIsItemized] = useState(initialData.is_itemized ?? true);
   const [lineItems, setLineItems] = useState(initialData.line_items || []);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -45,7 +44,7 @@ export const EditableReceiptForm = ({
       date,
       total_amount: parseFloat(totalAmount) || 0,
       currency,
-      is_itemized: isItemized,
+      is_itemized: initialData.is_itemized ?? true,
       line_items: lineItems
     };
 

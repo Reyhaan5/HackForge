@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   ShieldAlert,
   CheckCircle2,
@@ -24,7 +24,6 @@ export const AdminQueue = () => {
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [managerNotes, setManagerNotes] = useState('');
-  const [decisionNotice, setDecisionNotice] = useState(null);
 
   // Selected item
   const currentItem = queueItems[selectedIndex] || queueItems[0] || null;
@@ -32,8 +31,6 @@ export const AdminQueue = () => {
   const handleApprove = () => {
     if (!currentItem) return;
     updateReceiptStatus(currentItem.id, 'APPROVED');
-    setDecisionNotice(`Approved expense for ${currentItem.receipt.vendor}`);
-    setTimeout(() => setDecisionNotice(null), 3000);
     if (selectedIndex >= queueItems.length - 1) {
       setSelectedIndex(Math.max(0, queueItems.length - 2));
     }
@@ -42,8 +39,6 @@ export const AdminQueue = () => {
   const handleReject = () => {
     if (!currentItem) return;
     updateReceiptStatus(currentItem.id, 'REJECTED');
-    setDecisionNotice(`Rejected expense for ${currentItem.receipt.vendor}`);
-    setTimeout(() => setDecisionNotice(null), 3000);
     if (selectedIndex >= queueItems.length - 1) {
       setSelectedIndex(Math.max(0, queueItems.length - 2));
     }

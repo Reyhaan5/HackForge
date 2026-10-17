@@ -1,4 +1,3 @@
-import React from 'react';
 import { CheckCircle2, AlertTriangle, Clock, XCircle, HelpCircle } from 'lucide-react';
 import styles from './StatusBadge.module.css';
 

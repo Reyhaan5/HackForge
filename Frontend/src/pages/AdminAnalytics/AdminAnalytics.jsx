@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   BarChart,
   Bar,
@@ -96,7 +95,7 @@ export const AdminAnalytics = () => {
 
   const handleExportCSV = async () => {
     try {
-      await exportCSV();
+      exportCSV(history);
     } catch (err) {
       console.error('Failed to export CSV from analytics:', err);
     }

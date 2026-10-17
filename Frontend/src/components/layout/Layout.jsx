@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Receipt,
@@ -10,8 +10,6 @@ import {
   RotateCcw,
   Menu,
   X,
-  User,
-  ShieldCheck,
   LogOut,
   UserCircle
 } from 'lucide-react';
@@ -19,7 +17,7 @@ import { useReceipts } from '../../context/ReceiptContext';
 import styles from './Layout.module.css';
 
 export const Layout = ({ children }) => {
-  const { user, logoutUser, role, setRole, monthlySpent, monthlyLimit, history, resetAllData } = useReceipts();
+  const { user, logoutUser, monthlySpent, monthlyLimit, history, resetAllData } = useReceipts();
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,15 +31,6 @@ export const Layout = ({ children }) => {
   const handleLogout = () => {
     if (logoutUser) logoutUser();
     navigate("/login");
-  };
-
-  const handleRoleToggle = (newRole) => {
-    setRole(newRole);
-    if (newRole === 'admin' && !location.pathname.startsWith('/admin')) {
-      navigate('/admin/queue');
-    } else if (newRole === 'employee' && location.pathname.startsWith('/admin')) {
-      navigate('/');
-    }
   };
 
   const getPageTitle = () => {
@@ -180,26 +169,6 @@ export const Layout = ({ children }) => {
           </div>
 
           <div className={styles.headerRight}>
-            {/* Employee / Admin Toggle Switch */}
-            <div className={styles.roleSwitchWrapper} role="group" aria-label="Role Switcher">
-              <button
-                type="button"
-                onClick={() => handleRoleToggle('employee')}
-                className={`${styles.roleOption} ${role === 'employee' ? styles.roleOptionActive : ''}`}
-              >
-                <User size={15} />
-                <span>Employee</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRoleToggle('admin')}
-                className={`${styles.roleOption} ${role === 'admin' ? styles.roleOptionActive : ''}`}
-              >
-                <ShieldCheck size={15} />
-                <span>Admin</span>
-              </button>
-            </div>
-
             {/* Reset Session button */}
             <button
               type="button"

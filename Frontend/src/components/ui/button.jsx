@@ -54,4 +54,6 @@ function Button({
   )
 }
 
+// The variants helper is also used by the questionnaire wrapper.
+// eslint-disable-next-line react-refresh/only-export-components
 export { Button, buttonVariants }

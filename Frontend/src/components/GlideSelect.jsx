@@ -207,6 +207,7 @@ export default function GlideSelect({
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
+      // Pointer capture is optional when the target is no longer active.
     }
     scrub.current={ id:e.pointerId, top:e.currentTarget.getBoundingClientRect().top };
     instant.current=true;
