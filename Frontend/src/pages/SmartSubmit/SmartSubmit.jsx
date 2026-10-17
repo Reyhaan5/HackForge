@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   UploadCloud,
   FileText,
@@ -137,6 +137,33 @@ export const SmartSubmit = () => {
       isCurrent = false;
     };
   }, [isPrivileged]);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state) {
+      if (location.state.city) setCity(location.state.city);
+      if (location.state.category) setCategory(location.state.category);
+      if (location.state.channel) setChannel(location.state.channel);
+      if (location.state.clientName) setClientName(location.state.clientName);
+
+      if (location.state.file) {
+        selectFile(location.state.file);
+      } else if (location.state.preset) {
+        loadPreset(location.state.preset);
+      } else if (location.state.fileUrl) {
+        setPreviewUrl(location.state.fileUrl);
+        fetch(location.state.fileUrl)
+          .then(res => res.blob())
+          .then(blob => {
+            const fileName = location.state.fileName || location.state.fileUrl.split('/').pop();
+            const f = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+            setFile(f);
+          })
+          .catch(err => console.warn('Could not auto-fetch redirected preset file:', err));
+      }
+    }
+  }, [location.state]);
 
   useEffect(() => () => {
     if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
@@ -299,9 +326,13 @@ export const SmartSubmit = () => {
     <div className={styles.container}>
       {/* Intro Header */}
       <div className={styles.introCard}>
-        <h2 className={styles.introTitle}>Exhume & Resolve Paper Receipts</h2>
+        <h2 className={styles.introTitle}>
+          {isPrivileged ? 'Admin Smart Processing Engine' : 'Submit Business Expense Receipt'}
+        </h2>
         <p className={styles.introDesc}>
-          Drop receipt photos, scans, or itemized slips. The backend extracts the receipt, checks it against the active expense policy, and stores the result in your expense history.
+          {isPrivileged
+            ? 'Process, smart-audit, and verify incoming receipts across all ingestion channels. Extract itemized line items and apply corporate policies.'
+            : 'Upload or drop receipts. Your receipt will be automatically ingested with its source channel and routed to Admin Processing for policy verification.'}
         </p>
 
         {/* Quick Sample Selector for Live Judge Demonstrations */}
@@ -499,7 +530,7 @@ export const SmartSubmit = () => {
                 onClick={handleProcess}
               >
                 <Sparkles size={18} />
-                <span>Exhume & Validate Receipt</span>
+                <span>{isPrivileged ? 'Exhume & Smart Submit' : 'Submit Receipt for Admin Processing'}</span>
               </button>
             </div>
           )}
