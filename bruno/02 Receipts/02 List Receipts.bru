@@ -1,0 +1,28 @@
+meta {
+  name: List Receipts
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/receipts
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{employeeToken}}
+}
+
+params:query {
+  employee_id: {{employeeId}}
+  submission_channel: web
+  status: APPROVED
+}
+
+tests {
+  test("receipt list supports the documented filters", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()).to.be.an("array");
+  });
+}

@@ -1,0 +1,36 @@
+meta {
+  name: Process Receipt
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/process-receipt
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:multipart-form {
+  employee_id: {{employeeId}}
+  submission_channel: web
+  city: New York
+  category: Meals
+  client_name: Bruno API Check
+  attendee_count: 1
+  file: @file(../test/test_images/receipt_normal_usd.jpg)
+}
+
+tests {
+  test("receipt processing returns a decision", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.success).to.equal(true);
+    expect(body.receipt_id).to.exist;
+    expect(body.validation).to.have.property("status");
+    bru.setVar("receiptId", body.receipt_id);
+  });
+}

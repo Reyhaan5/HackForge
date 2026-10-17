@@ -1,0 +1,29 @@
+meta {
+  name: Register Alias
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/auth/register
+  body: json
+  auth: none
+}
+
+script:pre-request {
+  bru.setVar("registrationAliasUsername", "bruno_alias_" + Date.now());
+}
+
+body:json {
+  {
+    "username": "{{registrationAliasUsername}}",
+    "password": "brunoPass123"
+  }
+}
+
+tests {
+  test("registration alias creates an employee account", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().user.role).to.equal("Employee");
+  });
+}

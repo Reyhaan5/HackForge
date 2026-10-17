@@ -1,0 +1,26 @@
+meta {
+  name: DANGEROUS - Reset Alias
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/reset
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+docs {
+  Alias for the destructive receipt reset. Deletes every receipt in the connected database.
+}
+
+tests {
+  test("admin reset alias returns success", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().success).to.equal(true);
+  });
+}

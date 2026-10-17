@@ -1,0 +1,24 @@
+meta {
+  name: Get Session
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/session
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{employeeToken}}
+}
+
+tests {
+  test("session includes spend and receipt history", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body).to.have.property("monthly_spent");
+    expect(body.history).to.be.an("array");
+  });
+}
