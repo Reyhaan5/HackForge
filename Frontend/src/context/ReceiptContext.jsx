@@ -119,35 +119,18 @@ export const ReceiptProvider = ({ children }) => {
   );
 
   const updateReceiptStatus = useCallback(async (id, newStatus, notes = '') => {
-    // 1. Optimistic local state update
-    setHistory(prev =>
-      prev.map(item => {
-        if (item.id === id) {
-          const reimbAmt =
-            newStatus === 'APPROVED' ? Number(item.receipt?.total_amount) || 0 : 0;
-          return {
-            ...item,
-            result: {
-              ...item.result,
-              status: newStatus,
-              reimbursement_amount: reimbAmt,
-              flags:
-                newStatus === 'APPROVED'
-                  ? (item.result.flags || []).filter(f => !f.includes('Requires manager approval'))
-                  : item.result.flags
-            }
-          };
-        }
-        return item;
-      })
-    );
-
-    // 2. Persistent Backend update to PostgreSQL
-    try {
-      await apiUpdateReceiptStatus(id, newStatus, notes);
-    } catch (err) {
-      console.error('Failed to persist receipt status to backend:', err);
-    }
+    const saved = await apiUpdateReceiptStatus(id, newStatus, notes);
+    setHistory(prev => prev.map(item => item.id === id ? {
+      ...item,
+      result: {
+        ...item.result,
+        status: saved.status,
+        reimbursement_amount: Number(saved.approved_amount) || 0,
+        flags: saved.flags || item.result.flags || [],
+        explanation: saved.explanation || item.result.explanation || ''
+      }
+    } : item));
+    return saved;
   }, []);
 
   const resetAllData = useCallback(async () => {

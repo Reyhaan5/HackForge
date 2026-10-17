@@ -40,6 +40,7 @@ export const AdminQueue = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [managerNotes, setManagerNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionError, setActionError] = useState('');
   const [viewMode, setViewMode] = useState('scanned'); // 'scanned' | 'simulated'
 
   // Selected item
@@ -47,6 +48,7 @@ export const AdminQueue = () => {
 
   const handleApprove = async () => {
     if (!currentItem || isSubmitting) return;
+    setActionError('');
     setIsSubmitting(true);
     try {
       await updateReceiptStatus(currentItem.id, 'APPROVED', managerNotes);
@@ -54,6 +56,8 @@ export const AdminQueue = () => {
       if (selectedIndex >= queueItems.length - 1) {
         setSelectedIndex(Math.max(0, queueItems.length - 2));
       }
+    } catch (err) {
+      setActionError(err.response?.data?.detail || err.message || 'Could not save the approval. Try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -61,6 +65,11 @@ export const AdminQueue = () => {
 
   const handleReject = async () => {
     if (!currentItem || isSubmitting) return;
+    if (!managerNotes.trim()) {
+      setActionError('Add a short reason so the employee understands why this receipt was rejected.');
+      return;
+    }
+    setActionError('');
     setIsSubmitting(true);
     try {
       await updateReceiptStatus(currentItem.id, 'REJECTED', managerNotes);
@@ -68,6 +77,8 @@ export const AdminQueue = () => {
       if (selectedIndex >= queueItems.length - 1) {
         setSelectedIndex(Math.max(0, queueItems.length - 2));
       }
+    } catch (err) {
+      setActionError(err.response?.data?.detail || err.message || 'Could not save the rejection. Try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -108,6 +119,7 @@ export const AdminQueue = () => {
                 onClick={() => {
                   setSelectedIndex(idx);
                   setManagerNotes('');
+                  setActionError('');
                 }}
               >
                 <span className={styles.queueCardVendor}>
@@ -284,7 +296,7 @@ export const AdminQueue = () => {
 
                 {/* Manager Notes */}
                 <div className={styles.notesGroup}>
-                  <label className={styles.notesLabel}>Manager Audit Remarks (Optional)</label>
+                  <label className={styles.notesLabel}>Reviewer notes (required to reject; optional to approve)</label>
                   <textarea
                     className={styles.notesInput}
                     placeholder="Provide reason for approval override or rejection reason..."
@@ -292,6 +304,7 @@ export const AdminQueue = () => {
                     onChange={e => setManagerNotes(e.target.value)}
                     disabled={isSubmitting}
                   />
+                  {actionError && <p className={styles.actionError} role="alert">{actionError}</p>}
                 </div>
 
                 {/* Action Buttons */}
