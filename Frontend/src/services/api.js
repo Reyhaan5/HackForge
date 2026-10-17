@@ -105,16 +105,30 @@ export async function processReceipt(
   city = 'New York',
   category = 'Meals',
   clientName = '',
-  { employeeId, attendeeCount = 1, submissionChannel = 'web' } = {}
+  optionsOrChannel = 'web',
+  employeeId = 'EMP-101',
+  attendeeCount = 1
 ) {
+  let submissionChannel = 'web';
+  let empId = employeeId;
+  let attendees = attendeeCount;
+
+  if (typeof optionsOrChannel === 'object' && optionsOrChannel !== null) {
+    submissionChannel = optionsOrChannel.submissionChannel || 'web';
+    empId = optionsOrChannel.employeeId || 'EMP-101';
+    attendees = optionsOrChannel.attendeeCount ?? 1;
+  } else {
+    submissionChannel = optionsOrChannel || 'web';
+  }
+
   const formData = new FormData();
   formData.append('file', file);
   formData.append('city', city);
   formData.append('category', category);
   formData.append('client_name', clientName);
-  formData.append('attendee_count', String(attendeeCount));
   formData.append('submission_channel', submissionChannel);
-  if (employeeId) formData.append('employee_id', employeeId);
+  formData.append('attendee_count', String(attendees));
+  if (empId) formData.append('employee_id', empId);
 
   try {
     const response = await apiClient.post('/api/process-receipt', formData);
@@ -176,10 +190,26 @@ export async function exportCSV() {
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+/**
+ * Update receipt status on the backend (Approve / Reject)
+ * @param {number|string} receiptId
+ * @param {string} status 'APPROVED' | 'REJECTED'
+ * @param {string} notes
+ */
+export async function updateReceiptStatus(receiptId, status, notes = '') {
+  const numericId = String(receiptId).replace(/^rec_/, '');
+  const response = await apiClient.patch(`/api/receipts/${numericId}/status`, {
+    status,
+    notes,
+  });
+  return response.data;
+}
+
 export default {
   processReceipt,
   getSession,
   resetSession,
   exportCSV,
+  updateReceiptStatus,
 };
 

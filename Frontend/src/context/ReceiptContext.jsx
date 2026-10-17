@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { clearAccessToken, getAccessToken, getPolicy, getSession, resetSession as apiResetSession } from '../services/api';
+import { clearAccessToken, getAccessToken, getPolicy, getSession, resetSession as apiResetSession, updateReceiptStatus as apiUpdateReceiptStatus } from '../services/api';
 
 const DEFAULT_MONTHLY_LIMIT = 2000.0;
 
@@ -111,6 +111,38 @@ export const ReceiptProvider = ({ children }) => {
     []
   );
 
+  const updateReceiptStatus = useCallback(async (id, newStatus, notes = '') => {
+    // 1. Optimistic local state update
+    setHistory(prev =>
+      prev.map(item => {
+        if (item.id === id) {
+          const reimbAmt =
+            newStatus === 'APPROVED' ? Number(item.receipt?.total_amount) || 0 : 0;
+          return {
+            ...item,
+            result: {
+              ...item.result,
+              status: newStatus,
+              reimbursement_amount: reimbAmt,
+              flags:
+                newStatus === 'APPROVED'
+                  ? (item.result.flags || []).filter(f => !f.includes('Requires manager approval'))
+                  : item.result.flags
+            }
+          };
+        }
+        return item;
+      })
+    );
+
+    // 2. Persistent Backend update to PostgreSQL
+    try {
+      await apiUpdateReceiptStatus(id, newStatus, notes);
+    } catch (err) {
+      console.error('Failed to persist receipt status to backend:', err);
+    }
+  }, []);
+
   const resetAllData = useCallback(async () => {
     if (!['Admin', 'Finance'].includes(user?.role)) {
       throw new Error('Only Admin or Finance accounts can reset backend receipts.');
@@ -133,6 +165,7 @@ export const ReceiptProvider = ({ children }) => {
         history,
         refreshSession,
         addProcessedReceipt,
+        updateReceiptStatus,
         resetAllData
       }}
     >
