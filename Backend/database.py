@@ -1,16 +1,24 @@
 import os
 from datetime import datetime
 from sqlalchemy import (
-    create_engine, Column, Integer, String, Numeric, Date, DateTime, Boolean, ForeignKey, Text, JSON
+    create_engine, Column, Integer, String, Numeric, Date, DateTime, Boolean, ForeignKey, Text
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from dotenv import load_dotenv
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./expenses.db")
+ENV_PATH = os.path.join(os.path.dirname(__file__), ".env")
+load_dotenv(ENV_PATH)
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    db_user = os.getenv("DB_USER", "postgres")
+    db_pass = os.getenv("DB_PASSWORD", "postgres")
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_port = os.getenv("DB_PORT", "5432")
+    db_name = os.getenv("DB_NAME", "HackForge")
+    DATABASE_URL = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
 
-# SQLite needs connect_args check_same_thread=False
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -29,7 +37,7 @@ class Policy(Base):
 
     id = Column(String(50), primary_key=True)  # e.g., 'DEFAULT-EXPENSE-POLICY'
     is_active = Column(Boolean, default=True)
-    rules = Column(JSON, nullable=False)
+    rules = Column(JSONB, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Receipt(Base):
@@ -56,13 +64,13 @@ class Receipt(Base):
     exchange_rate = Column(Numeric(12, 6), default=1.000000, nullable=False)
     base_amount_usd = Column(Numeric(10, 2), default=0.00, nullable=False)
     
-    # Itemized lines in JSON: [{"description": "Lunch", "amount": 25.0, "disallowed": false}]
-    line_items = Column(JSON, default=list)
+    # Itemized lines in JSONB: [{"description": "Lunch", "amount": 25.0, "disallowed": false}]
+    line_items = Column(JSONB, default=list)
     
     # Decision output
     status = Column(String(50), default="APPROVED", index=True) # 'APPROVED', 'PARTIAL', 'PENDING_APPROVAL', 'REJECTED'
     approved_amount = Column(Numeric(10, 2), default=0.00, nullable=False)
-    flags = Column(JSON, default=list)
+    flags = Column(JSONB, default=list)
     explanation = Column(Text, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
