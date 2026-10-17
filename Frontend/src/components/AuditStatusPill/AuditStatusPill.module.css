@@ -1,0 +1,215 @@
+.pillWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px 0;
+  box-sizing: border-box;
+}
+
+.pillMotion {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Floating animated ambient icons on hover */
+.floatingIcon {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.floatingTopLeft {
+  left: 8px;
+  top: -12px;
+}
+
+.floatingBottomRight {
+  right: 24px;
+  bottom: -12px;
+}
+
+/* Extended Wide Banner Container */
+.pillContainer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.25s ease;
+}
+
+.contentLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.badgeImg {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Status themes */
+.pillApproved {
+  background: #021a12;
+  border: 1px solid #064e3b;
+}
+
+.pillPartial {
+  background: #1c1304;
+  border: 1px solid #78350f;
+}
+
+.pillPending {
+  background: #06193a;
+  border: 1px solid #003674;
+}
+
+.pillRejected {
+  background: #200707;
+  border: 1px solid #7f1d1d;
+}
+
+/* Button & Underline */
+.pillBtn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  outline: none;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btnApproved {
+  color: #34d399;
+  text-decoration-color: #065f46;
+}
+.btnApproved:hover {
+  color: #6ee7b7;
+  text-decoration-color: #10b981;
+}
+
+.btnPartial {
+  color: #fbbf24;
+  text-decoration-color: #92400e;
+}
+.btnPartial:hover {
+  color: #fde68a;
+  text-decoration-color: #f59e0b;
+}
+
+.btnPending {
+  color: #60a5fa;
+  text-decoration-color: #1e40af;
+}
+.btnPending:hover {
+  color: #93c5fd;
+  text-decoration-color: #3b82f6;
+}
+
+.btnRejected {
+  color: #f87171;
+  text-decoration-color: #991b1b;
+}
+.btnRejected:hover {
+  color: #fca5a5;
+  text-decoration-color: #ef4444;
+}
+
+/* Description text */
+.pillDesc {
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.descApproved {
+  color: #a7f3d0;
+}
+
+.descPartial {
+  color: #fde68a;
+}
+
+.descPending {
+  color: #93c5fd;
+}
+
+.descRejected {
+  color: #fecaca;
+}
+
+/* Right side actions / close */
+.contentRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.closeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.closeApproved {
+  color: #34d399;
+}
+.closeApproved:hover {
+  background: rgba(52, 211, 153, 0.15);
+}
+
+.closePartial {
+  color: #fbbf24;
+}
+.closePartial:hover {
+  background: rgba(251, 191, 36, 0.15);
+}
+
+.closePending {
+  color: #60a5fa;
+}
+.closePending:hover {
+  background: rgba(96, 165, 250, 0.15);
+}
+
+.closeRejected {
+  color: #f87171;
+}
+.closeRejected:hover {
+  background: rgba(248, 113, 113, 0.15);
+}

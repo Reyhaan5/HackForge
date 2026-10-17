@@ -18,6 +18,8 @@ import { processReceipt } from '../../services/api';
 import EditableReceiptForm from '../../components/EditableReceiptForm/EditableReceiptForm';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import ReceiptSplitView from '../../components/ReceiptSplitView/ReceiptSplitView';
+import AuditTrafficBanner from '../../components/AuditTrafficBanner/AuditTrafficBanner';
+import AuditStatusPill from '../../components/AuditStatusPill/AuditStatusPill';
 import styles from './SmartSubmit.module.css';
 
 export const SmartSubmit = () => {
@@ -447,43 +449,23 @@ export const SmartSubmit = () => {
         </div>
       )}
 
+
+      {result && !isProcessing && (
+        <AuditStatusPill
+          status={result.validation.status}
+          requestedAmount={result.extracted?.total_amount || 0}
+          approvedAmount={result.validation.reimbursement_amount}
+          flags={result.validation.flags}
+          currency={result.extracted?.currency || 'USD'}
+          explanation={result.validation.explanation || ''}
+        />
+      )}
+
       {result && !isProcessing && (
         <div className={styles.resultCard}>
           <div className={styles.resultHeader}>
             <h3 className={styles.resultTitle}>Policy Evaluation Result</h3>
             <StatusBadge status={result.validation.status} />
-          </div>
-
-          <div
-            className={`
-              ${styles.validationBanner}
-              ${result.validation.status === 'APPROVED' ? styles.bannerApproved : ''}
-              ${result.validation.status === 'FLAGGED' ? styles.bannerFlagged : ''}
-              ${result.validation.status === 'PENDING_APPROVAL' ? styles.bannerPending : ''}
-              ${result.validation.status === 'REJECTED' ? styles.bannerRejected : ''}
-            `}
-          >
-            <div className={styles.bannerLeft}>
-              {result.validation.status === 'APPROVED' && <CheckCircle size={32} />}
-              {result.validation.status === 'FLAGGED' && <AlertTriangle size={32} />}
-              {result.validation.status === 'PENDING_APPROVAL' && <Clock size={32} />}
-              {result.validation.status === 'REJECTED' && <XCircle size={32} />}
-              <div className={styles.bannerText}>
-                <span className={styles.bannerStatusTitle}>
-                  {result.validation.status === 'APPROVED' && 'Approved for Full Reimbursement'}
-                  {result.validation.status === 'FLAGGED' && 'Flagged: Exceeds Policy Limits'}
-                  {result.validation.status === 'PENDING_APPROVAL' && 'Pending Manager Approval'}
-                  {result.validation.status === 'REJECTED' && 'Rejected: Policy Violation'}
-                </span>
-                <span className={styles.bannerStatusSub}>
-                  Processed for {city} • {category}
-                </span>
-              </div>
-            </div>
-
-            <div className={styles.reimburseAmt}>
-              ${result.validation.reimbursement_amount.toFixed(2)}
-            </div>
           </div>
 
           {result.validation.flags && result.validation.flags.length > 0 && (
