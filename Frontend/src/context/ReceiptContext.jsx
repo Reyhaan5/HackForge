@@ -56,6 +56,7 @@ export const ReceiptProvider = ({ children }) => {
         city: item.city || 'New York',
         category: item.category || 'General Expense',
         client_name: item.client_name || '',
+        submission_channel: item.submission_channel || 'web',
         imageUrl: item.imageUrl || undefined,
         timestamp: item.timestamp || new Date().toISOString()
       }));
@@ -100,6 +101,7 @@ export const ReceiptProvider = ({ children }) => {
         city: metadata.city,
         category: metadata.category,
         client_name: metadata.client_name,
+        submission_channel: metadata.submission_channel || res.submission_channel || 'web',
         imageUrl: metadata.imageUrl
       };
 

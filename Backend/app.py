@@ -395,6 +395,7 @@ def get_session_data(current_user: Login = Depends(get_current_user), db: Sessio
             "city": r.city,
             "category": r.category,
             "client_name": r.client_name or "",
+            "submission_channel": r.submission_channel,
             "timestamp": r.created_at.isoformat() if r.created_at else datetime.utcnow().isoformat(),
             "receipt": {
                 "vendor": r.vendor or "Unknown",
