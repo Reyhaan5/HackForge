@@ -401,6 +401,7 @@ def get_session_data(current_user: Login = Depends(get_current_user), db: Sessio
                 "date": str(r.transaction_date) if r.transaction_date else "",
                 "total_amount": float(r.original_amount),
                 "currency": r.currency or "USD",
+                "base_amount_usd": float(r.base_amount_usd),
                 "line_items": r.line_items or [],
                 "is_itemized": bool(r.line_items)
             },

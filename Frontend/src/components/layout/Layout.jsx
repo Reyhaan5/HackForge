@@ -28,6 +28,7 @@ export const Layout = ({ children }) => {
   ).length;
 
   const currentUser = user;
+  const isPrivileged = ['Admin', 'Finance'].includes(user?.role);
 
   const handleLogout = () => {
     if (logoutUser) logoutUser();
@@ -105,7 +106,7 @@ export const Layout = ({ children }) => {
             </NavLink>
           </div>
 
-          <div className={styles.sectionGroup}>
+          {['Admin', 'Finance'].includes(user?.role) && <div className={styles.sectionGroup}>
             <span className={styles.sectionHeader}>Admin & Finance</span>
             <NavLink
               to="/admin/queue"
@@ -129,25 +130,25 @@ export const Layout = ({ children }) => {
               <BarChart3 size={18} />
               <span>Analytics</span>
             </NavLink>
-          </div>
+          </div>}
         </nav>
 
         {/* Monthly limit widget */}
         <div className={styles.sidebarFooter}>
           <div className={styles.budgetCard}>
             <div className={styles.budgetHeader}>
-              <span>Monthly Budget</span>
+              <span>{isPrivileged ? 'Company Monthly Spend' : 'Monthly Budget'}</span>
               <span className={styles.budgetAmount}>
-                ${monthlySpent.toFixed(2)} / ${monthlyLimit}
+                {isPrivileged ? `$${monthlySpent.toFixed(2)}` : `$${monthlySpent.toFixed(2)} / $${monthlyLimit}`}
               </span>
             </div>
-            <progress
+            {!isPrivileged && <progress
               className={styles.progressBar}
               value={monthlySpent}
               max={monthlyLimit}
-            />
+            />}
             <div className={styles.budgetNotice}>
-              {percentSpent}% consumed this cycle
+              {isPrivileged ? 'Across all employees this month' : `${percentSpent}% consumed this cycle`}
             </div>
           </div>
         </div>
@@ -171,20 +172,24 @@ export const Layout = ({ children }) => {
 
           <div className={styles.headerRight}>
             <ThemeToggle />
-            {/* Reset Session button */}
-            <button
+            {/* Reset all backend receipts; available only to privileged roles. */}
+            {['Admin', 'Finance'].includes(user?.role) && <button
               type="button"
               className={styles.resetButton}
               onClick={async () => {
-                if (window.confirm('Reset session and clear all processed receipts?')) {
-                  await resetAllData();
+                if (window.confirm('This permanently deletes every receipt in the backend. Continue?')) {
+                  try {
+                    await resetAllData();
+                  } catch (err) {
+                    window.alert(err.message || 'Backend reset failed. No local data was cleared.');
+                  }
                 }
               }}
-              title="Reset backend session memory"
+              title="Delete all backend receipts"
             >
               <RotateCcw size={15} />
-              <span>Reset Session</span>
-            </button>
+              <span>Reset Receipts</span>
+            </button>}
 
             {/* Logged in user info */}
             {currentUser && (

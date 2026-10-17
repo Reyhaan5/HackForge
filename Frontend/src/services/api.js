@@ -8,10 +8,28 @@ const apiClient = axios.create({
   timeout: 45000,
 });
 
+const TOKEN_KEY = 'hackforge.accessToken';
 let accessToken = null;
+try {
+  accessToken = typeof window === 'undefined' ? null : window.sessionStorage.getItem(TOKEN_KEY);
+} catch {
+  accessToken = null;
+}
+
+export function getAccessToken() {
+  return accessToken;
+}
+
+function setAccessToken(token) {
+  accessToken = token || null;
+  if (typeof window !== 'undefined') {
+    if (accessToken) window.sessionStorage.setItem(TOKEN_KEY, accessToken);
+    else window.sessionStorage.removeItem(TOKEN_KEY);
+  }
+}
 
 export function clearAccessToken() {
-  accessToken = null;
+  setAccessToken(null);
 }
 
 apiClient.interceptors.request.use((config) => {
@@ -24,7 +42,10 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) clearAccessToken();
+    if (error.response?.status === 401) {
+      clearAccessToken();
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('hackforge:unauthorized'));
+    }
     return Promise.reject(error);
   }
 );
@@ -37,7 +58,7 @@ apiClient.interceptors.response.use(
 export async function login(username, password) {
   try {
     const response = await apiClient.post('/api/login', { username, password });
-    accessToken = response.data?.token || null;
+    setAccessToken(response.data?.token);
     return response.data;
   } catch (error) {
     throw new Error(
@@ -60,7 +81,7 @@ export async function register(username, password) {
       username,
       password
     });
-    accessToken = response.data?.token || null;
+    setAccessToken(response.data?.token);
     return response.data;
   } catch (error) {
     throw new Error(
@@ -83,13 +104,16 @@ export async function processReceipt(
   file,
   city = 'New York',
   category = 'Meals',
-  clientName = ''
+  clientName = '',
+  { employeeId, attendeeCount = 1 } = {}
 ) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('city', city);
   formData.append('category', category);
   formData.append('client_name', clientName);
+  formData.append('attendee_count', String(attendeeCount));
+  if (employeeId) formData.append('employee_id', employeeId);
 
   try {
     const response = await apiClient.post('/api/process-receipt', formData, {
@@ -101,6 +125,7 @@ export async function processReceipt(
   } catch (error) {
     console.error('Failed to process receipt with backend:', error);
     throw new Error(
+      error.response?.data?.detail ||
       error.response?.data?.error ||
       error.message ||
       'Failed to reach receipt processing engine at http://localhost:8000',
@@ -113,56 +138,40 @@ export async function processReceipt(
  * Fetch current session details including hashes, monthly total, and history
  */
 export async function getSession() {
-  try {
-    const response = await apiClient.get('/api/session');
-    return response.data;
-  } catch (error) {
-    console.warn('Backend /api/session not reachable:', error);
-    return {
-      processed_hashes: [],
-      monthly_spent: 0,
-      history: [],
-    };
-  }
+  const response = await apiClient.get('/api/session');
+  return response.data;
+}
+
+export async function getEmployees() {
+  const response = await apiClient.get('/api/employees');
+  return response.data;
+}
+
+export async function getPolicy() {
+  const response = await apiClient.get('/api/policy');
+  return response.data;
 }
 
 /**
  * Reset session store on the backend
  */
 export async function resetSession() {
-  try {
-    const response = await apiClient.post('/api/reset-session');
-    return response.data;
-  } catch (error) {
-    console.error('Failed to reset backend session:', error);
-    return { success: true, message: 'Session reset locally' };
-  }
+  const response = await apiClient.post('/api/reset-session');
+  return response.data;
 }
 
 /**
  * Trigger CSV export download
  */
-export function exportCSV(history = []) {
-  const escape = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
-  const rows = [
-    ['Date', 'Vendor', 'Total Amount', 'Currency', 'Status', 'Reimbursement Amount', 'Flags'],
-    ...history.map(({ receipt = {}, result = {} }) => [
-      receipt.date || 'N/A',
-      receipt.vendor || 'UNKNOWN',
-      receipt.total_amount || 0,
-      receipt.currency || 'USD',
-      result.status || 'UNKNOWN',
-      result.reimbursement_amount || 0,
-      (result.flags || []).join('; ')
-    ])
-  ];
-  const csv = rows.map(row => row.map(escape).join(',')).join('\r\n');
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+export async function exportCSV() {
+  const response = await apiClient.get('/api/export-csv', { responseType: 'blob' });
+  const url = URL.createObjectURL(new Blob([response.data], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = 'receipt_graveyard_expenses.csv';
+  const disposition = response.headers['content-disposition'];
+  link.download = disposition?.match(/filename="?([^";]+)"?/i)?.[1] || 'receipts_export.csv';
   link.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 export default {

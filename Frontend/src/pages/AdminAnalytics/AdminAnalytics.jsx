@@ -22,19 +22,20 @@ import styles from './AdminAnalytics.module.css';
 
 const STATUS_COLORS = {
   APPROVED: '#10B981',
+  PARTIAL: '#3B82F6',
   FLAGGED: '#F59E0B',
   PENDING_APPROVAL: '#EAB308',
   REJECTED: '#EF4444'
 };
 
 export const AdminAnalytics = () => {
-  const { history, monthlySpent, monthlyLimit } = useReceipts();
+  const { history, monthlySpent } = useReceipts();
 
   // Aggregate category spend
   const categoryMap = {};
   history.forEach(item => {
     const cat = item.category || 'General';
-    const amt = item.receipt.total_amount || 0;
+    const amt = item.receipt.base_amount_usd ?? item.result.reimbursement_amount ?? 0;
     if (!categoryMap[cat]) {
       categoryMap[cat] = { total: 0, count: 0 };
     }
@@ -77,12 +78,12 @@ export const AdminAnalytics = () => {
     }));
 
   const totalSpend = history.reduce(
-    (acc, curr) => acc + (curr.receipt.total_amount || 0),
+    (acc, curr) => acc + (curr.receipt.base_amount_usd ?? curr.result.reimbursement_amount ?? 0),
     0
   );
 
   const approvedCount = history.filter(
-    item => item.result.status === 'APPROVED'
+    item => ['APPROVED', 'PARTIAL'].includes(item.result.status)
   ).length;
 
   const approvalRate =
@@ -95,9 +96,10 @@ export const AdminAnalytics = () => {
 
   const handleExportCSV = async () => {
     try {
-      exportCSV(history);
+      await exportCSV();
     } catch (err) {
       console.error('Failed to export CSV from analytics:', err);
+      window.alert(err.message || 'Could not export receipts from the backend.');
     }
   };
 
@@ -133,7 +135,7 @@ export const AdminAnalytics = () => {
         <div className={styles.metricCard}>
           <span className={styles.metricLabel}>Policy Approval Rate</span>
           <h3 className={styles.metricValue}>{approvalRate}%</h3>
-          <span className={styles.metricSub}>{approvedCount} of {history.length} instantly clean</span>
+          <span className={styles.metricSub}>{approvedCount} of {history.length} approved or partially reimbursable</span>
         </div>
 
         <div className={styles.metricCard}>
@@ -143,13 +145,9 @@ export const AdminAnalytics = () => {
         </div>
 
         <div className={styles.metricCard}>
-          <span className={styles.metricLabel}>Budget Cycle Utilization</span>
-          <h3 className={styles.metricValue}>
-            {Math.min(100, Math.round((monthlySpent / monthlyLimit) * 100))}%
-          </h3>
-          <span className={styles.metricSub}>
-            ${monthlySpent.toFixed(2)} of ${monthlyLimit} limit
-          </span>
+          <span className={styles.metricLabel}>Company Spend This Month (USD)</span>
+          <h3 className={styles.metricValue}>${monthlySpent.toFixed(2)}</h3>
+          <span className={styles.metricSub}>Current-month policy spend across employees</span>
         </div>
       </div>
 
@@ -160,7 +158,7 @@ export const AdminAnalytics = () => {
           <div className={styles.chartHeader}>
             <div>
               <h3 className={styles.chartTitle}>Spend by Category</h3>
-              <p className={styles.chartDesc}>Total dollar volume distributed across departments</p>
+          <p className={styles.chartDesc}>Receipt totals converted to USD by the backend</p>
             </div>
             <CreditCard size={20} color="#4F46E5" />
           </div>

@@ -1,36 +1,53 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { clearAccessToken, getSession, resetSession as apiResetSession } from '../services/api';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { clearAccessToken, getAccessToken, getPolicy, getSession, resetSession as apiResetSession } from '../services/api';
 
 const DEFAULT_MONTHLY_LIMIT = 2000.0;
 
 const ReceiptContext = createContext(undefined);
 
 export const ReceiptProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      return getAccessToken() ? JSON.parse(window.sessionStorage.getItem('hackforge.user') || 'null') : null;
+    } catch {
+      return null;
+    }
+  });
   const sessionRequestRef = useRef(0);
 
   const [history, setHistory] = useState([]);
-  const monthlySpent = useMemo(
-    () => history
-      .filter(item => item.result?.status === 'APPROVED' || item.result?.status === 'PENDING_APPROVAL')
-      .reduce((total, item) => total + (Number(item.result?.reimbursement_amount) || 0), 0),
-    [history]
-  );
+  const [monthlySpent, setMonthlySpent] = useState(0);
+  const [monthlyLimit, setMonthlyLimit] = useState(DEFAULT_MONTHLY_LIMIT);
+  const [policyRules, setPolicyRules] = useState(null);
 
   const loginUser = useCallback((userData) => {
+    sessionRequestRef.current += 1;
+    setHistory([]);
+    setMonthlySpent(0);
+    window.sessionStorage.setItem('hackforge.user', JSON.stringify(userData));
     setUser(userData);
   }, []);
 
   const logoutUser = useCallback(() => {
+    sessionRequestRef.current += 1;
     clearAccessToken();
+    window.sessionStorage.removeItem('hackforge.user');
     setUser(null);
+    setHistory([]);
+    setMonthlySpent(0);
   }, []);
+
+  useEffect(() => {
+    window.addEventListener('hackforge:unauthorized', logoutUser);
+    return () => window.removeEventListener('hackforge:unauthorized', logoutUser);
+  }, [logoutUser]);
 
   const refreshSession = useCallback(async () => {
     const requestId = ++sessionRequestRef.current;
     try {
       const data = await getSession();
       if (requestId !== sessionRequestRef.current) return;
+      setMonthlySpent(Number(data?.monthly_spent) || 0);
       const backendItems = (data?.history || []).map((item, index) => ({
         ...item,
         id: item.id || `backend_${index}_${item.timestamp || 'session'}`,
@@ -44,24 +61,39 @@ export const ReceiptProvider = ({ children }) => {
       }));
 
       setHistory(current => {
-        const backendIds = new Set(backendItems.map(item => item.id));
-        const localItems = current.filter(item => !backendIds.has(item.id));
-        return [...backendItems, ...localItems];
+        const localById = new Map(current.map(item => [item.id, item]));
+        return backendItems.map(item => ({ ...localById.get(item.id), ...item, imageUrl: localById.get(item.id)?.imageUrl }));
       });
     } catch (err) {
       console.warn('Could not refresh receipt history:', err);
+      if (err.response?.status === 401) {
+        clearAccessToken();
+        window.sessionStorage.removeItem('hackforge.user');
+        setUser(null);
+        setHistory([]);
+      }
+    }
+    try {
+      const policy = await getPolicy();
+      if (requestId === sessionRequestRef.current) {
+        setPolicyRules(policy?.rules || null);
+        setMonthlyLimit(Number(policy?.rules?.monthly_limit) || DEFAULT_MONTHLY_LIMIT);
+      }
+    } catch (err) {
+      console.warn('Could not load backend expense policy:', err);
     }
   }, []);
 
   useEffect(() => {
+    if (!user || !getAccessToken()) return undefined;
     const timer = window.setTimeout(refreshSession, 0);
     return () => window.clearTimeout(timer);
-  }, [refreshSession]);
+  }, [user, refreshSession]);
 
   const addProcessedReceipt = useCallback(
     (res, metadata) => {
       const newItem = {
-        id: `rec_${crypto.randomUUID()}`,
+        id: res.receipt_id != null ? `rec_${res.receipt_id}` : `rec_${crypto.randomUUID()}`,
         timestamp: new Date().toISOString(),
         receipt: res.extracted,
         result: res.validation,
@@ -77,50 +109,14 @@ export const ReceiptProvider = ({ children }) => {
     []
   );
 
-  const updateProcessedReceipt = useCallback((id, result, metadata) => {
-    setHistory(history => history.map(item => item.id === id ? {
-      ...item,
-      receipt: result.extracted,
-      result: result.validation,
-      city: metadata?.city ?? item.city,
-      category: metadata?.category ?? item.category,
-      client_name: metadata?.clientName ?? item.client_name
-    } : item));
-  }, []);
-
-  const updateReceiptStatus = useCallback((id, newStatus) => {
-    setHistory(prev =>
-      prev.map(item => {
-        if (item.id === id) {
-          const reimbAmt =
-            newStatus === 'APPROVED' ? Number(item.receipt?.total_amount) || 0 : 0;
-          return {
-            ...item,
-            result: {
-              ...item.result,
-              status: newStatus,
-              reimbursement_amount: reimbAmt,
-              flags:
-                newStatus === 'APPROVED'
-                  ? (item.result.flags || []).filter(f => !f.includes('Requires manager approval'))
-                  : item.result.flags
-            }
-          };
-        }
-        return item;
-      })
-    );
-  }, []);
-
   const resetAllData = useCallback(async () => {
-    sessionRequestRef.current += 1;
-    try {
-      if (['Admin', 'Finance'].includes(user?.role)) {
-        await apiResetSession();
-      }
-    } finally {
-      setHistory([]);
+    if (!['Admin', 'Finance'].includes(user?.role)) {
+      throw new Error('Only Admin or Finance accounts can reset backend receipts.');
     }
+    sessionRequestRef.current += 1;
+    await apiResetSession();
+    setHistory([]);
+    setMonthlySpent(0);
   }, [user]);
 
   return (
@@ -130,12 +126,11 @@ export const ReceiptProvider = ({ children }) => {
         loginUser,
         logoutUser,
         monthlySpent,
-        monthlyLimit: DEFAULT_MONTHLY_LIMIT,
+        monthlyLimit,
+        policyRules,
         history,
         refreshSession,
         addProcessedReceipt,
-        updateProcessedReceipt,
-        updateReceiptStatus,
         resetAllData
       }}
     >

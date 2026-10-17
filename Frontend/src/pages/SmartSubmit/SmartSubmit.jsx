@@ -14,19 +14,21 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useReceipts } from '../../context/ReceiptContext';
-import { processReceipt } from '../../services/api';
-import EditableReceiptForm from '../../components/EditableReceiptForm/EditableReceiptForm';
+import { getEmployees, processReceipt } from '../../services/api';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import ReceiptSplitView from '../../components/ReceiptSplitView/ReceiptSplitView';
 import styles from './SmartSubmit.module.css';
 
 export const SmartSubmit = () => {
-  const { addProcessedReceipt, updateProcessedReceipt } = useReceipts();
+  const { user, addProcessedReceipt, refreshSession, policyRules } = useReceipts();
+  const cityCaps = policyRules?.city_daily_caps || {};
 
   // Form states
   const [city, setCity] = useState('New York');
   const [category, setCategory] = useState('Meals');
   const [clientName, setClientName] = useState('');
+  const [employees, setEmployees] = useState([]);
+  const [employeeId, setEmployeeId] = useState(user?.employee_id || '');
 
   // File states
   const [file, setFile] = useState(null);
@@ -38,7 +40,14 @@ export const SmartSubmit = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
-  const [receiptId, setReceiptId] = useState(null);
+
+  useEffect(() => {
+    if (!['Admin', 'Finance'].includes(user?.role)) return;
+    getEmployees().then(list => {
+      setEmployees(list);
+      setEmployeeId(current => current || list[0]?.id || '');
+    }).catch(err => setError(err.message || 'Could not load employees from the backend.'));
+  }, [user?.role]);
 
   useEffect(() => () => {
     if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
@@ -146,21 +155,25 @@ export const SmartSubmit = () => {
       setError('Please select or drop a receipt image first.');
       return;
     }
+    if (['Admin', 'Finance'].includes(user?.role) && !employeeId) {
+      setError('Select an employee before submitting a receipt for them.');
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
 
     try {
       // Call FastAPI backend POST /api/process-receipt
-      const res = await processReceipt(file, city, category, clientName);
+      const res = await processReceipt(file, city, category, clientName, { employeeId });
       setResult(res);
-      const id = addProcessedReceipt(res, {
+      addProcessedReceipt(res, {
         city,
         category,
         client_name: clientName,
         imageUrl: previewUrl || undefined
       });
-      setReceiptId(id);
+      await refreshSession();
     } catch (err) {
       setError(err.message || 'Receipt processing failed. Please try again.');
     } finally {
@@ -168,62 +181,10 @@ export const SmartSubmit = () => {
     }
   };
 
-  const handleUpdateForm = (updated) => {
-    if (!result) return;
-
-    const newTotal = updated.extracted.total_amount;
-    let newStatus = result.validation.status;
-    const newFlags = [];
-
-    // City Cap Check
-    const cap = updated.city === 'New York' ? 100 : updated.city === 'San Francisco' ? 90 : 75;
-    if (updated.category === 'Meals' && newTotal > cap) {
-      newFlags.push(`⚠️ Over ${updated.city} cap: $${newTotal.toFixed(2)} exceeds $${cap}.00 limit`);
-      newStatus = 'FLAGGED';
-    }
-
-    // Alcohol check
-    const itemizedText = (updated.extracted.line_items || [])
-      .map(i => (i.description || '').toLowerCase())
-      .join(' ');
-    if (
-      itemizedText.includes('alcohol') ||
-      itemizedText.includes('wine') ||
-      itemizedText.includes('beer') ||
-      itemizedText.includes('liquor')
-    ) {
-      newFlags.push("🚫 Non-reimbursable item detected: 'alcohol'");
-      newStatus = 'REJECTED';
-    }
-
-    if (newTotal > 200 && newStatus === 'APPROVED') {
-      newFlags.push('🔒 Requires manager approval (>$200.00)');
-      newStatus = 'PENDING_APPROVAL';
-    }
-
-    const updatedRes = {
-      ...result,
-      extracted: updated.extracted,
-      validation: {
-        status: newStatus,
-        flags: newFlags,
-        reimbursement_amount: newStatus === 'APPROVED' || newStatus === 'PENDING_APPROVAL' ? newTotal : 0
-      }
-    };
-
-    setResult(updatedRes);
-    updateProcessedReceipt(receiptId, updatedRes, {
-      city: updated.city,
-      category: updated.category,
-      clientName: updated.clientName
-    });
-  };
-
   const handleReset = () => {
     setFile(null);
     setPreviewUrl(null);
     setResult(null);
-    setReceiptId(null);
     setError(null);
   };
 
@@ -233,7 +194,7 @@ export const SmartSubmit = () => {
       <div className={styles.introCard}>
         <h2 className={styles.introTitle}>Exhume & Resolve Paper Receipts</h2>
         <p className={styles.introDesc}>
-          Drop receipt photos, scans, or itemized slips. The Qwen2-VL vision model extracts line items, validates against corporate expense limits, and tags policy violations automatically.
+          Drop receipt photos, scans, or itemized slips. The backend extracts the receipt, checks it against the active expense policy, and stores the result in your expense history.
         </p>
 
         {/* Quick Sample Selector for Easy Testing */}
@@ -288,11 +249,12 @@ export const SmartSubmit = () => {
                 value={city}
                 onChange={e => setCity(e.target.value)}
               >
-                <option value="New York">New York ($100 Cap)</option>
-                <option value="San Francisco">San Francisco ($90 Cap)</option>
-                <option value="Chicago">Chicago ($75 Cap)</option>
-                <option value="Austin">Austin ($75 Cap)</option>
-                <option value="Default">Other / Default ($75 Cap)</option>
+                {['New York', 'San Francisco', 'Chicago', 'Austin', 'Default'].map(location => (
+                  <option key={location} value={location}>
+                    {location === 'Default' ? 'Other / Default' : location}
+                    {cityCaps[location] != null ? ` ($${Number(cityCaps[location]).toFixed(2)} Cap)` : ''}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -322,6 +284,25 @@ export const SmartSubmit = () => {
                 onChange={e => setClientName(e.target.value)}
               />
             </div>
+            {['Admin', 'Finance'].includes(user?.role) && (
+              <div className={styles.formGroup}>
+                <label className={styles.label} htmlFor="receipt-employee">Submitting for</label>
+                <select
+                  id="receipt-employee"
+                  className={styles.select}
+                  value={employeeId}
+                  onChange={e => setEmployeeId(e.target.value)}
+                  required
+                >
+                  <option value="">Select an employee</option>
+                  {employees.map(employee => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.name} ({employee.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Drag & Drop Zone */}
@@ -461,7 +442,7 @@ export const SmartSubmit = () => {
             city={city}
             category={category}
             clientName={clientName}
-            onSave={handleUpdateForm}
+            readOnly
           />
 
           <div className={styles.resetProcessRow}>
@@ -485,4 +466,3 @@ export const SmartSubmit = () => {
 };
 
 export default SmartSubmit;
-

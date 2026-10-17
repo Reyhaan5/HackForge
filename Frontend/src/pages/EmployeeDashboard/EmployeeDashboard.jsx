@@ -16,11 +16,11 @@ import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import styles from './EmployeeDashboard.module.css';
 
 export const EmployeeDashboard = () => {
-  const { history, monthlySpent, monthlyLimit } = useReceipts();
+  const { history, monthlySpent, monthlyLimit, policyRules } = useReceipts();
 
   // Compute stat metrics
   const totalReimbursed = history
-    .filter(item => item.result.status === 'APPROVED')
+    .filter(item => ['APPROVED', 'PARTIAL'].includes(item.result.status))
     .reduce((acc, curr) => acc + (curr.result.reimbursement_amount || 0), 0);
 
   const pendingCount = history.filter(
@@ -91,14 +91,18 @@ export const EmployeeDashboard = () => {
         <ShieldAlert size={22} className={styles.policyIcon} />
         <div className={styles.policyContent}>
           <span className={styles.policyTitle}>A heads-up on expense rules</span>
-          <span>Each receipt is checked against these limits. Anything outside them can be reviewed by your team.</span>
+            <span>Each receipt is checked against the active backend policy. Anything outside it can be reviewed by your team.</span>
           <div className={styles.policyRules}>
-            <span className={styles.policyRuleTag}>NYC Meals Cap: $100</span>
-            <span className={styles.policyRuleTag}>SF Meals Cap: $90</span>
-            <span className={styles.policyRuleTag}>Other Cities: $75</span>
-            <span className={styles.policyRuleTag}>Auto-Flag Alcohol & Entertainment</span>
-            <span className={styles.policyRuleTag}>Manager Approval &gt; $200</span>
-            <span className={styles.policyRuleTag}>Zero Duplicates</span>
+            {Object.entries(policyRules?.city_daily_caps || {}).map(([city, cap]) => (
+              <span className={styles.policyRuleTag} key={city}>{city}: ${Number(cap).toFixed(2)}</span>
+            ))}
+            {policyRules?.approval_threshold != null && (
+              <span className={styles.policyRuleTag}>Manager approval &gt; ${Number(policyRules.approval_threshold).toFixed(2)}</span>
+            )}
+            {policyRules?.non_reimbursable_keywords?.length > 0 && (
+              <span className={styles.policyRuleTag}>Restricted: {policyRules.non_reimbursable_keywords.join(', ')}</span>
+            )}
+            <span className={styles.policyRuleTag}>Monthly limit: ${monthlyLimit.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -149,7 +153,7 @@ export const EmployeeDashboard = () => {
 
                 <div className={styles.activityRight}>
                   <span className={styles.amount}>
-                    ${item.receipt.total_amount ? item.receipt.total_amount.toFixed(2) : '0.00'}
+                    {new Intl.NumberFormat(undefined, { style: 'currency', currency: item.receipt.currency || 'USD' }).format(Number(item.receipt.total_amount) || 0)}
                   </span>
                   <StatusBadge status={item.result.status} />
                 </div>

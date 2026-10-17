@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   ZoomIn,
   ZoomOut,
   RotateCw,
-  Maximize2,
   FileText,
-  Sparkles,
   AlertCircle
 } from 'lucide-react';
 import StatusBadge from '../StatusBadge/StatusBadge';
@@ -18,7 +16,8 @@ export const ReceiptSplitView = ({
   city = 'New York',
   category = 'Meals',
   clientName = '',
-  onSave
+  onSave,
+  readOnly = false
 }) => {
   const [zoom, setZoom] = useState(1);
   const [activeHighlight, setActiveHighlight] = useState(null);
@@ -176,6 +175,7 @@ export const ReceiptSplitView = ({
             category={category}
             clientName={clientName}
             onSave={onSave}
+            readOnly={readOnly}
           />
         </div>
       </div>

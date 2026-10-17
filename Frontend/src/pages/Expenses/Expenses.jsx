@@ -14,6 +14,14 @@ import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import tableStyles from '../../components/Table/Table.module.css';
 import styles from './Expenses.module.css';
 
+const formatCurrency = (amount, currency = 'USD') => {
+  try {
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(amount) || 0);
+  } catch {
+    return `${Number(amount) || 0} ${currency}`;
+  }
+};
+
 export const Expenses = () => {
   const { history } = useReceipts();
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,12 +46,12 @@ export const Expenses = () => {
   });
 
   const totalIncurred = history.reduce(
-    (acc, curr) => acc + (curr.receipt.total_amount || 0),
+    (acc, curr) => acc + (curr.receipt.base_amount_usd ?? curr.receipt.total_amount ?? 0),
     0
   );
 
   const totalReimbursed = history
-    .filter(item => item.result.status === 'APPROVED')
+    .filter(item => ['APPROVED', 'PARTIAL'].includes(item.result.status))
     .reduce((acc, curr) => acc + (curr.result.reimbursement_amount || 0), 0);
 
   const totalPending = history
@@ -51,13 +59,14 @@ export const Expenses = () => {
       item =>
         item.result.status === 'PENDING_APPROVAL' || item.result.status === 'FLAGGED'
     )
-    .reduce((acc, curr) => acc + (curr.receipt.total_amount || 0), 0);
+    .reduce((acc, curr) => acc + (curr.receipt.base_amount_usd ?? curr.receipt.total_amount ?? 0), 0);
 
   const handleExportCSV = async () => {
     try {
-      exportCSV(history);
+      await exportCSV();
     } catch (err) {
       console.error('CSV export failed:', err);
+      window.alert(err.message || 'Could not export receipts from the backend.');
     }
   };
 
@@ -95,16 +104,16 @@ export const Expenses = () => {
           <span className={styles.statMiniValue}>{history.length}</span>
         </div>
         <div className={styles.statMiniCard}>
-          <span className={styles.statMiniLabel}>Total Incurred</span>
-          <span className={styles.statMiniValue}>${totalIncurred.toFixed(2)}</span>
+          <span className={styles.statMiniLabel}>Total Incurred (USD)</span>
+          <span className={styles.statMiniValue}>{formatCurrency(totalIncurred)}</span>
         </div>
         <div className={styles.statMiniCard}>
-          <span className={styles.statMiniLabel}>Total Approved</span>
-          <span className={styles.statMiniValue}>${totalReimbursed.toFixed(2)}</span>
+          <span className={styles.statMiniLabel}>Total Approved (USD)</span>
+          <span className={styles.statMiniValue}>{formatCurrency(totalReimbursed)}</span>
         </div>
         <div className={styles.statMiniCard}>
-          <span className={styles.statMiniLabel}>Pending In Review</span>
-          <span className={styles.statMiniValue}>${totalPending.toFixed(2)}</span>
+          <span className={styles.statMiniLabel}>Pending In Review (USD)</span>
+          <span className={styles.statMiniValue}>{formatCurrency(totalPending)}</span>
         </div>
       </div>
 
@@ -128,6 +137,7 @@ export const Expenses = () => {
         >
           <option value="ALL">All Statuses</option>
           <option value="APPROVED">Approved</option>
+          <option value="PARTIAL">Partial Reimbursement</option>
           <option value="FLAGGED">Flagged</option>
           <option value="PENDING_APPROVAL">Pending Approval</option>
           <option value="REJECTED">Rejected</option>
@@ -195,7 +205,7 @@ export const Expenses = () => {
                     {item.city || 'Standard'}
                   </td>
                   <td className={tableStyles.tdAmount}>
-                    ${(item.receipt.total_amount || 0).toFixed(2)}
+                    {formatCurrency(item.receipt.total_amount, item.receipt.currency)}
                   </td>
                   <td className={tableStyles.td}>
                     <StatusBadge status={item.result.status} />
@@ -256,15 +266,14 @@ export const Expenses = () => {
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>Total Incurred</span>
                 <span className={styles.detailValue}>
-                  ${(selectedReceipt.receipt.total_amount || 0).toFixed(2)}{' '}
-                  {selectedReceipt.receipt.currency}
+                  {formatCurrency(selectedReceipt.receipt.total_amount, selectedReceipt.receipt.currency)}
                 </span>
               </div>
 
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>Approved Reimbursement</span>
                 <span className={styles.detailValue}>
-                  ${(selectedReceipt.result.reimbursement_amount || 0).toFixed(2)}
+                  {formatCurrency(selectedReceipt.result.reimbursement_amount, 'USD')}
                 </span>
               </div>
 
@@ -304,7 +313,7 @@ export const Expenses = () => {
                       {selectedReceipt.receipt.line_items.map((li, idx) => (
                         <div key={idx} className={styles.itemEntry}>
                           <span>{li.description}</span>
-                          <span>${(li.amount || 0).toFixed(2)}</span>
+                          <span>{formatCurrency(li.amount, selectedReceipt.receipt.currency)}</span>
                         </div>
                       ))}
                     </div>

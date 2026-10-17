@@ -8,12 +8,20 @@ import {
   Receipt,
   CheckCheck
 } from 'lucide-react';
-import { useReceipts } from '../../context/ReceiptContext';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
+import { useReceipts } from '../../context/ReceiptContext';
 import styles from './AdminQueue.module.css';
 
+const formatCurrency = (amount, currency = 'USD') => {
+  try {
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(amount) || 0);
+  } catch {
+    return `${Number(amount) || 0} ${currency}`;
+  }
+};
+
 export const AdminQueue = () => {
-  const { history, updateReceiptStatus } = useReceipts();
+  const { history, policyRules } = useReceipts();
 
   // Find all receipts pending approval or flagged
   const queueItems = history.filter(
@@ -28,22 +36,6 @@ export const AdminQueue = () => {
   // Selected item
   const currentItem = queueItems[selectedIndex] || queueItems[0] || null;
 
-  const handleApprove = () => {
-    if (!currentItem) return;
-    updateReceiptStatus(currentItem.id, 'APPROVED');
-    if (selectedIndex >= queueItems.length - 1) {
-      setSelectedIndex(Math.max(0, queueItems.length - 2));
-    }
-  };
-
-  const handleReject = () => {
-    if (!currentItem) return;
-    updateReceiptStatus(currentItem.id, 'REJECTED');
-    if (selectedIndex >= queueItems.length - 1) {
-      setSelectedIndex(Math.max(0, queueItems.length - 2));
-    }
-  };
-
   return (
     <div className={styles.container}>
       {/* Header Card */}
@@ -51,12 +43,12 @@ export const AdminQueue = () => {
         <div className={styles.titleArea}>
           <h2 className={styles.title}>Manager Approval Queue</h2>
           <p className={styles.subtitle}>
-            Review receipts flagged by AI vision heuristics, city per diem limits, or exceeding the $200 threshold.
+            Review receipts flagged by backend policy checks{policyRules?.approval_threshold != null ? `, including the $${Number(policyRules.approval_threshold).toFixed(2)} approval threshold` : ''}.
           </p>
         </div>
         <div className={styles.badgePending}>
           <ShieldAlert size={16} />
-          <span>{queueItems.length} Receipts Pending Action</span>
+          <span>{queueItems.length} Receipts Need Attention</span>
         </div>
       </div>
 
@@ -87,7 +79,7 @@ export const AdminQueue = () => {
                 <div className={styles.queueCardSub}>
                   <span>{item.city}</span>
                   <span className={styles.queueCardAmount}>
-                    ${(item.receipt.total_amount || 0).toFixed(2)}
+                    {formatCurrency(item.receipt.total_amount, item.receipt.currency)}
                   </span>
                 </div>
               </div>
@@ -138,7 +130,7 @@ export const AdminQueue = () => {
                         ) : (
                           <div className={styles.simLineRow}>
                             <span>Subtotal Items</span>
-                            <span>${(currentItem.receipt.total_amount || 0).toFixed(2)}</span>
+                            <span>{formatCurrency(currentItem.receipt.total_amount, currentItem.receipt.currency)}</span>
                           </div>
                         )}
                       </div>
@@ -146,8 +138,7 @@ export const AdminQueue = () => {
                       <div className={styles.simTotalRow}>
                         <span>TOTAL PAID</span>
                         <span>
-                          ${(currentItem.receipt.total_amount || 0).toFixed(2)}{' '}
-                          {currentItem.receipt.currency}
+                          {formatCurrency(currentItem.receipt.total_amount, currentItem.receipt.currency)}
                         </span>
                       </div>
                     </div>
@@ -187,7 +178,7 @@ export const AdminQueue = () => {
                   <div className={styles.metaRow}>
                     <span className={styles.metaLabel}>Total Incurred</span>
                     <span className={styles.metaValue}>
-                      ${(currentItem.receipt.total_amount || 0).toFixed(2)} {currentItem.receipt.currency}
+                      {formatCurrency(currentItem.receipt.total_amount, currentItem.receipt.currency)}
                     </span>
                   </div>
                 </div>
@@ -216,31 +207,27 @@ export const AdminQueue = () => {
 
                 {/* Manager Notes */}
                 <div className={styles.notesGroup}>
-                  <label className={styles.notesLabel}>Manager Audit Remarks (Optional)</label>
+                  <label className={styles.notesLabel}>Manager Audit Remarks</label>
                   <textarea
                     className={styles.notesInput}
-                    placeholder="Provide reason for approval override or rejection reason..."
+                    placeholder="The backend does not currently accept audit notes."
                     value={managerNotes}
                     onChange={e => setManagerNotes(e.target.value)}
+                    disabled
                   />
                 </div>
 
                 {/* Action Buttons */}
+                <p className={styles.unsupportedNotice} role="note">
+                  Approval and rejection are read-only here. The backend currently has no endpoint to save status changes or manager notes.
+                </p>
                 <div className={styles.actionsBar}>
-                  <button
-                    type="button"
-                    className={styles.approveButton}
-                    onClick={handleApprove}
-                  >
+                  <button type="button" className={styles.approveButton} disabled title="No backend status update endpoint">
                     <CheckCircle2 size={18} />
                     <span>Approve Expense</span>
                   </button>
 
-                  <button
-                    type="button"
-                    className={styles.rejectButton}
-                    onClick={handleReject}
-                  >
+                  <button type="button" className={styles.rejectButton} disabled title="No backend status update endpoint">
                     <XCircle size={18} />
                     <span>Reject Expense</span>
                   </button>

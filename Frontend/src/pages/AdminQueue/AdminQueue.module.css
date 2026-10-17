@@ -326,6 +326,13 @@
   border-top: 1px solid var(--border-color);
 }
 
+.unsupportedNotice {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 .approveButton {
   display: flex;
   align-items: center;
@@ -346,6 +353,13 @@
 .approveButton:hover {
   background-color: #059669;
   transform: translateY(-1px);
+}
+
+.approveButton:disabled,
+.rejectButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
 }
 
 .rejectButton {

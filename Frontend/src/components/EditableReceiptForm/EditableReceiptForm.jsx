@@ -7,7 +7,8 @@ export const EditableReceiptForm = ({
   city: initialCity = 'New York',
   category: initialCategory = 'Meals',
   clientName: initialClientName = '',
-  onSave
+  onSave,
+  readOnly = false
 }) => {
   const [vendor, setVendor] = useState(initialData.vendor || '');
   const [date, setDate] = useState(initialData.date || new Date().toISOString().split('T')[0]);
@@ -39,6 +40,7 @@ export const EditableReceiptForm = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (readOnly) return;
     const updatedExtracted = {
       vendor,
       date,
@@ -48,7 +50,7 @@ export const EditableReceiptForm = ({
       line_items: lineItems
     };
 
-    if (onSave) {
+    if (!readOnly && onSave) {
       onSave({
         extracted: updatedExtracted,
         city,
@@ -65,11 +67,13 @@ export const EditableReceiptForm = ({
     <form className={styles.formContainer} onSubmit={handleSubmit}>
       <div className={styles.header}>
         <h3 className={styles.title}>Extracted Receipt Details</h3>
-        <span className={styles.badgeNotice}>
+        {!readOnly && <span className={styles.badgeNotice}>
           <Sparkles size={13} />
           <span>Editable AI Output</span>
-        </span>
+        </span>}
       </div>
+
+      {readOnly && <p role="note">Receipt editing is unavailable because the backend does not expose an update endpoint.</p>}
 
       <div className={styles.grid}>
         <div className={styles.formGroup}>
@@ -81,6 +85,7 @@ export const EditableReceiptForm = ({
             onChange={e => setVendor(e.target.value)}
             required
             placeholder="e.g. Blue Hill NYC"
+            disabled={readOnly}
           />
         </div>
 
@@ -92,6 +97,7 @@ export const EditableReceiptForm = ({
             value={date}
             onChange={e => setDate(e.target.value)}
             required
+            disabled={readOnly}
           />
         </div>
 
@@ -104,6 +110,7 @@ export const EditableReceiptForm = ({
             value={totalAmount}
             onChange={e => setTotalAmount(e.target.value)}
             required
+            disabled={readOnly}
           />
         </div>
 
@@ -113,6 +120,7 @@ export const EditableReceiptForm = ({
             className={styles.select}
             value={currency}
             onChange={e => setCurrency(e.target.value)}
+            disabled={readOnly}
           >
             <option value="USD">USD ($)</option>
             <option value="EUR">EUR (€)</option>
@@ -128,6 +136,7 @@ export const EditableReceiptForm = ({
             className={styles.select}
             value={city}
             onChange={e => setCity(e.target.value)}
+            disabled={readOnly}
           >
             <option value="New York">New York (Meal Cap $100)</option>
             <option value="San Francisco">San Francisco (Meal Cap $90)</option>
@@ -143,6 +152,7 @@ export const EditableReceiptForm = ({
             className={styles.select}
             value={category}
             onChange={e => setCategory(e.target.value)}
+            disabled={readOnly}
           >
             <option value="Meals">Meals & Entertainment</option>
             <option value="Travel">Flights & Rail</option>
@@ -161,6 +171,7 @@ export const EditableReceiptForm = ({
             value={clientName}
             onChange={e => setClientName(e.target.value)}
             placeholder="e.g. Acme Corp Hackathon Sprint"
+            disabled={readOnly}
           />
         </div>
       </div>
@@ -169,14 +180,14 @@ export const EditableReceiptForm = ({
       <div className={styles.lineItemsSection}>
         <div className={styles.lineItemsHeader}>
           <h4 className={styles.lineItemsTitle}>Itemized Line Items ({lineItems.length})</h4>
-          <button
+          {!readOnly && <button
             type="button"
             className={styles.addItemButton}
             onClick={handleAddLineItem}
           >
             <Plus size={14} />
             <span>Add Item</span>
-          </button>
+          </button>}
         </div>
 
         {lineItems.length === 0 ? (
@@ -193,6 +204,7 @@ export const EditableReceiptForm = ({
                   placeholder="Item description (e.g. Business Lunch)"
                   value={item.description}
                   onChange={e => handleUpdateLineItem(idx, 'description', e.target.value)}
+                  disabled={readOnly}
                 />
                 <input
                   type="number"
@@ -201,27 +213,28 @@ export const EditableReceiptForm = ({
                   placeholder="0.00"
                   value={item.amount}
                   onChange={e => handleUpdateLineItem(idx, 'amount', e.target.value)}
+                  disabled={readOnly}
                 />
-                <button
+                {!readOnly && <button
                   type="button"
                   className={styles.removeButton}
                   onClick={() => handleRemoveLineItem(idx)}
                   title="Remove line item"
                 >
                   <Trash2 size={16} />
-                </button>
+                </button>}
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className={styles.actionsRow}>
+      {!readOnly && <div className={styles.actionsRow}>
         <button type="submit" className={styles.saveButton}>
           <Check size={16} />
           <span>{savedSuccess ? 'Details Updated!' : 'Confirm & Re-evaluate Policy'}</span>
         </button>
-      </div>
+      </div>}
     </form>
   );
 };
