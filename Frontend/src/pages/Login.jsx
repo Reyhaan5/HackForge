@@ -4,7 +4,7 @@ import AnimatedLogo from "../components/AnimatedLogo.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import { useTheme } from "../context/ThemeProvider.jsx";
 import { useReceipts } from "../context/ReceiptContext.jsx";
-import { login, register } from "../services/api.js";
+import { clearAccessToken, login, register } from "../services/api.js";
 import styles from "./styles/Login.module.css";
 
 const PixelTrail = lazy(() => import("../components/PixelTrail.jsx"));
@@ -15,6 +15,7 @@ function Login() {
         password: "",
     });
     const [isRegister, setIsRegister] = useState(false);
+    const [selectedRole, setSelectedRole] = useState("Employee");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -42,12 +43,16 @@ function Login() {
             const response = await login(data.username, data.password);
             const authenticatedUser = response?.user;
             if (!authenticatedUser) throw new Error("The server returned no user account.");
+            if ((authenticatedUser.role || "").toLowerCase() !== selectedRole.toLowerCase()) {
+                clearAccessToken();
+                throw new Error(`This account is registered as ${authenticatedUser.role}. Select that role and try again.`);
+            }
 
             // Set user in Context (No localStorage!)
             loginUser(authenticatedUser);
             await refreshSession();
 
-            if ((authenticatedUser.role || "").toLowerCase() === "admin") {
+            if (["admin", "finance"].includes((authenticatedUser.role || "").toLowerCase())) {
                 navigate("/admin/queue");
             } else {
                 navigate("/");
@@ -63,6 +68,10 @@ function Login() {
     async function handleRegisterInitiate(e) {
         e.preventDefault();
         setError("");
+        if (selectedRole !== "Employee") {
+            setError("Admin and Finance accounts must be created by an existing administrator. Choose Employee to register.");
+            return;
+        }
         if (!data.username.trim()) {
             setError("Username is Required");
             return;
@@ -85,7 +94,7 @@ function Login() {
             loginUser(registeredUser);
             await refreshSession();
 
-            if ((registeredUser.role || "").toLowerCase() === "admin") {
+            if (["admin", "finance"].includes((registeredUser.role || "").toLowerCase())) {
                 navigate("/admin/queue");
             } else {
                 navigate("/");
@@ -128,9 +137,16 @@ function Login() {
                         {isRegister ? "Register" : "Login"}
                     </h1>
                     <p className={styles.subtitle}>Enter your credentials to access the expense portal</p>
+                    <p className={styles.roleNote}>{isRegister ? "Choose Employee to create an account. Admin and Finance accounts must be provisioned by an administrator." : "Choose your account role. Access is still verified against your account on the server."}</p>
 
                     {isRegister && (
                         <form className={styles.form} onSubmit={handleRegisterInitiate}>
+                            <label className={styles.roleLabel} htmlFor="register-role">Register as</label>
+                            <select id="register-role" className={styles.loginInput} value={selectedRole} onChange={e => setSelectedRole(e.target.value)}>
+                                <option value="Employee">Employee</option>
+                                <option value="Admin">Admin (admin-created accounts)</option>
+                                <option value="Finance">Finance (admin-created accounts)</option>
+                            </select>
                             <input
                                 type="text"
                                 name="username"
@@ -164,6 +180,12 @@ function Login() {
                     
                     {!isRegister && (
                         <form className={styles.form} onSubmit={handleLogin}>
+                            <label className={styles.roleLabel} htmlFor="login-role">Sign in as</label>
+                            <select id="login-role" className={styles.loginInput} value={selectedRole} onChange={e => setSelectedRole(e.target.value)}>
+                                <option value="Employee">Employee</option>
+                                <option value="Admin">Admin</option>
+                                <option value="Finance">Finance</option>
+                            </select>
                             <input
                                 type="text"
                                 name="username"

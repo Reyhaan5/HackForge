@@ -357,8 +357,24 @@ def get_policy(current_user: Login = Depends(get_current_user), db: Session = De
     return {"id": policy.id, "rules": policy.rules}
 
 @app.put("/api/policy")
-def update_policy(rules: dict, admin_user: Login = Depends(require_admin), db: Session = Depends(get_db)):
-    """Updates the active policy rules JSON (Requires Admin/Finance Privileges)."""
+def update_policy(rules: dict, admin_user: Login = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Updates active policy rules (Admin only)."""
+    if admin_user.role != "Admin":
+        raise HTTPException(status_code=403, detail="Only Admin accounts can edit expense policies")
+    for key in ("monthly_limit", "approval_threshold", "client_meal_per_person_limit"):
+        if key in rules and (not isinstance(rules[key], (int, float)) or isinstance(rules[key], bool) or rules[key] < 0):
+            raise HTTPException(status_code=422, detail=f"{key} must be a non-negative number")
+    for key in ("city_daily_caps", "category_caps"):
+        if key in rules and (not isinstance(rules[key], dict) or any(
+            not isinstance(name, str) or not name.strip() or not isinstance(value, (int, float))
+            or isinstance(value, bool) or value < 0 for name, value in rules[key].items()
+        )):
+            raise HTTPException(status_code=422, detail=f"{key} must contain named non-negative amounts")
+    if "non_reimbursable_keywords" in rules and (
+        not isinstance(rules["non_reimbursable_keywords"], list)
+        or any(not isinstance(word, str) or not word.strip() for word in rules["non_reimbursable_keywords"])
+    ):
+        raise HTTPException(status_code=422, detail="non_reimbursable_keywords must be a list of words")
     policy = db.query(Policy).filter_by(is_active=True).first()
     if not policy:
         policy = Policy(id="DEFAULT-EXPENSE-POLICY", is_active=True, rules=rules)

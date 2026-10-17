@@ -97,6 +97,12 @@ body,
   color: var(--muted);
   font-size: 0.875rem;
 }
+.roleNote{
+  margin: -1.25rem 0 1.5rem;
+  color: var(--muted);
+  font-size: .8rem;
+  line-height: 1.5;
+}
 .form{
   display: flex;
   flex-direction: column;
@@ -115,8 +121,11 @@ body,
   transition: border-color 0.2s;
 }
 .loginInput:focus{
-  border-color: var(--border);
+  border-color: var(--primary);
+  outline: 3px solid color-mix(in srgb, var(--primary) 18%, transparent);
+  outline-offset: 1px;
 }
+.roleLabel{ margin-bottom: -.65rem; color: var(--text); font-size: .82rem; font-weight: 600; }
 
 .btn{
   width: 10rem;

@@ -7,6 +7,7 @@ import {
   FileSpreadsheet,
   ShieldAlert,
   BarChart3,
+  SlidersHorizontal,
   RotateCcw,
   Menu,
   X,
@@ -19,7 +20,7 @@ import projectLogo from '../../assets/logo.svg';
 import styles from './Layout.module.css';
 
 export const Layout = ({ children }) => {
-  const { user, logoutUser, monthlySpent, monthlyLimit, history, resetAllData } = useReceipts();
+  const { user, logoutUser, history, resetAllData } = useReceipts();
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,8 +30,6 @@ export const Layout = ({ children }) => {
   ).length;
 
   const currentUser = user;
-  const isPrivileged = ['Admin', 'Finance'].includes(user?.role);
-
   const handleLogout = () => {
     if (logoutUser) logoutUser();
     navigate("/login");
@@ -48,12 +47,12 @@ export const Layout = ({ children }) => {
         return 'Admin Approval Queue';
       case '/admin/analytics':
         return 'Expense Analytics & Compliance';
+      case '/admin/policy':
+        return 'Policy settings';
       default:
         return 'Receipt Graveyard Resolver';
     }
   };
-
-  const percentSpent = Math.min(100, Math.round((monthlySpent / monthlyLimit) * 100));
 
   return (
     <div className={styles.shell}>
@@ -131,28 +130,12 @@ export const Layout = ({ children }) => {
               <BarChart3 size={18} />
               <span>Analytics</span>
             </NavLink>
+            {user?.role === 'Admin' && <NavLink to="/admin/policy" onClick={() => setMobileOpen(false)} className={({ isActive }) => `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}>
+              <SlidersHorizontal size={18} /><span>Policy</span>
+            </NavLink>}
           </div>}
         </nav>
 
-        {/* Monthly limit widget */}
-        <div className={styles.sidebarFooter}>
-          <div className={styles.budgetCard}>
-            <div className={styles.budgetHeader}>
-              <span>{isPrivileged ? 'Company Monthly Spend' : 'Monthly Budget'}</span>
-              <span className={styles.budgetAmount}>
-                {isPrivileged ? `$${monthlySpent.toFixed(2)}` : `$${monthlySpent.toFixed(2)} / $${monthlyLimit}`}
-              </span>
-            </div>
-            {!isPrivileged && <progress
-              className={styles.progressBar}
-              value={monthlySpent}
-              max={monthlyLimit}
-            />}
-            <div className={styles.budgetNotice}>
-              {isPrivileged ? 'Across all employees this month' : `${percentSpent}% consumed this cycle`}
-            </div>
-          </div>
-        </div>
       </aside>
 
       {/* Main Container */}

@@ -149,6 +149,11 @@ export async function getPolicy() {
   return response.data;
 }
 
+export async function updatePolicy(rules) {
+  const response = await apiClient.put('/api/policy', rules);
+  return response.data;
+}
+
 /**
  * Reset session store on the backend
  */

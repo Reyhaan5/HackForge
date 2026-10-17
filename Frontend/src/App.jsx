@@ -12,6 +12,7 @@ const SmartSubmit = lazy(() => import('./pages/SmartSubmit/SmartSubmit'));
 const Expenses = lazy(() => import('./pages/Expenses/Expenses'));
 const AdminQueue = lazy(() => import('./pages/AdminQueue/AdminQueue'));
 const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics/AdminAnalytics'));
+const PolicySettings = lazy(() => import('./pages/admin/PolicySettings'));
 
 const pageWithLayout = (page, requiredRole) => (
   <ProtectedRoute requiredRole={requiredRole}><Layout>{page}</Layout></ProtectedRoute>
@@ -32,6 +33,7 @@ export function App() {
 
               <Route path="/admin/queue" element={pageWithLayout(<AdminQueue />, ['Admin', 'Finance'])} />
               <Route path="/admin/analytics" element={pageWithLayout(<AdminAnalytics />, ['Admin', 'Finance'])} />
+              <Route path="/admin/policy" element={pageWithLayout(<PolicySettings />, 'Admin')} />
               <Route path="/admin" element={<Navigate to="/admin/queue" replace />} />
 
               <Route path="*" element={<Navigate to="/" replace />} />

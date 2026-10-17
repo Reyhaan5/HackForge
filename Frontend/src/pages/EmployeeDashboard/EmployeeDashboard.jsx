@@ -6,7 +6,6 @@ import {
   TrendingUp,
   UploadCloud,
   ArrowRight,
-  ShieldAlert,
   Building,
   Receipt
 } from 'lucide-react';
@@ -16,7 +15,7 @@ import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import styles from './EmployeeDashboard.module.css';
 
 export const EmployeeDashboard = () => {
-  const { history, monthlySpent, monthlyLimit, policyRules } = useReceipts();
+  const { history, monthlySpent, monthlyLimit } = useReceipts();
 
   // Compute stat metrics
   const totalReimbursed = history
@@ -85,26 +84,6 @@ export const EmployeeDashboard = () => {
           icon={TrendingUp}
           variant="primary"
         />
-      </div>
-
-      <div className={styles.policyBanner}>
-        <ShieldAlert size={22} className={styles.policyIcon} />
-        <div className={styles.policyContent}>
-          <span className={styles.policyTitle}>A heads-up on expense rules</span>
-            <span>Each receipt is checked against the active backend policy. Anything outside it can be reviewed by your team.</span>
-          <div className={styles.policyRules}>
-            {Object.entries(policyRules?.city_daily_caps || {}).map(([city, cap]) => (
-              <span className={styles.policyRuleTag} key={city}>{city}: ${Number(cap).toFixed(2)}</span>
-            ))}
-            {policyRules?.approval_threshold != null && (
-              <span className={styles.policyRuleTag}>Manager approval &gt; ${Number(policyRules.approval_threshold).toFixed(2)}</span>
-            )}
-            {policyRules?.non_reimbursable_keywords?.length > 0 && (
-              <span className={styles.policyRuleTag}>Restricted: {policyRules.non_reimbursable_keywords.join(', ')}</span>
-            )}
-            <span className={styles.policyRuleTag}>Monthly limit: ${monthlyLimit.toFixed(2)}</span>
-          </div>
-        </div>
       </div>
 
       <div className={styles.activityCard}>
