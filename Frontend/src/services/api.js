@@ -21,7 +21,8 @@ export async function login(username, password) {
     throw new Error(
       error.response?.data?.detail ||
       error.message ||
-      'Invalid username or password'
+      'Invalid username or password',
+      { cause: error }
     );
   }
 }
@@ -46,7 +47,8 @@ export async function register(username, password, role = 'Employee', employeeId
     throw new Error(
       error.response?.data?.detail ||
       error.message ||
-      'Registration failed'
+      'Registration failed',
+      { cause: error }
     );
   }
 }
@@ -82,7 +84,8 @@ export async function processReceipt(
     throw new Error(
       error.response?.data?.error ||
       error.message ||
-      'Failed to reach receipt processing engine at http://localhost:8000'
+      'Failed to reach receipt processing engine at http://localhost:8000',
+      { cause: error }
     );
   }
 }
@@ -120,48 +123,27 @@ export async function resetSession() {
 /**
  * Trigger CSV export download
  */
-export async function exportCSV() {
-  try {
-    const response = await apiClient.get('/api/export-csv', {
-      responseType: 'blob',
-    });
-
-    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'receipt_graveyard_expenses.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.warn('Backend CSV export failed, generating CSV from session history:', error);
-    const session = await getSession();
-    let csvContent = 'data:text/csv;charset=utf-8,Date,Vendor,Total Amount,Currency,Status,Reimbursement Amount,Flags\n';
-    session.history.forEach((item) => {
-      const r = item.receipt || {};
-      const v = item.result || {};
-      const row = [
-        `"${r.date || 'N/A'}"`,
-        `"${(r.vendor || 'UNKNOWN').replace(/"/g, '""')}"`,
-        r.total_amount || 0,
-        `"${r.currency || 'USD'}"`,
-        `"${v.status || 'UNKNOWN'}"`,
-        v.reimbursement_amount || 0,
-        `"${(v.flags || []).join('; ').replace(/"/g, '""')}"`,
-      ].join(',');
-      csvContent += row + '\n';
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'receipt_graveyard_expenses.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+export function exportCSV(history = []) {
+  const escape = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
+  const rows = [
+    ['Date', 'Vendor', 'Total Amount', 'Currency', 'Status', 'Reimbursement Amount', 'Flags'],
+    ...history.map(({ receipt = {}, result = {} }) => [
+      receipt.date || 'N/A',
+      receipt.vendor || 'UNKNOWN',
+      receipt.total_amount || 0,
+      receipt.currency || 'USD',
+      result.status || 'UNKNOWN',
+      result.reimbursement_amount || 0,
+      (result.flags || []).join('; ')
+    ])
+  ];
+  const csv = rows.map(row => row.map(escape).join(',')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'receipt_graveyard_expenses.csv';
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export default {

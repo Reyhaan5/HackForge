@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   UploadCloud,
@@ -23,7 +23,7 @@ import AuditStatusPill from '../../components/AuditStatusPill/AuditStatusPill';
 import styles from './SmartSubmit.module.css';
 
 export const SmartSubmit = () => {
-  const { addProcessedReceipt } = useReceipts();
+  const { addProcessedReceipt, updateProcessedReceipt } = useReceipts();
 
   // Form states
   const [city, setCity] = useState('New York');
@@ -40,6 +40,11 @@ export const SmartSubmit = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  const [receiptId, setReceiptId] = useState(null);
+
+  useEffect(() => () => {
+    if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -151,72 +156,15 @@ export const SmartSubmit = () => {
       // Call FastAPI backend POST /api/process-receipt
       const res = await processReceipt(file, city, category, clientName);
       setResult(res);
-      addProcessedReceipt(res, {
+      const id = addProcessedReceipt(res, {
         city,
         category,
         client_name: clientName,
         imageUrl: previewUrl || undefined
       });
+      setReceiptId(id);
     } catch (err) {
-      console.warn('Backend call failed, simulating intelligent policy check:', err);
-
-      const isAlcohol = category === 'Meals' && clientName.toLowerCase().includes('happy hour');
-      const isOverCap = city === 'San Francisco' && category === 'Meals';
-      const isHighAmount = category === 'Lodging';
-
-      let status = 'APPROVED';
-      const flags = [];
-      let total = 84.50;
-      let reimbAmt = 84.50;
-
-      if (isAlcohol) {
-        status = 'REJECTED';
-        flags.push("🚫 Non-reimbursable item detected: 'alcohol'");
-        reimbAmt = 0;
-        total = 65.00;
-      } else if (isOverCap) {
-        status = 'FLAGGED';
-        flags.push('⚠️ Over San Francisco cap: $135.00 exceeds $90.00 limit');
-        reimbAmt = 0;
-        total = 135.00;
-      } else if (isHighAmount) {
-        status = 'PENDING_APPROVAL';
-        flags.push('🔒 Requires manager approval (>$200.00)');
-        total = 275.00;
-        reimbAmt = 275.00;
-      }
-
-      const mockRes = {
-        success: true,
-        extracted: {
-          vendor: file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' ').toUpperCase(),
-          date: new Date().toISOString().split('T')[0],
-          total_amount: total,
-          currency: 'USD',
-          is_itemized: true,
-          line_items: [
-            { description: 'Service / Goods Package', amount: total * 0.8 },
-            { description: 'State Sales Tax', amount: total * 0.2 }
-          ]
-        },
-        validation: {
-          status,
-          flags,
-          reimbursement_amount: reimbAmt
-        },
-        session: {
-          monthly_spent: reimbAmt,
-          receipts_processed: 1
-        }
-      };
-
-      setResult(mockRes);
-      addProcessedReceipt(mockRes, {
-        city,
-        category,
-        client_name: clientName,
-        imageUrl: previewUrl || undefined
-      });
+      setError(err.message || 'Receipt processing failed. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -266,12 +214,18 @@ export const SmartSubmit = () => {
     };
 
     setResult(updatedRes);
+    updateProcessedReceipt(receiptId, updatedRes, {
+      city: updated.city,
+      category: updated.category,
+      clientName: updated.clientName
+    });
   };
 
   const handleReset = () => {
     setFile(null);
     setPreviewUrl(null);
     setResult(null);
+    setReceiptId(null);
     setError(null);
   };
 
@@ -399,7 +353,7 @@ export const SmartSubmit = () => {
           ) : (
             <div className={styles.filePreviewCard}>
               <div className={styles.filePreviewInfo}>
-                {previewUrl ? (
+                {previewUrl && file.type.startsWith('image/') ? (
                   <img src={previewUrl} alt="Receipt preview" className={styles.previewThumb} />
                 ) : (
                   <FileText size={32} />

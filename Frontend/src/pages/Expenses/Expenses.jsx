@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Download,
   Plus,
   Search,
   Eye,
-  FileSpreadsheet,
   X,
   Receipt
 } from 'lucide-react';
@@ -56,7 +55,7 @@ export const Expenses = () => {
 
   const handleExportCSV = async () => {
     try {
-      await exportCSV();
+      exportCSV(history);
     } catch (err) {
       console.error('CSV export failed:', err);
     }

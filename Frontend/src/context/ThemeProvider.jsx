@@ -17,10 +17,7 @@ function getInitialTheme() {
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(getInitialTheme);
-  const [mounted, setMounted] = useState(false);
-
   useEffect(() => {
-    setMounted(true);
     document.documentElement.setAttribute("data-theme", theme);
     window.localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
@@ -47,7 +44,6 @@ export function ThemeProvider({ children }) {
     theme,
     setTheme,
     toggleTheme,
-    mounted,
   };
 
   return (
@@ -55,6 +51,8 @@ export function ThemeProvider({ children }) {
   );
 }
 
+// Context hooks are intentionally exported alongside their provider.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) {

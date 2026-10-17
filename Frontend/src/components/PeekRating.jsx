@@ -149,6 +149,7 @@ export default function PeekRating({
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
+      // Pointer capture is optional when the target is no longer active.
     }
     st.current.pointerId=e.pointerId;
     st.current.pressing=true;
