@@ -34,6 +34,10 @@ class RegisterRequest(BaseModel):
     username: str
     password: str
 
+class ReceiptStatusUpdateRequest(BaseModel):
+    status: str
+    notes: Optional[str] = None
+
 @app.post("/api/login")
 @app.post("/auth/login")
 def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
@@ -313,6 +317,49 @@ def list_receipts(
         }
         for r in receipts
     ]
+
+@app.patch("/api/receipts/{receipt_id}/status")
+@app.patch("/receipts/{receipt_id}/status")
+def update_receipt_status(
+    receipt_id: int,
+    payload: ReceiptStatusUpdateRequest,
+    db: Session = Depends(get_db)
+):
+    """Updates receipt status and manager notes persistently in PostgreSQL."""
+    receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
+    if not receipt:
+        raise HTTPException(status_code=404, detail="Receipt not found")
+
+    new_status = payload.status.upper()
+    if new_status not in ["APPROVED", "REJECTED", "PARTIAL", "PENDING_APPROVAL"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    receipt.status = new_status
+    if new_status == "APPROVED":
+        if float(receipt.approved_amount) <= 0:
+            receipt.approved_amount = receipt.base_amount_usd
+        if receipt.flags and isinstance(receipt.flags, list):
+            receipt.flags = [
+                f for f in receipt.flags 
+                if "Requires manager approval" not in f and "High amount" not in f
+            ]
+    elif new_status == "REJECTED":
+        receipt.approved_amount = 0.0
+
+    if payload.notes:
+        note_text = f"[Manager Note: {payload.notes.strip()}]"
+        receipt.explanation = f"{receipt.explanation or ''} {note_text}".strip()
+
+    db.commit()
+    db.refresh(receipt)
+    return {
+        "success": True,
+        "receipt_id": receipt.id,
+        "status": receipt.status,
+        "approved_amount": float(receipt.approved_amount),
+        "explanation": receipt.explanation,
+        "flags": receipt.flags
+    }
 
 @app.get("/api/employees")
 def list_employees(

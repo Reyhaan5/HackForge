@@ -21,7 +21,7 @@ const formatCurrency = (amount, currency = 'USD') => {
 };
 
 export const AdminQueue = () => {
-  const { history, policyRules } = useReceipts();
+  const { history, policyRules, updateReceiptStatus } = useReceipts();
 
   // Find all receipts pending approval or flagged
   const queueItems = history.filter(
@@ -32,9 +32,38 @@ export const AdminQueue = () => {
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [managerNotes, setManagerNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Selected item
   const currentItem = queueItems[selectedIndex] || queueItems[0] || null;
+
+  const handleApprove = async () => {
+    if (!currentItem || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await updateReceiptStatus(currentItem.id, 'APPROVED', managerNotes);
+      setManagerNotes('');
+      if (selectedIndex >= queueItems.length - 1) {
+        setSelectedIndex(Math.max(0, queueItems.length - 2));
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!currentItem || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await updateReceiptStatus(currentItem.id, 'REJECTED', managerNotes);
+      setManagerNotes('');
+      if (selectedIndex >= queueItems.length - 1) {
+        setSelectedIndex(Math.max(0, queueItems.length - 2));
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className={styles.container}>
@@ -207,29 +236,36 @@ export const AdminQueue = () => {
 
                 {/* Manager Notes */}
                 <div className={styles.notesGroup}>
-                  <label className={styles.notesLabel}>Manager Audit Remarks</label>
+                  <label className={styles.notesLabel}>Manager Audit Remarks (Optional)</label>
                   <textarea
                     className={styles.notesInput}
-                    placeholder="The backend does not currently accept audit notes."
+                    placeholder="Provide reason for approval override or rejection reason..."
                     value={managerNotes}
                     onChange={e => setManagerNotes(e.target.value)}
-                    disabled
+                    disabled={isSubmitting}
                   />
                 </div>
 
                 {/* Action Buttons */}
-                <p className={styles.unsupportedNotice} role="note">
-                  Approval and rejection are read-only here. The backend currently has no endpoint to save status changes or manager notes.
-                </p>
                 <div className={styles.actionsBar}>
-                  <button type="button" className={styles.approveButton} disabled title="No backend status update endpoint">
+                  <button
+                    type="button"
+                    className={styles.approveButton}
+                    onClick={handleApprove}
+                    disabled={isSubmitting}
+                  >
                     <CheckCircle2 size={18} />
-                    <span>Approve Expense</span>
+                    <span>{isSubmitting ? 'Approving...' : 'Approve Expense'}</span>
                   </button>
 
-                  <button type="button" className={styles.rejectButton} disabled title="No backend status update endpoint">
+                  <button
+                    type="button"
+                    className={styles.rejectButton}
+                    onClick={handleReject}
+                    disabled={isSubmitting}
+                  >
                     <XCircle size={18} />
-                    <span>Reject Expense</span>
+                    <span>{isSubmitting ? 'Rejecting...' : 'Reject Expense'}</span>
                   </button>
                 </div>
               </div>
