@@ -148,7 +148,11 @@ Important Extraction Rules:
                 print(f"⚠️ Legacy Gemini SDK extraction error: {e_legacy}")
         except Exception as e:
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             print(f"⚠️ Gemini cloud extraction error: {e}")
+=======
+            print(f"[WARN] Cloud vision extraction error: {e}. Falling back to heuristic extractor.")
+>>>>>>> Stashed changes
 =======
             print(f"[WARN] Cloud vision extraction error: {e}. Falling back to heuristic extractor.")
 >>>>>>> Stashed changes

@@ -16,6 +16,15 @@ export const ReceiptProvider = ({ children }) => {
     [history]
   );
 
+  const [history, setHistory] = useState(INITIAL_SEED_ITEMS);
+  const [monthlySpent, setMonthlySpent] = useState(() => {
+    return INITIAL_SEED_ITEMS
+      .filter(item => item.result.status === 'APPROVED' || item.result.status === 'PENDING_APPROVAL')
+      .reduce((acc, curr) => acc + (curr.result.reimbursement_amount || 0), 0);
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   const loginUser = useCallback((userData) => {
     setUser(userData);
   }, []);
@@ -24,6 +33,20 @@ export const ReceiptProvider = ({ children }) => {
     setUser(null);
   }, []);
 
+<<<<<<< Updated upstream
+=======
+  useEffect(() => {
+    const spent = history
+      .filter(item => item.result.status === 'APPROVED' || item.result.status === 'PENDING_APPROVAL')
+      .reduce((acc, curr) => acc + (curr.result.reimbursement_amount || 0), 0);
+    setMonthlySpent(spent);
+  }, [history]);
+
+  const toggleRole = useCallback(() => {
+    setRole(prev => (prev === 'employee' ? 'admin' : 'employee'));
+  }, []);
+
+>>>>>>> Stashed changes
   const refreshSession = useCallback(async () => {
     const data = await getSession();
     if (data?.history?.length) {
@@ -103,6 +126,11 @@ export const ReceiptProvider = ({ children }) => {
   const resetAllData = useCallback(async () => {
     await apiResetSession();
     setHistory([]);
+<<<<<<< Updated upstream
+=======
+    setMonthlySpent(0);
+    setIsLoading(false);
+>>>>>>> Stashed changes
   }, []);
 
   return (
