@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   LogOut,
-  UserCircle
+  UserCircle,
+  Scan
 } from 'lucide-react';
 import { useReceipts } from '../../context/ReceiptContext';
 import ThemeToggle from '../ThemeToggle';
@@ -40,9 +41,11 @@ export const Layout = ({ children }) => {
       case '/':
         return 'Employee Expense Dashboard';
       case '/submit':
-        return 'Smart Receipt Resolver';
+        return 'Submit Receipt';
       case '/expenses':
         return 'My Expense Records';
+      case '/admin/process':
+        return 'Admin Receipt Processing & Intake';
       case '/admin/queue':
         return 'Admin Approval Queue';
       case '/admin/analytics':
@@ -91,7 +94,7 @@ export const Layout = ({ children }) => {
               }
             >
               <UploadCloud size={18} />
-              <span>Smart Submit</span>
+              <span>Submit Receipt</span>
             </NavLink>
 
             <NavLink
@@ -108,6 +111,17 @@ export const Layout = ({ children }) => {
 
           {['Admin', 'Finance'].includes(user?.role) && <div className={styles.sectionGroup}>
             <span className={styles.sectionHeader}>Admin & Finance</span>
+            <NavLink
+              to="/admin/process"
+              onClick={() => setMobileOpen(false)}
+              className={({ isActive }) =>
+                `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
+              }
+            >
+              <Scan size={18} />
+              <span>Receipt Processing</span>
+            </NavLink>
+
             <NavLink
               to="/admin/queue"
               onClick={() => setMobileOpen(false)}

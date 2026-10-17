@@ -131,6 +131,12 @@ export const AdminQueue = () => {
                     {formatCurrency(item.receipt.total_amount, item.receipt.currency)}
                   </span>
                 </div>
+                <div style={{ marginTop: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                  {item.submission_channel === 'slack' ? '💬 Slack Bot' :
+                   item.submission_channel === 'email' ? '✉️ Email Ingest' :
+                   item.submission_channel === 'mobile' ? '📱 Mobile Cam' :
+                   '🌐 Web Portal'}
+                </div>
               </div>
             ))}
           </div>
@@ -268,6 +274,19 @@ export const AdminQueue = () => {
                     <span className={styles.metaLabel}>Total Incurred</span>
                     <span className={styles.metaValue}>
                       {formatCurrency(currentItem.receipt.total_amount, currentItem.receipt.currency)}
+                    </span>
+                  </div>
+                  <div className={styles.metaRow}>
+                    <span className={styles.metaLabel}>Submitting Employee</span>
+                    <span className={styles.metaValue}>{currentItem.employee_id || 'Employee'}</span>
+                  </div>
+                  <div className={styles.metaRow}>
+                    <span className={styles.metaLabel}>Intake Channel</span>
+                    <span className={styles.metaValue}>
+                      {currentItem.submission_channel === 'slack' ? '💬 Slack Bot (@Resolver thread)' :
+                       currentItem.submission_channel === 'email' ? '✉️ Email Ingestion (receipts@company.com)' :
+                       currentItem.submission_channel === 'mobile' ? '📱 Mobile Camera App' :
+                       '🌐 Web Portal Upload'}
                     </span>
                   </div>
                 </div>

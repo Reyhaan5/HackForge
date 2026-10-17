@@ -13,6 +13,7 @@ const Expenses = lazy(() => import('./pages/Expenses/Expenses'));
 const AdminQueue = lazy(() => import('./pages/AdminQueue/AdminQueue'));
 const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics/AdminAnalytics'));
 const PolicySettings = lazy(() => import('./pages/admin/PolicySettings'));
+const AdminProcess = lazy(() => import('./pages/admin/AdminProcess'));
 
 const pageWithLayout = (page, requiredRole) => (
   <ProtectedRoute requiredRole={requiredRole}><Layout>{page}</Layout></ProtectedRoute>
@@ -31,10 +32,11 @@ export function App() {
               <Route path="/submit" element={pageWithLayout(<SmartSubmit />)} />
               <Route path="/expenses" element={pageWithLayout(<Expenses />)} />
 
+              <Route path="/admin/process" element={pageWithLayout(<AdminProcess />, ['Admin', 'Finance'])} />
               <Route path="/admin/queue" element={pageWithLayout(<AdminQueue />, ['Admin', 'Finance'])} />
               <Route path="/admin/analytics" element={pageWithLayout(<AdminAnalytics />, ['Admin', 'Finance'])} />
               <Route path="/admin/policy" element={pageWithLayout(<PolicySettings />, 'Admin')} />
-              <Route path="/admin" element={<Navigate to="/admin/queue" replace />} />
+              <Route path="/admin" element={<Navigate to="/admin/process" replace />} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
