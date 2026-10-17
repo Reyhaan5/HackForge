@@ -95,11 +95,7 @@ export async function getSession() {
     const response = await apiClient.get('/api/session');
     return response.data;
   } catch (error) {
-    console.warn('Backend /api/session not reachable, using local storage cache:', error);
-    const cached = localStorage.getItem('rgr_session_cache');
-    if (cached) {
-      return JSON.parse(cached);
-    }
+    console.warn('Backend /api/session not reachable:', error);
     return {
       processed_hashes: [],
       monthly_spent: 0,
@@ -114,11 +110,9 @@ export async function getSession() {
 export async function resetSession() {
   try {
     const response = await apiClient.post('/api/reset-session');
-    localStorage.removeItem('rgr_session_cache');
     return response.data;
   } catch (error) {
     console.error('Failed to reset backend session:', error);
-    localStorage.removeItem('rgr_session_cache');
     return { success: true, message: 'Session reset locally' };
   }
 }

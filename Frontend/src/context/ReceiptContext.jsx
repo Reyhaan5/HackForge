@@ -123,6 +123,15 @@ export const ReceiptProvider = ({ children }) => {
 
   const [role, setRole] = useState('employee');
 
+  const [history, setHistory] = useState(INITIAL_SEED_ITEMS);
+  const [monthlySpent, setMonthlySpent] = useState(() => {
+    return INITIAL_SEED_ITEMS
+      .filter(item => item.result.status === 'APPROVED' || item.result.status === 'PENDING_APPROVAL')
+      .reduce((acc, curr) => acc + (curr.result.reimbursement_amount || 0), 0);
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   const loginUser = useCallback((userData) => {
     setUser(userData);
     const r = (userData?.role || 'employee').toLowerCase();
@@ -134,12 +143,10 @@ export const ReceiptProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('rgr_history_cache', JSON.stringify(history));
     const spent = history
       .filter(item => item.result.status === 'APPROVED' || item.result.status === 'PENDING_APPROVAL')
       .reduce((acc, curr) => acc + (curr.result.reimbursement_amount || 0), 0);
     setMonthlySpent(spent);
-    localStorage.setItem('rgr_monthly_spent', spent.toString());
   }, [history]);
 
   const toggleRole = useCallback(() => {
@@ -231,8 +238,6 @@ export const ReceiptProvider = ({ children }) => {
     }
     setHistory([]);
     setMonthlySpent(0);
-    localStorage.removeItem('rgr_history_cache');
-    localStorage.removeItem('rgr_monthly_spent');
     setIsLoading(false);
   }, []);
 

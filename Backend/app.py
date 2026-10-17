@@ -1,6 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, date
@@ -95,7 +95,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @app.on_event("startup")
 def startup_event():
     init_db()
-    print("🚀 Database initialized and ready.")
+    print("[DB] Database initialized and ready.")
 
 @app.post("/api/process-receipt")
 async def process_receipt(
@@ -112,7 +112,7 @@ async def process_receipt(
     Ingests and validates a receipt from any submission channel (web, email, mobile, slack, api).
     Extracts structured data using a cloud model, enforces layered policies, and stores results.
     """
-    print(f"\n📥 Ingesting receipt: {file.filename} | Employee: {employee_id} | Channel: {submission_channel} | City: {city}")
+    print(f"\n[Ingest] Ingesting receipt: {file.filename} | Employee: {employee_id} | Channel: {submission_channel} | City: {city}")
 
     # Check employee existence
     emp = db.query(Employee).filter_by(id=employee_id).first()
@@ -196,6 +196,15 @@ async def process_receipt(
             "exchange_rate": decision.exchange_rate,
             "base_amount_usd": decision.base_amount_usd,
             "extracted": extracted.model_dump(),
+            "validation": {
+                "status": decision.status,
+                "flags": decision.flags,
+                "reimbursement_amount": decision.approved_amount
+            },
+            "session": {
+                "monthly_spent": float(monthly_spent),
+                "receipts_processed": db.query(Receipt).count()
+            },
             "decision": {
                 "status": decision.status,
                 "requested_amount_original": decision.requested_amount_original,
@@ -212,7 +221,7 @@ async def process_receipt(
 
     except Exception as e:
         db.rollback()
-        print(f"❌ Error processing receipt: {str(e)}")
+        print(f"[ERROR] Error processing receipt: {str(e)}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 @app.get("/api/receipts")
@@ -303,12 +312,87 @@ def update_policy(rules: dict, db: Session = Depends(get_db)):
     db.commit()
     return {"success": True, "message": "Policy updated successfully", "rules": policy.rules}
 
+@app.get("/api/session")
+def get_session_data(db: Session = Depends(get_db)):
+    """Returns all processed receipts, monthly total, and hash history."""
+    receipts = db.query(Receipt).order_by(Receipt.created_at.desc()).all()
+    hashes = [r.image_hash for r in receipts if r.image_hash]
+    
+    month_start = date(date.today().year, date.today().month, 1)
+    monthly_spent = db.query(func.coalesce(func.sum(Receipt.approved_amount), 0.0)).filter(
+        Receipt.transaction_date >= month_start,
+        Receipt.status.in_(["APPROVED", "PARTIAL", "PENDING_APPROVAL"])
+    ).scalar()
+
+    history = []
+    for r in receipts:
+        history.append({
+            "id": f"rec_{r.id}",
+            "city": r.city,
+            "category": r.category,
+            "client_name": r.client_name or "",
+            "timestamp": r.created_at.isoformat() if r.created_at else datetime.utcnow().isoformat(),
+            "receipt": {
+                "vendor": r.vendor or "Unknown",
+                "date": str(r.transaction_date) if r.transaction_date else "",
+                "total_amount": float(r.original_amount),
+                "currency": r.currency or "USD",
+                "line_items": r.line_items or [],
+                "is_itemized": bool(r.line_items)
+            },
+            "result": {
+                "status": r.status,
+                "flags": r.flags or [],
+                "reimbursement_amount": float(r.approved_amount)
+            }
+        })
+
+    return {
+        "processed_hashes": hashes,
+        "monthly_spent": float(monthly_spent),
+        "history": history
+    }
+
+@app.post("/api/reset-session")
 @app.post("/api/reset")
 def reset_database(db: Session = Depends(get_db)):
     """Wipes all receipts and resets for testing."""
     db.query(Receipt).delete()
     db.commit()
     return {"success": True, "message": "All receipt submissions reset"}
+
+@app.get("/api/export-csv")
+def export_csv(db: Session = Depends(get_db)):
+    import csv
+    import io
+
+    receipts = db.query(Receipt).order_by(Receipt.created_at.desc()).all()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Date", "Vendor", "Amount", "Currency", "Category", "City", "Status", "Approved Amount", "Flags", "Employee ID"])
+    
+    for r in receipts:
+        flags_str = "; ".join(r.flags) if isinstance(r.flags, list) else str(r.flags or "")
+        writer.writerow([
+            r.id,
+            str(r.transaction_date or ""),
+            r.vendor or "",
+            float(r.original_amount),
+            r.currency or "USD",
+            r.category or "",
+            r.city or "",
+            r.status,
+            float(r.approved_amount),
+            flags_str,
+            r.employee_id
+        ])
+    
+    output.seek(0)
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=receipts_export.csv"}
+    )
 
 if __name__ == "__main__":
     import uvicorn
