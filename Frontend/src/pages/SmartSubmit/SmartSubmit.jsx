@@ -289,28 +289,28 @@ export const SmartSubmit = () => {
             className={styles.samplePill}
             onClick={() => loadQuickSample('approved')}
           >
-            ✅ Normal Meals (NYC $84)
+             Normal Meals (NYC $84)
           </button>
           <button
             type="button"
             className={styles.samplePill}
             onClick={() => loadQuickSample('over_cap')}
           >
-            ⚠️ Over City Cap (SF $135)
+             Over City Cap (SF $135)
           </button>
           <button
             type="button"
             className={styles.samplePill}
             onClick={() => loadQuickSample('alcohol')}
           >
-            🚫 Alcohol Detected
+             Alcohol Detected
           </button>
           <button
             type="button"
             className={styles.samplePill}
             onClick={() => loadQuickSample('hotel')}
           >
-            🔒 Hotel &gt; $200 (Approval Req.)
+             Hotel &gt; $200 (Approval Req.)
           </button>
         </div>
       </div>
