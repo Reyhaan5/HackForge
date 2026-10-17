@@ -1,0 +1,18 @@
+.animatedLogo{
+  width: 60px;
+  height: 60px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+.animatedLogo video{
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}

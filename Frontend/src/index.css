@@ -1,0 +1,177 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+:root {
+  color-scheme: light;
+
+  /* Core surfaces */
+  --bg: #fafaf9;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --card-hover: #f5f5f4;
+  --popover: #ffffff;
+  --popover-foreground: #1c1917;
+
+  /* Brand colors */
+  --primary: #ea580c;
+  --primary-foreground: #ffffff;
+  --primary-hover: #c2410c;
+  --orange-light: #fdba74;
+  --primary-glow: rgba(234, 88, 12, 0.12);
+  --primary-glow-strong: rgba(234, 88, 12, 0.05);
+  --primary-glow-soft: rgba(234, 88, 12, 0.03);
+  --primary-soft: rgba(234, 88, 12, 0.1);
+  --primary-soft-border: rgba(234, 88, 12, 0.2);
+
+  /* Text */
+  --white: #ffffff;
+  --heading: #0c0a09;
+  --text: #1c1917;
+  --muted: #78716c;
+  --muted-foreground: #78716c;
+
+  /* Secondary / accent */
+  --secondary: #f5f5f4;
+  --secondary-foreground: #1c1917;
+  --accent: #f5f5f4;
+  --accent-foreground: #1c1917;
+
+  /* Borders / inputs */
+  --border: #e7e5e4;
+  --border-hover: #d6d3d1;
+  --input: #e7e5e4;
+  --ring: #ea580c;
+
+  /* Status colors */
+  --success: #059669;
+  --success-bg: rgba(5, 150, 105, 0.1);
+  --danger: #dc2626;
+  --danger-foreground: #ffffff;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --info: #0284c7;
+  --info-hover: #0369a1;
+  --warning: #d97706;
+
+  /* Utility colors */
+  --purple-light: #7c3aed;
+  --shadow-color: rgba(0, 0, 0, 0.08);
+  --overlay-bg: rgba(0, 0, 0, 0.45);
+  --code-bg: rgba(0, 0, 0, 0.05);
+  --pre-bg: #f5f5f4;
+  --table-header-bg: rgba(0, 0, 0, 0.04);
+  --table-row-border: rgba(0, 0, 0, 0.04);
+  --table-row-hover: rgba(0, 0, 0, 0.02);
+
+  /* Radius & typography */
+  --radius: 12px;
+  --radius-md: 12px;
+  --font-sans: "Geist Variable", sans-serif;
+
+  /* Sidebar */
+  --sidebar: #f5f5f4;
+  --sidebar-foreground: #1c1917;
+  --sidebar-primary: #ea580c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e7e5e4;
+  --sidebar-accent-foreground: #1c1917;
+  --sidebar-border: #e7e5e4;
+  --sidebar-ring: #ea580c;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Core surfaces */
+  --bg: #0c0a09;
+  --foreground: #f5f5f4;
+  --card: #171412;
+  --card-foreground: #f5f5f4;
+  --card-hover: #292524;
+  --popover: #171412;
+  --popover-foreground: #f5f5f4;
+
+  /* Brand colors */
+  --primary: #f97316;
+  --primary-foreground: #ffffff;
+  --primary-hover: #fb923c;
+  --orange-light: #fdba74;
+  --primary-glow: rgba(249, 115, 22, 0.12);
+  --primary-glow-strong: rgba(249, 115, 22, 0.05);
+  --primary-glow-soft: rgba(249, 115, 22, 0.03);
+  --primary-soft: rgba(249, 115, 22, 0.12);
+  --primary-soft-border: rgba(249, 115, 22, 0.25);
+
+  /* Text */
+  --white: #ffffff;
+  --heading: #fafaf9;
+  --text: #f5f5f4;
+  --muted: #a8a29e;
+  --muted-foreground: #a8a29e;
+
+  /* Secondary / accent */
+  --secondary: #292524;
+  --secondary-foreground: #f5f5f4;
+  --accent: #292524;
+  --accent-foreground: #f5f5f4;
+
+  /* Borders / inputs */
+  --border: #292524;
+  --border-hover: #44403c;
+  --input: #292524;
+  --ring: #f97316;
+
+  /* Status colors */
+  --success: #10b981;
+  --success-bg: rgba(16, 185, 129, 0.1);
+  --danger: #ef4444;
+  --danger-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --info: #38bdf8;
+  --info-hover: #7dd3fc;
+  --warning: #f59e0b;
+
+  /* Utility colors */
+  --purple-light: #a78bfa;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --overlay-bg: rgba(0, 0, 0, 0.6);
+  --code-bg: rgba(255, 255, 255, 0.08);
+  --pre-bg: rgba(0, 0, 0, 0.35);
+  --table-header-bg: rgba(255, 255, 255, 0.06);
+  --table-row-border: rgba(255, 255, 255, 0.04);
+  --table-row-hover: rgba(255, 255, 255, 0.03);
+
+  /* Sidebar */
+  --sidebar: #171412;
+  --sidebar-foreground: #f5f5f4;
+  --sidebar-primary: #f97316;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #292524;
+  --sidebar-accent-foreground: #f5f5f4;
+  --sidebar-border: #292524;
+  --sidebar-ring: #f97316;
+}
+*,
+*::before,
+*::after{
+  box-sizing: border-box;
+}
+html,
+body,
+#root{
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+html{
+  font-family: var(--font-sans);
+}
+body{
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}

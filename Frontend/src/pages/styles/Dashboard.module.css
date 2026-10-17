@@ -1,0 +1,452 @@
+.dashboard {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  background: var(--bg);
+  color: var(--text);
+}
+.bg {
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:radial-gradient(circle at 10% 20%, var(--primary-glow-strong) 0%, transparent 40%),
+              radial-gradient(circle at 90% 80%, var(--primary-glow-soft) 0%, transparent 40%);
+  z-index:0;
+}
+
+.main {
+  position: relative;
+  z-index: 1;
+  width:min(1140px, calc(100% - 48px));
+  margin: 0 auto;
+  padding:85px 0 60px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap:24px;
+  margin-bottom:28px;
+  margin-top: 30px;
+}
+
+.topPanel h1 {
+  margin:0 0 6px;
+  font-size:clamp(1.9rem, 3.2vw, 2.6rem);
+  line-height:1.15;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.topPanel h1 span {
+  color: var(--primary);
+}
+
+.topSubtitle {
+  margin:0;
+  font-size:0.92rem;
+  color:var(--muted);
+}
+
+.notificationButton {
+  position: relative;
+  width:42px;
+  height:42px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notificationButton:hover {
+  border-color: var(--primary);
+  background: var(--card-hover);
+  color:var(--primary);
+}
+
+.notificationDot {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns:1.35fr 1fr;
+  gap: 24px;
+  align-items:start;
+}
+
+.card {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius:18px;
+  padding:24px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:16px;
+  padding-bottom:12px;
+  border-bottom:1px solid var(--border);
+}
+
+.cardEyebrow {
+  margin:0 0 4px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color:var(--muted);
+  font-weight:600;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size:1.05rem;
+  font-weight:700;
+  color:var(--heading);
+}
+
+.cardIcon, .aiIcon, .quickIcon {
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  background:var(--primary-soft);
+  color:var(--primary);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+
+.aiHeroCard, .aiCard {
+  overflow:hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content:space-between;
+  padding:32px 28px;
+  min-height:420px;
+}
+
+.aiGlow {
+  position: absolute;
+  top:-80px;
+  right: -80px;
+  width:280px;
+  height:280px;
+  border-radius: 50%;
+  background:radial-gradient(circle, var(--primary) 0%, transparent 70%);
+  opacity:0.18;
+  filter:blur(50px);
+  pointer-events: none;
+}
+
+.aiBadge {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  width:fit-content;
+  padding:5px 12px;
+  border-radius:999px;
+  background:var(--primary-soft);
+  border:1px solid var(--primary-soft-border);
+  color:var(--primary);
+  font-size:0.78rem;
+  font-weight:600;
+  margin-bottom:16px;
+}
+
+.aiBadgeDot {
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--primary);
+  box-shadow:0 0 8px var(--primary-glow);
+}
+
+.aiHeroTitle, .aiTitle {
+  margin:0 0 8px;
+  font-size:clamp(1.4rem, 2.2vw, 1.85rem);
+  font-weight:700;
+  line-height:1.25;
+  color:var(--heading);
+}
+
+.aiHeroDesc, .aiDescription {
+  margin:0 0 20px;
+  font-size:0.92rem;
+  line-height:1.5;
+  color:var(--muted);
+}
+
+.queryLauncher {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom:18px;
+  background:var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding:4px 6px 4px 14px;
+  transition:border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.queryLauncher:focus-within {
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px var(--primary-glow);
+}
+
+.queryInput {
+  flex:1;
+  background:transparent;
+  border:none;
+  outline:none;
+  color:var(--text);
+  font-size:0.9rem;
+  font-family:inherit;
+}
+
+.queryInput::placeholder {
+  color: var(--muted);
+}
+
+.querySubmitBtn {
+  width:36px;
+  height:36px;
+  border:none;
+  border-radius:calc(var(--radius) - 2px);
+  background:var(--primary);
+  color:var(--primary-foreground);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:opacity 0.2s ease, transform 0.15s ease;
+}
+
+.querySubmitBtn:hover {
+  opacity:0.9;
+  transform:scale(1.04);
+}
+
+.promptChips {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:24px;
+}
+
+.promptChip {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px;
+  border-radius:var(--radius);
+  background:var(--bg);
+  border:1px solid var(--border);
+  color:var(--text);
+  font-size:0.8rem;
+  font-weight:500;
+  text-align:left;
+  cursor:pointer;
+  transition:all 0.2s ease;
+}
+
+.promptChip svg {
+  color:var(--primary);
+  flex-shrink:0;
+}
+
+.promptChip:hover {
+  border-color:var(--primary);
+  background:var(--card-hover);
+  transform:translateY(-1px);
+}
+
+.primaryButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap:10px;
+  padding:13px 20px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color:var(--primary-foreground);
+  font-size:0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:all 0.2s ease;
+  width:100%;
+}
+
+.primaryButton:hover {
+  opacity:0.92;
+  transform:translateY(-1px);
+  box-shadow:0 4px 16px var(--primary-glow);
+}
+
+.sideStack {
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+
+.snapshotGrid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:16px;
+}
+
+.snapshotItem {
+  background:var(--bg);
+  border:1px solid var(--border);
+  padding:10px 12px;
+  border-radius:var(--radius);
+}
+
+.snapshotItem span {
+  display:block;
+  font-size:0.72rem;
+  color:var(--muted);
+  text-transform:uppercase;
+  font-weight:600;
+  margin-bottom:2px;
+}
+
+.snapshotItem strong {
+  display:block;
+  font-size:0.88rem;
+  color:var(--heading);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.outlineActionBtn {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  width:100%;
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:10px 14px;
+  border-radius:var(--radius);
+  font-size:0.85rem;
+  font-weight:500;
+  cursor:pointer;
+  transition:all 0.2s ease;
+}
+
+.outlineActionBtn:hover {
+  border-color:var(--primary);
+  background:var(--card-hover);
+  color:var(--primary);
+}
+
+.quickActions {
+  display: flex;
+  flex-direction: column;
+  gap:10px;
+}
+
+.quickActionItem, .quickAction {
+  display: flex;
+  align-items: center;
+  gap:12px;
+  padding:12px 14px;
+  background:var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width:100%;
+  margin-bottom:10px;
+}
+
+.quickActionItem:last-child, .quickAction:last-child {
+  margin-bottom:0;
+}
+
+.quickActionItem:hover, .quickAction:hover {
+  border-color: var(--primary);
+  background: var(--card-hover);
+  transform:translateX(2px);
+}
+
+.quickActionItem > span:not(.cardIcon),
+.quickActionItem > div,
+.quickAction > span:not(.quickIcon),
+.quickAction > div {
+  flex: 1;
+  min-width: 0;
+  display:flex;
+  flex-direction:column;
+}
+
+.quickActionItem strong, .quickAction strong {
+  display: block;
+  font-size:0.86rem;
+  font-weight: 600;
+  color:var(--heading);
+}
+
+.quickActionItem span, .quickAction span {
+  display:block;
+  font-size:0.74rem;
+  color: var(--muted);
+  margin-top:2px;
+}
+
+.quickActionItem > svg, .quickAction > svg {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .aiHeroCard, .aiCard {
+    min-height: auto;
+  }
+
+  .promptChips {
+    grid-template-columns:1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .main {
+    width: calc(100% - 24px);
+    padding-top: 75px;
+    padding-bottom:40px;
+  }
+
+  .card, .aiHeroCard {
+    padding:18px;
+  }
+
+  .snapshotGrid {
+    grid-template-columns:1fr;
+  }
+}
