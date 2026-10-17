@@ -17,6 +17,7 @@ import { useReceipts } from '../../context/ReceiptContext';
 import { processReceipt } from '../../services/api';
 import EditableReceiptForm from '../../components/EditableReceiptForm/EditableReceiptForm';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
+import ReceiptSplitView from '../../components/ReceiptSplitView/ReceiptSplitView';
 import styles from './SmartSubmit.module.css';
 
 export const SmartSubmit = () => {
@@ -500,8 +501,9 @@ export const SmartSubmit = () => {
             </div>
           )}
 
-          <EditableReceiptForm
-            initialData={result.extracted}
+          <ReceiptSplitView
+            imageUrl={previewUrl}
+            receiptData={result}
             city={city}
             category={category}
             clientName={clientName}
