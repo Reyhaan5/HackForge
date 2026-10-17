@@ -1,14 +1,18 @@
 import os
 import re
 import json
+import base64
 import hashlib
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from PIL import Image, ImageOps, ImageEnhance
+import requests
 import imagehash
 from dotenv import load_dotenv
 from fx_converter import normalize_currency
 
+ENV_PATH = os.path.join(os.path.dirname(__file__), ".env")
+load_dotenv(ENV_PATH)
 load_dotenv()
 
 class LineItem(BaseModel):
@@ -18,7 +22,7 @@ class LineItem(BaseModel):
 
 class ExtractedReceipt(BaseModel):
     vendor: Optional[str] = "Unknown Vendor"
-    date: Optional[str] = None # YYYY-MM-DD
+    date: Optional[str] = None  # YYYY-MM-DD
     total_amount: float = 0.0
     currency: str = "USD"
     category: str = "Meals"
@@ -57,7 +61,6 @@ def compute_image_hash(image_path: str) -> str:
             img = ImageOps.exif_transpose(img)
             return str(imagehash.phash(img))
     except Exception:
-        # Fallback to MD5 of file content
         try:
             with open(image_path, "rb") as f:
                 return hashlib.md5(f.read()).hexdigest()
@@ -66,7 +69,7 @@ def compute_image_hash(image_path: str) -> str:
 
 def extract_receipt(image_path: str) -> ExtractedReceipt:
     """
-    Extracts structured receipt data using a cloud multimodal model (Gemini).
+    Extracts structured receipt data using the Gemini multimodal model via standard REST API.
     Pre-processes the image and falls back gracefully.
     """
     # 1. Preprocess & Hash
@@ -75,7 +78,7 @@ def extract_receipt(image_path: str) -> ExtractedReceipt:
 
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     
-    # 2. If API key is present, invoke cloud vision model
+    # 2. If API key is present, invoke Gemini REST API directly
     if api_key:
         prompt = """Analyze this receipt carefully and extract structured data as strict JSON conforming to this schema:
 {
@@ -98,52 +101,34 @@ Important Extraction Rules:
 4. Itemization: Extract every distinct item listed with its numeric amount.
 5. Return RAW JSON ONLY. No markdown wrapping or conversational explanation."""
 
-        # Attempt google-genai SDK
         try:
-            from google import genai
-            from google.genai import types
-
-            client = genai.Client(api_key=api_key)
             with open(image_path, "rb") as f:
-                img_bytes = f.read()
+                img_b64 = base64.b64encode(f.read()).decode("utf-8")
 
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=[
-                    types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"),
-                    prompt
-                ],
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=0.1
-                )
-            )
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
+            payload = {
+                "contents": [{
+                    "parts": [
+                        {"inline_data": {"mime_type": "image/jpeg", "data": img_b64}},
+                        {"text": prompt}
+                    ]
+                }],
+                "generationConfig": {
+                    "response_mime_type": "application/json",
+                    "temperature": 0.1
+                }
+            }
 
-            raw_text = response.text.strip()
-            raw_text = re.sub(r"^```json\s*", "", raw_text)
-            raw_text = re.sub(r"\s*```$", "", raw_text)
-            data = json.loads(raw_text)
-            
-            data["currency"] = normalize_currency(data.get("currency", "USD"))
-            data["image_hash"] = img_hash
-            return ExtractedReceipt(**data)
-            
-        except ImportError:
-            # Attempt google.generativeai legacy SDK
-            try:
-                import google.generativeai as genai_legacy
-                genai_legacy.configure(api_key=api_key)
-                model = genai_legacy.GenerativeModel("gemini-1.5-flash")
-                with Image.open(image_path) as pil_img:
-                    response = model.generate_content([pil_img, prompt])
-                
-                raw_text = response.text.strip()
+            response = requests.post(url, json=payload, timeout=20)
+            if response.status_code == 200:
+                raw_text = response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
                 raw_text = re.sub(r"^```json\s*", "", raw_text)
                 raw_text = re.sub(r"\s*```$", "", raw_text)
                 data = json.loads(raw_text)
                 data["currency"] = normalize_currency(data.get("currency", "USD"))
                 data["image_hash"] = img_hash
                 return ExtractedReceipt(**data)
+<<<<<<< Updated upstream
             except Exception as e_legacy:
                 print(f"⚠️ Legacy Gemini SDK extraction error: {e_legacy}")
         except Exception as e:
@@ -156,8 +141,15 @@ Important Extraction Rules:
 =======
             print(f"[WARN] Cloud vision extraction error: {e}. Falling back to heuristic extractor.")
 >>>>>>> Stashed changes
+=======
+            else:
+                print(f"⚠️ Gemini API returned status {response.status_code}: {response.text}")
+>>>>>>> Stashed changes
 
-    # 3. Graceful heuristic fallback for offline development & testing
+        except Exception as e:
+            print(f"⚠️ Gemini cloud extraction error: {e}")
+
+    # 3. Graceful fallback if offline or request fails
     return ExtractedReceipt(
         vendor="Sample Merchant",
         date="2026-10-15",
