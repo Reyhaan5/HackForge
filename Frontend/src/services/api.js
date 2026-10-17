@@ -64,13 +64,17 @@ export async function processReceipt(
   file,
   city = 'New York',
   category = 'Meals',
-  clientName = ''
+  clientName = '',
+  submissionChannel = 'web',
+  employeeId = 'EMP-101'
 ) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('city', city);
   formData.append('category', category);
   formData.append('client_name', clientName);
+  formData.append('submission_channel', submissionChannel);
+  formData.append('employee_id', employeeId);
 
   try {
     const response = await apiClient.post('/api/process-receipt', formData, {

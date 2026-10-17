@@ -126,28 +126,10 @@ Important Extraction Rules:
                 raw_text = re.sub(r"\s*```$", "", raw_text)
                 data = json.loads(raw_text)
                 data["currency"] = normalize_currency(data.get("currency", "USD"))
-                data["image_hash"] = img_hash
-                return ExtractedReceipt(**data)
-<<<<<<< Updated upstream
-            except Exception as e_legacy:
-                print(f"⚠️ Legacy Gemini SDK extraction error: {e_legacy}")
-        except Exception as e:
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            print(f"⚠️ Gemini cloud extraction error: {e}")
-=======
-            print(f"[WARN] Cloud vision extraction error: {e}. Falling back to heuristic extractor.")
->>>>>>> Stashed changes
-=======
-            print(f"[WARN] Cloud vision extraction error: {e}. Falling back to heuristic extractor.")
->>>>>>> Stashed changes
-=======
             else:
                 print(f"⚠️ Gemini API returned status {response.status_code}: {response.text}")
->>>>>>> Stashed changes
-
         except Exception as e:
-            print(f"⚠️ Gemini cloud extraction error: {e}")
+            print(f"[WARN] Cloud vision extraction error: {e}. Falling back to heuristic extractor.")
 
     # 3. Graceful fallback if offline or request fails
     return ExtractedReceipt(

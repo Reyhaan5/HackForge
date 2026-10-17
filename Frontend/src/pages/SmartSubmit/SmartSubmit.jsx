@@ -11,7 +11,11 @@ import {
   Sparkles,
   ArrowRight,
   RotateCcw,
-  AlertCircle
+  AlertCircle,
+  Globe,
+  MessageSquare,
+  Mail,
+  Smartphone
 } from 'lucide-react';
 import { useReceipts } from '../../context/ReceiptContext';
 import { processReceipt } from '../../services/api';
@@ -22,10 +26,18 @@ import AuditTrafficBanner from '../../components/AuditTrafficBanner/AuditTraffic
 import AuditStatusPill from '../../components/AuditStatusPill/AuditStatusPill';
 import styles from './SmartSubmit.module.css';
 
+const SUBMISSION_CHANNELS = [
+  { id: 'web', label: 'Web Portal', icon: Globe, hint: 'Direct browser upload' },
+  { id: 'slack', label: 'Slack Bot', icon: MessageSquare, hint: '@Resolver Slack thread' },
+  { id: 'email', label: 'Email Ingestion', icon: Mail, hint: 'receipts@company.com' },
+  { id: 'mobile', label: 'Mobile Camera', icon: Smartphone, hint: 'iOS/Android camera' },
+];
+
 export const SmartSubmit = () => {
-  const { addProcessedReceipt, updateProcessedReceipt } = useReceipts();
+  const { user, addProcessedReceipt, updateProcessedReceipt } = useReceipts();
 
   // Form states
+  const [channel, setChannel] = useState('web');
   const [city, setCity] = useState('New York');
   const [category, setCategory] = useState('Meals');
   const [clientName, setClientName] = useState('');
@@ -154,12 +166,14 @@ export const SmartSubmit = () => {
 
     try {
       // Call FastAPI backend POST /api/process-receipt
-      const res = await processReceipt(file, city, category, clientName);
+      const empId = user?.employee_id || 'EMP-101';
+      const res = await processReceipt(file, city, category, clientName, channel, empId);
       setResult(res);
       const id = addProcessedReceipt(res, {
         city,
         category,
         client_name: clientName,
+        submission_channel: channel,
         imageUrl: previewUrl || undefined
       });
       setReceiptId(id);
@@ -282,6 +296,38 @@ export const SmartSubmit = () => {
       {/* Main Form & Upload Step */}
       {!result && !isProcessing && (
         <>
+          {/* Multi-Channel Ingestion Selector */}
+          <div className={styles.channelBar}>
+            <div className={styles.channelBarHeader}>
+              <span className={styles.channelLabel}>
+                <Globe size={16} />
+                Submission Channel Simulation
+              </span>
+              <span className={styles.channelSub}>
+                Test cross-channel duplicate detection across Slack, Email, and Web
+              </span>
+            </div>
+            <div className={styles.channelOptions}>
+              {SUBMISSION_CHANNELS.map(ch => {
+                const Icon = ch.icon;
+                const isActive = channel === ch.id;
+                return (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    className={`${styles.channelButton} ${isActive ? styles.channelButtonActive : ''}`}
+                    onClick={() => setChannel(ch.id)}
+                    title={ch.hint}
+                  >
+                    <Icon size={16} />
+                    <span className={styles.channelBtnText}>{ch.label}</span>
+                    {isActive && <span className={styles.channelBadgeActive}>Active</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className={styles.metaGrid}>
             <div className={styles.formGroup}>
               <label className={styles.label}>City Location (Policy Limit)</label>
@@ -418,7 +464,14 @@ export const SmartSubmit = () => {
       {result && !isProcessing && (
         <div className={styles.resultCard}>
           <div className={styles.resultHeader}>
-            <h3 className={styles.resultTitle}>Policy Evaluation Result</h3>
+            <div>
+              <h3 className={styles.resultTitle}>Policy Evaluation Result</h3>
+              {result.submission_channel && (
+                <span className={styles.channelBadgeResult}>
+                  Submitted via {result.submission_channel.toUpperCase()}
+                </span>
+              )}
+            </div>
             <StatusBadge status={result.validation.status} />
           </div>
 

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useReceipts } from '../../context/ReceiptContext';
 import ThemeToggle from '../ThemeToggle';
+import projectLogo from '../../assets/logo.svg';
 import styles from './Layout.module.css';
 
 export const Layout = ({ children }) => {
@@ -59,7 +60,7 @@ export const Layout = ({ children }) => {
       <aside className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.brand}>
           <div className={styles.brandIcon}>
-            <Receipt size={22} strokeWidth={2.2} />
+            <img src={projectLogo} alt="Receipt Graveyard Logo" className={styles.brandLogoImg} />
           </div>
           <div className={styles.brandText}>
             <span className={styles.brandTitle}>Graveyard Resolver</span>
