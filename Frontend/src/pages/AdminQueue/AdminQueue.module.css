@@ -408,6 +408,13 @@
   border-color: var(--primary-color);
 }
 
+.actionError {
+  margin: 0;
+  color: var(--danger-color);
+  font-size: .82rem;
+  line-height: 1.45;
+}
+
 /* Action Buttons */
 .actionsBar {
   display: grid;

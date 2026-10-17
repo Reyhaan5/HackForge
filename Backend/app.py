@@ -337,6 +337,8 @@ def update_receipt_status(
     new_status = payload.status.upper()
     if new_status not in ["APPROVED", "REJECTED", "PARTIAL", "PENDING_APPROVAL"]:
         raise HTTPException(status_code=400, detail="Invalid status")
+    if new_status == "REJECTED" and not (payload.notes or "").strip():
+        raise HTTPException(status_code=422, detail="A rejection reason is required")
 
     receipt.status = new_status
     if new_status == "APPROVED":
@@ -350,9 +352,10 @@ def update_receipt_status(
     elif new_status == "REJECTED":
         receipt.approved_amount = 0.0
 
-    if payload.notes:
-        note_text = f"[Manager Note: {payload.notes.strip()}]"
-        receipt.explanation = f"{receipt.explanation or ''} {note_text}".strip()
+    if payload.notes and payload.notes.strip():
+        note_label = "Reviewer rejection reason" if new_status == "REJECTED" else "Manager Note"
+        note_text = f"{note_label}: {payload.notes.strip()}"
+        receipt.explanation = f"{receipt.explanation or ''}\n{note_text}".strip()
 
     db.commit()
     db.refresh(receipt)
@@ -477,7 +480,8 @@ def get_session_data(current_user: Login = Depends(get_current_user), db: Sessio
             "result": {
                 "status": r.status,
                 "flags": r.flags or [],
-                "reimbursement_amount": float(r.approved_amount)
+                "reimbursement_amount": float(r.approved_amount),
+                "explanation": r.explanation or ""
             }
         })
 

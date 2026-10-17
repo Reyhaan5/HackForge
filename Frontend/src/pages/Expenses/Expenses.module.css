@@ -291,6 +291,20 @@
   font-weight: 500;
 }
 
+.reasonBlock {
+  padding: 12px 14px;
+  border: 1px solid var(--danger-color);
+  border-radius: 8px;
+  background: var(--danger-light);
+}
+.reasonBlock p {
+  margin: 7px 0 0;
+  color: var(--text-primary);
+  font-size: .86rem;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
 .modalFooter {
   padding: 16px 24px;
   border-top: 1px solid var(--border-color);

@@ -289,6 +289,13 @@ export const Expenses = () => {
                 <StatusBadge status={selectedReceipt.result.status} />
               </div>
 
+              {selectedReceipt.result.status === 'REJECTED' && selectedReceipt.result.explanation && (
+                <div className={styles.reasonBlock}>
+                  <span className={styles.detailLabel}>Why this receipt was rejected</span>
+                  <p>{selectedReceipt.result.explanation}</p>
+                </div>
+              )}
+
               {/* Policy Flags */}
               {selectedReceipt.result.flags &&
                 selectedReceipt.result.flags.length > 0 && (
