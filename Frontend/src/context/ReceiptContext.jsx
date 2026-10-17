@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getSession, resetSession as apiResetSession } from '../services/api';
 
 const DEFAULT_MONTHLY_LIMIT = 2000.0;
@@ -7,23 +7,15 @@ const ReceiptContext = createContext(undefined);
 
 export const ReceiptProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const sessionRequestRef = useRef(0);
 
   const [history, setHistory] = useState([]);
   const monthlySpent = useMemo(
     () => history
-      .filter(item => item.result.status === 'APPROVED' || item.result.status === 'PENDING_APPROVAL')
-      .reduce((total, item) => total + (item.result.reimbursement_amount || 0), 0),
+      .filter(item => item.result?.status === 'APPROVED' || item.result?.status === 'PENDING_APPROVAL')
+      .reduce((total, item) => total + (Number(item.result?.reimbursement_amount) || 0), 0),
     [history]
   );
-
-  const [history, setHistory] = useState(INITIAL_SEED_ITEMS);
-  const [monthlySpent, setMonthlySpent] = useState(() => {
-    return INITIAL_SEED_ITEMS
-      .filter(item => item.result.status === 'APPROVED' || item.result.status === 'PENDING_APPROVAL')
-      .reduce((acc, curr) => acc + (curr.result.reimbursement_amount || 0), 0);
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const loginUser = useCallback((userData) => {
     setUser(userData);
@@ -33,34 +25,30 @@ export const ReceiptProvider = ({ children }) => {
     setUser(null);
   }, []);
 
-<<<<<<< Updated upstream
-=======
-  useEffect(() => {
-    const spent = history
-      .filter(item => item.result.status === 'APPROVED' || item.result.status === 'PENDING_APPROVAL')
-      .reduce((acc, curr) => acc + (curr.result.reimbursement_amount || 0), 0);
-    setMonthlySpent(spent);
-  }, [history]);
-
-  const toggleRole = useCallback(() => {
-    setRole(prev => (prev === 'employee' ? 'admin' : 'employee'));
-  }, []);
-
->>>>>>> Stashed changes
   const refreshSession = useCallback(async () => {
-    const data = await getSession();
-    if (data?.history?.length) {
-      const backendItems = data.history.map((item, index) => ({
-        id: item.id || `backend_${index}_${Date.now()}`,
-        receipt: item.receipt,
-        result: item.result,
+    const requestId = ++sessionRequestRef.current;
+    try {
+      const data = await getSession();
+      if (requestId !== sessionRequestRef.current) return;
+      const backendItems = (data?.history || []).map((item, index) => ({
+        ...item,
+        id: item.id || `backend_${index}_${item.timestamp || 'session'}`,
+        receipt: item.receipt || {},
+        result: item.result || {},
         city: item.city || 'New York',
         category: item.category || 'General Expense',
         client_name: item.client_name || '',
         imageUrl: item.imageUrl || undefined,
         timestamp: item.timestamp || new Date().toISOString()
       }));
-      setHistory(backendItems);
+
+      setHistory(current => {
+        const backendIds = new Set(backendItems.map(item => item.id));
+        const localItems = current.filter(item => !backendIds.has(item.id));
+        return [...backendItems, ...localItems];
+      });
+    } catch (err) {
+      console.warn('Could not refresh receipt history:', err);
     }
   }, []);
 
@@ -72,7 +60,7 @@ export const ReceiptProvider = ({ children }) => {
   const addProcessedReceipt = useCallback(
     (res, metadata) => {
       const newItem = {
-        id: `rec_${Date.now()}`,
+        id: `rec_${crypto.randomUUID()}`,
         timestamp: new Date().toISOString(),
         receipt: res.extracted,
         result: res.validation,
@@ -93,9 +81,9 @@ export const ReceiptProvider = ({ children }) => {
       ...item,
       receipt: result.extracted,
       result: result.validation,
-      city: metadata.city,
-      category: metadata.category,
-      client_name: metadata.clientName
+      city: metadata?.city ?? item.city,
+      category: metadata?.category ?? item.category,
+      client_name: metadata?.clientName ?? item.client_name
     } : item));
   }, []);
 
@@ -104,7 +92,7 @@ export const ReceiptProvider = ({ children }) => {
       prev.map(item => {
         if (item.id === id) {
           const reimbAmt =
-            newStatus === 'APPROVED' ? item.receipt.total_amount : 0.0;
+            newStatus === 'APPROVED' ? Number(item.receipt?.total_amount) || 0 : 0;
           return {
             ...item,
             result: {
@@ -124,13 +112,12 @@ export const ReceiptProvider = ({ children }) => {
   }, []);
 
   const resetAllData = useCallback(async () => {
-    await apiResetSession();
-    setHistory([]);
-<<<<<<< Updated upstream
-=======
-    setMonthlySpent(0);
-    setIsLoading(false);
->>>>>>> Stashed changes
+    sessionRequestRef.current += 1;
+    try {
+      await apiResetSession();
+    } finally {
+      setHistory([]);
+    }
   }, []);
 
   return (
