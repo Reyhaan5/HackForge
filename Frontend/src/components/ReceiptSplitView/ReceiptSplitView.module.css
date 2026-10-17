@@ -1,0 +1,333 @@
+.splitWrapper {
+  display: grid;
+  grid-template-columns: 46% 54%;
+  gap: 20px;
+  background-color: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+}
+
+/* ================= LEFT PANE: DOCUMENT VIEWER ================= */
+.leftPane {
+  display: flex;
+  flex-direction: column;
+  background: #0f172a;
+  border-right: 1px solid #1e293b;
+  min-height: 600px;
+  max-height: 85vh;
+}
+
+.viewerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+  color: #e2e8f0;
+}
+
+.viewerTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+.zoomControls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #0f172a;
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid #334155;
+}
+
+.controlBtn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.controlBtn:hover {
+  color: #ffffff;
+  background: #334155;
+}
+
+.zoomText {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  padding: 0 6px;
+}
+
+.canvasArea {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(#1e293b 1px, transparent 1px);
+  background-size: 16px 16px;
+  position: relative;
+}
+
+.imageFrame {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center center;
+  position: relative;
+  border-radius: 6px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  border: 1px solid #334155;
+}
+
+.receiptImg {
+  max-width: 100%;
+  max-height: 65vh;
+  object-contain: contain;
+  display: block;
+  border-radius: 4px;
+}
+
+.imageHighlighted {
+  box-shadow: 0 0 0 3px #3b82f6, 0 20px 25px -5px rgba(59, 130, 246, 0.4);
+}
+
+.itemPulseOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(59, 130, 246, 0.18);
+  border: 2px solid #60a5fa;
+  border-radius: 4px;
+  pointer-events: none;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.2; }
+}
+
+.viewerFooter {
+  padding: 8px 16px;
+  background: #090d16;
+  border-top: 1px solid #1e293b;
+}
+
+.hintText {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.emptyIcon {
+  color: #334155;
+}
+
+/* ================= RIGHT PANE ================= */
+.rightPane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px;
+  overflow-y: auto;
+  max-height: 85vh;
+}
+
+.auditHeaderCard {
+  background: var(--surface-secondary, #f8fafc);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.topStatusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionCaption {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.vendorAndTotalRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.vendorName {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.metaSub {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  display: block;
+  margin-top: 2px;
+}
+
+.reimburseBox {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.reimburseLabel {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.reimburseValue {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--success-color, #10b981);
+  font-family: monospace;
+}
+
+.flagsList {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flagsHeading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #dc2626;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.flagItem {
+  font-size: 0.8rem;
+  color: #b91c1c;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* Itemized line items quick strip */
+.lineItemsStrip {
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stripHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stripTitle {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.stripNotice {
+  font-size: 0.72rem;
+  color: var(--primary-color, #2563eb);
+  font-weight: 500;
+}
+
+.itemsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.itemChip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--surface-secondary, #f8fafc);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.itemChip:hover,
+.itemChipActive {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  transform: translateX(4px);
+}
+
+.itemDesc {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.itemAmt {
+  font-family: monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.formContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1024px) {
+  .splitWrapper {
+    grid-template-columns: 1fr;
+  }
+  .leftPane {
+    max-height: 450px;
+  }
+}
