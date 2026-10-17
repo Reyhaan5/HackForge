@@ -137,7 +137,6 @@ function Login() {
                         {isRegister ? "Register" : "Login"}
                     </h1>
                     <p className={styles.subtitle}>Enter your credentials to access the expense portal</p>
-                    <p className={styles.roleNote}>{isRegister ? "Choose Employee to create an account. Admin and Finance accounts must be provisioned by an administrator." : "Choose your account role. Access is still verified against your account on the server."}</p>
 
                     {isRegister && (
                         <form className={styles.form} onSubmit={handleRegisterInitiate}>
