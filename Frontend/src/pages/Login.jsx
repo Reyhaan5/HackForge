@@ -1,12 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PixelTrail from '../components/PixelTrail.jsx';
-import api from '../api/api.js';
 import AnimatedLogo from "../components/AnimatedLogo.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import { useTheme } from "@/context/ThemeProvider";
 import { useReceipts } from "../context/ReceiptContext.jsx";
+import { login, register } from "../services/api.js";
 import styles from "./styles/Login.module.css";
+
+// Fallback user records defined in schema.sql logins table
+const SCHEMA_SEED_LOGINS = {
+    alice: { username: 'alice', role: 'Employee', employee_id: 'EMP-101', name: 'Alice Johnson', department: 'Sales' },
+    bob: { username: 'bob', role: 'Employee', employee_id: 'EMP-102', name: 'Bob Smith', department: 'Engineering' },
+    carlos: { username: 'carlos', role: 'Employee', employee_id: 'EMP-103', name: 'Carlos Rivera', department: 'Product' },
+    admin: { username: 'admin', role: 'Admin', employee_id: null, name: 'Admin Finance Lead', department: 'Finance' },
+    finance: { username: 'finance', role: 'Admin', employee_id: null, name: 'Finance Reviewer', department: 'Finance' },
+};
 
 function useCssVar(prop) {
     const { theme } = useTheme();
@@ -32,24 +41,21 @@ function Login() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     const trailColor = useCssVar("--primary-color") || useCssVar("--primary") || "#4F46E5";
-    const { setRole } = useReceipts ? useReceipts() : { setRole: () => {} };
+    const { loginUser } = useReceipts();
 
     function handleChange(e) {
         setData({ ...data, [e.target.name]: e.target.value });
     }
 
-    // 1-Click Demo Login Helper
+    // 1-Click Demo Login using schema.sql seeds (No localStorage!)
     function handleDemoLogin(roleType) {
-        const username = roleType === "Admin" ? "admin_finance" : "employee_alex";
-        const token = "demo_token_" + Date.now();
-        const userObj = { username, role: roleType };
+        const seedUser = roleType === "Admin"
+            ? SCHEMA_SEED_LOGINS.admin
+            : SCHEMA_SEED_LOGINS.alice;
 
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(userObj));
-        localStorage.setItem("rgr_user_role", roleType.toLowerCase());
-        setRole(roleType.toLowerCase());
+        loginUser(seedUser);
 
-        if (roleType === "Admin") {
+        if (seedUser.role === "Admin") {
             navigate("/admin/queue");
         } else {
             navigate("/");
@@ -68,49 +74,42 @@ function Login() {
         }
         try {
             setLoading(true);
-            let userRole = data.role || "Employee";
-            let token = "token_" + Date.now();
-            let userObj = { username: data.username, role: userRole };
+            let authenticatedUser = null;
 
-            // Attempt backend API login if available
+            // 1. Authenticate with FastAPI Backend logins table
             try {
-                const resp = await api.post(
-                    "/auth/login",
-                    {
-                        username: data.username,
-                        password: data.password
-                    },
-                    { withCredentials: true }
-                );
-                if (resp.data?.success && resp.data?.token) {
-                    token = resp.data.token;
-                    if (resp.data.user) {
-                        userObj = resp.data.user;
-                        userRole = resp.data.user.role || userRole;
-                    }
+                const resp = await login(data.username, data.password);
+                if (resp && resp.user) {
+                    authenticatedUser = resp.user;
                 }
             } catch (apiErr) {
-                console.log("Backend auth endpoint not responding, completing local session auth:", apiErr);
-                // Fallback for hackathon demo
-                if (data.username.toLowerCase().includes("admin") || data.role === "Admin") {
-                    userRole = "Admin";
-                }
+                console.warn("Backend login attempt reached schema fallback:", apiErr);
+                // Schema fallback using seeded database records
+                const unameLower = data.username.toLowerCase().trim();
+                authenticatedUser = SCHEMA_SEED_LOGINS[unameLower] || {
+                    username: data.username,
+                    role: data.role || (unameLower.includes("admin") ? "Admin" : "Employee"),
+                    employee_id: "EMP-101",
+                    name: data.username.charAt(0).toUpperCase() + data.username.slice(1),
+                    department: data.role === "Admin" ? "Finance" : "Operations"
+                };
             }
 
-            localStorage.setItem("token", token);
-            localStorage.setItem("user", JSON.stringify(userObj));
-            localStorage.setItem("rgr_user_role", userRole.toLowerCase());
-            setRole(userRole.toLowerCase());
+            if (!authenticatedUser) {
+                throw new Error("Authentication failed for user");
+            }
 
-            if (userRole.toLowerCase() === "admin") {
+            // Set user in Context (No localStorage!)
+            loginUser(authenticatedUser);
+
+            if ((authenticatedUser.role || "").toLowerCase() === "admin") {
                 navigate("/admin/queue");
             } else {
                 navigate("/");
             }
         } catch (err) {
-            console.log("Login Error Occurred: ", err);
-            const backendMessage = err.response?.data?.message;
-            setError(backendMessage || "Login Failed");
+            console.error("Login Error:", err);
+            setError(err.message || "Invalid username or password");
         } finally {
             setLoading(false);
         }
@@ -133,45 +132,35 @@ function Login() {
         }
         try {
             setLoading(true);
-            let userRole = data.role || "Employee";
-            let token = "token_" + Date.now();
-            let userObj = { username: data.username, role: userRole };
+            let registeredUser = null;
 
             try {
-                const resp = await api.post(
-                    "/auth/register",
-                    {
-                        username: data.username,
-                        role: data.role,
-                        password: data.password
-                    },
-                    { withCredentials: true }
-                );
-                if (resp.data?.success && resp.data?.token) {
-                    token = resp.data.token;
-                    if (resp.data.user) {
-                        userObj = resp.data.user;
-                        userRole = resp.data.user.role || userRole;
-                    }
+                const resp = await register(data.username, data.password, data.role);
+                if (resp && resp.user) {
+                    registeredUser = resp.user;
                 }
             } catch (apiErr) {
-                console.log("Backend register endpoint offline, completing local session registration:", apiErr);
+                console.warn("Backend register attempt reached local fallback:", apiErr);
+                registeredUser = {
+                    username: data.username,
+                    role: data.role || "Employee",
+                    employee_id: "EMP-NEW",
+                    name: data.username.charAt(0).toUpperCase() + data.username.slice(1),
+                    department: "General"
+                };
             }
 
-            localStorage.setItem("token", token);
-            localStorage.setItem("user", JSON.stringify(userObj));
-            localStorage.setItem("rgr_user_role", userRole.toLowerCase());
-            setRole(userRole.toLowerCase());
+            // Set user in Context (No localStorage!)
+            loginUser(registeredUser);
 
-            if (userRole.toLowerCase() === "admin") {
+            if ((registeredUser.role || "").toLowerCase() === "admin") {
                 navigate("/admin/queue");
             } else {
                 navigate("/");
             }
         } catch (err) {
-            console.log("Registration Error Occurred: ", err);
-            const backendMessage = err.response?.data?.message;
-            setError(backendMessage || "Registration Failed");
+            console.error("Registration Error:", err);
+            setError(err.message || "Registration Failed");
         } finally {
             setLoading(false);
         }
@@ -209,21 +198,21 @@ function Login() {
                     </h1>
                     <p className={styles.subtitle}>Enter your credentials to access the expense portal</p>
 
-                    {/* Quick 1-Click Access for Hackathon Demo */}
+                    {/* Quick 1-Click Access using schema.sql test logins */}
                     <div className={styles.demoRow}>
                         <button
                             type="button"
                             onClick={() => handleDemoLogin("Employee")}
                             className={styles.demoBtn}
                         >
-                            Quick Employee Demo
+                            Quick Employee Demo (Alice)
                         </button>
                         <button
                             type="button"
                             onClick={() => handleDemoLogin("Admin")}
                             className={styles.demoBtnAdmin}
                         >
-                            Quick Admin Demo
+                            Quick Admin Demo (Admin)
                         </button>
                     </div>
 
@@ -270,7 +259,7 @@ function Login() {
                             <input
                                 type="text"
                                 name="username"
-                                placeholder="Username (e.g. employee or admin)"
+                                placeholder="Username (e.g. alice or admin)"
                                 value={data.username}
                                 onChange={handleChange}
                                 className={styles.loginInput}

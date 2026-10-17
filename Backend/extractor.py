@@ -5,7 +5,11 @@ import hashlib
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from PIL import Image, ImageOps
-import imagehash
+try:
+    import imagehash
+except ImportError:
+    imagehash = None
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,11 +32,16 @@ class ExtractedReceipt(BaseModel):
     image_hash: str = ""
 
 def compute_image_hash(image_path: str) -> str:
-    """Computes a perceptual hash (pHash) of the image to catch duplicates across channels and orientations."""
+    """Computes a perceptual hash (pHash) or MD5 of the image to catch duplicates across channels."""
     try:
-        with Image.open(image_path) as img:
-            img = ImageOps.exif_transpose(img)
-            return str(imagehash.phash(img))
+        if imagehash is not None:
+            with Image.open(image_path) as img:
+                img = ImageOps.exif_transpose(img)
+                return str(imagehash.phash(img))
+        with open(image_path, "rb") as f:
+            return hashlib.md5(f.read()).hexdigest()
+    except Exception:
+        return hashlib.md5(str(image_path).encode()).hexdigest()
     except Exception:
         # Fallback to file content MD5 if image processing fails
         with open(image_path, "rb") as f:

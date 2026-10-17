@@ -67,6 +67,18 @@ class Receipt(Base):
 
     employee = relationship("Employee", back_populates="receipts")
 
+class Login(Base):
+    __tablename__ = "logins"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    role = Column(String(50), default="Employee", nullable=False)  # 'Employee', 'Admin', 'Finance'
+    employee_id = Column(String(50), ForeignKey("employees.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    employee = relationship("Employee")
+
 def get_db():
     db = SessionLocal()
     try:
@@ -116,6 +128,18 @@ def init_db():
         for emp_id, name, email, dept in sample_employees:
             if not db.query(Employee).filter_by(id=emp_id).first():
                 db.add(Employee(id=emp_id, name=name, email=email, department=dept))
+
+        # Seed sample logins from schema.sql
+        sample_logins = [
+            ("alice", "password123", "Employee", "EMP-101"),
+            ("bob", "password123", "Employee", "EMP-102"),
+            ("carlos", "password123", "Employee", "EMP-103"),
+            ("admin", "admin123", "Admin", None),
+            ("finance", "finance123", "Admin", None),
+        ]
+        for uname, pwd, r, empid in sample_logins:
+            if not db.query(Login).filter_by(username=uname).first():
+                db.add(Login(username=uname, password_hash=pwd, role=r, employee_id=empid))
         
         db.commit()
     finally:

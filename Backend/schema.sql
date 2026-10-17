@@ -1,5 +1,6 @@
 -- PostgreSQL Schema for Expense Management System
 -- Drop tables if they exist (for clean migrations)
+DROP TABLE IF EXISTS logins CASCADE;
 DROP TABLE IF EXISTS receipts CASCADE;
 DROP TABLE IF EXISTS policies CASCADE;
 DROP TABLE IF EXISTS employees CASCADE;
@@ -93,3 +94,25 @@ INSERT INTO employees (id, name, email, department) VALUES
     ('EMP-102', 'Bob Smith', 'bob.smith@company.com', 'Engineering'),
     ('EMP-103', 'Carlos Rivera', 'carlos.rivera@company.com', 'Product')
 ON CONFLICT (id) DO NOTHING;
+
+-- 4. Logins Table (Authentication & Role Verification)
+CREATE TABLE logins (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL DEFAULT 'Employee', -- 'Employee', 'Admin', 'Finance'
+    employee_id VARCHAR(50) REFERENCES employees(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_logins_username ON logins(username);
+
+-- Seed Default Logins (Linked to Sample Employees & Admin)
+INSERT INTO logins (username, password_hash, role, employee_id) VALUES
+    ('alice', 'password123', 'Employee', 'EMP-101'),
+    ('bob', 'password123', 'Employee', 'EMP-102'),
+    ('carlos', 'password123', 'Employee', 'EMP-103'),
+    ('admin', 'admin123', 'Admin', NULL),
+    ('finance', 'finance123', 'Admin', NULL)
+ON CONFLICT (username) DO NOTHING;
+

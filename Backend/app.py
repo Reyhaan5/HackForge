@@ -8,9 +8,11 @@ import tempfile
 import os
 import shutil
 
-from database import init_db, get_db, Receipt, Employee, Policy
+from database import init_db, get_db, Receipt, Employee, Policy, Login
 from extractor import extract_receipt, compute_image_hash
 from policy_engine import validate_receipt
+from pydantic import BaseModel
+from typing import Optional
 
 app = FastAPI(title="Expense Graveyard Policy Engine API", version="2.0")
 
@@ -21,6 +23,70 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    role: Optional[str] = "Employee"
+    employee_id: Optional[str] = None
+
+@app.post("/api/login")
+@app.post("/auth/login")
+def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(Login).filter_by(username=payload.username.strip()).first()
+    if not user or user.password_hash != payload.password.strip():
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    emp_name = None
+    emp_dept = None
+    if user.employee:
+        emp_name = user.employee.name
+        emp_dept = user.employee.department
+
+    return {
+        "success": True,
+        "token": f"token_{user.username}_{user.role.lower()}",
+        "user": {
+            "username": user.username,
+            "role": user.role,
+            "employee_id": user.employee_id,
+            "name": emp_name or user.username.title(),
+            "department": emp_dept or ("Finance" if user.role == "Admin" else "General")
+        }
+    }
+
+@app.post("/api/register")
+@app.post("/auth/register")
+def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
+    existing = db.query(Login).filter_by(username=payload.username.strip()).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+    new_login = Login(
+        username=payload.username.strip(),
+        password_hash=payload.password.strip(),
+        role=payload.role or "Employee",
+        employee_id=payload.employee_id
+    )
+    db.add(new_login)
+    db.commit()
+    db.refresh(new_login)
+
+    return {
+        "success": True,
+        "token": f"token_{new_login.username}_{new_login.role.lower()}",
+        "user": {
+            "username": new_login.username,
+            "role": new_login.role,
+            "employee_id": new_login.employee_id,
+            "name": new_login.username.title(),
+            "department": "General"
+        }
+    }
 
 # Create uploads storage folder
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
