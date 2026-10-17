@@ -53,6 +53,8 @@ class Receipt(Base):
     
     currency = Column(String(10), default="USD")
     original_amount = Column(Numeric(10, 2), default=0.00, nullable=False)
+    exchange_rate = Column(Numeric(12, 6), default=1.000000, nullable=False)
+    base_amount_usd = Column(Numeric(10, 2), default=0.00, nullable=False)
     
     # Itemized lines in JSON: [{"description": "Lunch", "amount": 25.0, "disallowed": false}]
     line_items = Column(JSON, default=list)

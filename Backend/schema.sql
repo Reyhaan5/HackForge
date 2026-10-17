@@ -41,6 +41,8 @@ CREATE TABLE receipts (
     
     currency VARCHAR(10) DEFAULT 'USD',
     original_amount NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    exchange_rate NUMERIC(12, 6) NOT NULL DEFAULT 1.000000,
+    base_amount_usd NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
     
     -- Itemized breakdown in JSONB:
     -- [{"description": "Cheeseburger", "amount": 16.50}, {"description": "IPA Beer", "amount": 8.00, "disallowed": true}]

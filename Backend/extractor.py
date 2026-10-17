@@ -4,13 +4,10 @@ import json
 import hashlib
 from typing import List, Optional
 from pydantic import BaseModel, Field
-from PIL import Image, ImageOps
-try:
-    import imagehash
-except ImportError:
-    imagehash = None
-
+from PIL import Image, ImageOps, ImageEnhance
+import imagehash
 from dotenv import load_dotenv
+from fx_converter import normalize_currency
 
 load_dotenv()
 
@@ -31,41 +28,77 @@ class ExtractedReceipt(BaseModel):
     is_itemized: bool = False
     image_hash: str = ""
 
-def compute_image_hash(image_path: str) -> str:
-    """Computes a perceptual hash (pHash) or MD5 of the image to catch duplicates across channels."""
+def preprocess_receipt_image(image_path: str) -> None:
+    """
+    Normalizes orientation via EXIF and applies contrast/sharpness
+    enhancement to boost readability of faded thermal receipts.
+    """
     try:
-        if imagehash is not None:
-            with Image.open(image_path) as img:
-                img = ImageOps.exif_transpose(img)
-                return str(imagehash.phash(img))
-        with open(image_path, "rb") as f:
-            return hashlib.md5(f.read()).hexdigest()
+        with Image.open(image_path) as img:
+            # 1. Rotate based on EXIF tag (mobile camera angles)
+            img = ImageOps.exif_transpose(img).convert("RGB")
+            
+            # 2. Enhance contrast slightly for faded thermal paper
+            contrast_enhancer = ImageEnhance.Contrast(img)
+            img = contrast_enhancer.enhance(1.2)
+            
+            # 3. Enhance sharpness for faint text
+            sharpness_enhancer = ImageEnhance.Sharpness(img)
+            img = sharpness_enhancer.enhance(1.2)
+            
+            img.save(image_path)
+    except Exception as e:
+        print(f"Warning: Image pre-processing skipped: {e}")
+
+def compute_image_hash(image_path: str) -> str:
+    """Computes a perceptual hash (pHash) of the image to catch duplicates across channels and angles."""
+    try:
+        with Image.open(image_path) as img:
+            img = ImageOps.exif_transpose(img)
+            return str(imagehash.phash(img))
     except Exception:
-        return hashlib.md5(str(image_path).encode()).hexdigest()
-    except Exception:
-        # Fallback to file content MD5 if image processing fails
-        with open(image_path, "rb") as f:
-            return hashlib.md5(f.read()).hexdigest()
+        # Fallback to MD5 of file content
+        try:
+            with open(image_path, "rb") as f:
+                return hashlib.md5(f.read()).hexdigest()
+        except Exception:
+            return hashlib.md5(str(image_path).encode()).hexdigest()
 
 def extract_receipt(image_path: str) -> ExtractedReceipt:
     """
     Extracts structured receipt data using a cloud multimodal model (Gemini).
-    Pre-processes the image (EXIF orientation, contrast) and falls back gracefully.
+    Pre-processes the image and falls back gracefully.
     """
+    # 1. Preprocess & Hash
+    preprocess_receipt_image(image_path)
     img_hash = compute_image_hash(image_path)
-    
-    # 1. Pre-process image to correct rotation/orientation
-    try:
-        with Image.open(image_path) as img:
-            corrected_img = ImageOps.exif_transpose(img).convert("RGB")
-            corrected_img.save(image_path)
-    except Exception as e:
-        print(f"Warning: Image pre-processing error: {e}")
 
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     
-    # If API key is available, call Gemini via google-genai
+    # 2. If API key is present, invoke cloud vision model
     if api_key:
+        prompt = """Analyze this receipt carefully and extract structured data as strict JSON conforming to this schema:
+{
+  "vendor": "string (business or merchant name)",
+  "date": "YYYY-MM-DD (transaction date, or null if unreadable)",
+  "total_amount": 0.00 (final total charge as numeric float),
+  "currency": "USD" (ISO 3-letter currency code, e.g. USD, EUR, GBP, JPY, CAD, INR, AUD, CHF),
+  "category": "Meals" (infer one of: "Meals", "Lodging", "Transport", "Office Supplies", "Entertainment"),
+  "line_items": [
+    {"description": "item description", "amount": 0.00}
+  ],
+  "calculated_tax": 0.00,
+  "calculated_tip": 0.00,
+  "is_itemized": true
+}
+Important Extraction Rules:
+1. Currency: Extract the correct currency (e.g. € -> EUR, ¥ -> JPY, £ -> GBP, $ -> USD, ₹ -> INR).
+2. Messy/Faded Receipts: If the printed total is faded or obscured, sum up the line items + tax.
+3. Handwritten content: Check for handwritten tips or totals added at the bottom.
+4. Itemization: Extract every distinct item listed with its numeric amount.
+5. Return RAW JSON ONLY. No markdown wrapping or conversational explanation."""
+
+        # Attempt google-genai SDK
         try:
             from google import genai
             from google.genai import types
@@ -73,26 +106,6 @@ def extract_receipt(image_path: str) -> ExtractedReceipt:
             client = genai.Client(api_key=api_key)
             with open(image_path, "rb") as f:
                 img_bytes = f.read()
-
-            prompt = """Analyze this receipt and extract structured data as strict JSON adhering to this schema:
-{
-  "vendor": "string (business name)",
-  "date": "YYYY-MM-DD (or null if missing)",
-  "total_amount": 0.00 (numeric final total),
-  "currency": "USD" (ISO 3-letter code, e.g. USD, EUR, GBP, CAD, INR, JPY),
-  "category": "Meals" (one of: "Meals", "Lodging", "Transport", "Office Supplies", "Entertainment"),
-  "line_items": [
-    {"description": "item name", "amount": 0.00}
-  ],
-  "calculated_tax": 0.00,
-  "calculated_tip": 0.00,
-  "is_itemized": true
-}
-Notes:
-- If rotated, read according to printed text orientation.
-- Extract individual purchased items in line_items whenever visible.
-- If total is missing or faded, sum the line items + tax.
-- Output RAW JSON ONLY. No markdown, no code blocks."""
 
             response = client.models.generate_content(
                 model="gemini-2.5-flash",
@@ -107,18 +120,36 @@ Notes:
             )
 
             raw_text = response.text.strip()
-            # Clean possible markdown wrapping
             raw_text = re.sub(r"^```json\s*", "", raw_text)
             raw_text = re.sub(r"\s*```$", "", raw_text)
-
             data = json.loads(raw_text)
+            
+            data["currency"] = normalize_currency(data.get("currency", "USD"))
             data["image_hash"] = img_hash
             return ExtractedReceipt(**data)
-
+            
+        except ImportError:
+            # Attempt google.generativeai legacy SDK
+            try:
+                import google.generativeai as genai_legacy
+                genai_legacy.configure(api_key=api_key)
+                model = genai_legacy.GenerativeModel("gemini-1.5-flash")
+                with Image.open(image_path) as pil_img:
+                    response = model.generate_content([pil_img, prompt])
+                
+                raw_text = response.text.strip()
+                raw_text = re.sub(r"^```json\s*", "", raw_text)
+                raw_text = re.sub(r"\s*```$", "", raw_text)
+                data = json.loads(raw_text)
+                data["currency"] = normalize_currency(data.get("currency", "USD"))
+                data["image_hash"] = img_hash
+                return ExtractedReceipt(**data)
+            except Exception as e_legacy:
+                print(f"⚠️ Legacy Gemini SDK extraction error: {e_legacy}")
         except Exception as e:
-            print(f"⚠️ Cloud vision extraction error: {e}. Falling back to heuristic extractor.")
+            print(f"⚠️ Gemini cloud extraction error: {e}")
 
-    # Graceful heuristic / mock fallback for testing without active cloud key
+    # 3. Graceful heuristic fallback for offline development & testing
     return ExtractedReceipt(
         vendor="Sample Merchant",
         date="2026-10-15",

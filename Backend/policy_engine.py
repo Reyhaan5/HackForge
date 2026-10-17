@@ -2,14 +2,19 @@ from typing import List, Dict, Any, Tuple
 from datetime import datetime, date
 from decimal import Decimal
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract
+from sqlalchemy import func
 from database import Receipt, Policy, Employee
 from extractor import ExtractedReceipt, LineItem
+from fx_converter import convert_to_usd, normalize_currency
 
 class ValidationDecision:
     def __init__(self):
-        self.status: str = "APPROVED" # 'APPROVED', 'PARTIAL', 'PENDING_APPROVAL', 'REJECTED'
-        self.approved_amount: float = 0.0
+        self.status: str = "APPROVED"  # 'APPROVED', 'PARTIAL', 'PENDING_APPROVAL', 'REJECTED'
+        self.requested_amount_original: float = 0.0
+        self.currency: str = "USD"
+        self.exchange_rate: float = 1.0
+        self.base_amount_usd: float = 0.0
+        self.approved_amount: float = 0.0  # in base USD
         self.flags: List[str] = []
         self.explanation: str = ""
         self.processed_line_items: List[Dict[str, Any]] = []
@@ -22,10 +27,23 @@ def get_active_policy(db: Session) -> Dict[str, Any]:
     return {
         "monthly_limit": 2000.0,
         "approval_threshold": 200.0,
-        "city_daily_caps": {"New York": 100.0, "San Francisco": 90.0, "Chicago": 75.0, "Austin": 75.0, "Default": 75.0},
-        "category_caps": {"Meals": 100.0, "Office Supplies": 150.0, "Transport": 100.0},
+        "city_daily_caps": {
+            "New York": 100.0,
+            "San Francisco": 90.0,
+            "Chicago": 75.0,
+            "Austin": 75.0,
+            "Default": 75.0
+        },
+        "category_caps": {
+            "Meals": 100.0,
+            "Office Supplies": 150.0,
+            "Transport": 100.0
+        },
         "client_meal_per_person_limit": 60.0,
-        "non_reimbursable_keywords": ["alcohol", "wine", "beer", "liquor", "cocktail", "spa", "massage", "movie", "casino", "gift", "tobacco"]
+        "non_reimbursable_keywords": [
+            "alcohol", "wine", "beer", "liquor", "cocktail", "sake",
+            "spa", "massage", "movie", "casino", "gift", "tobacco"
+        ]
     }
 
 def validate_receipt(
@@ -41,7 +59,22 @@ def validate_receipt(
     decision = ValidationDecision()
     policy = get_active_policy(db)
     
-    total = float(receipt.total_amount)
+    # -------------------------------------------------------------
+    # 1. Multi-Currency Normalization & FX Conversion
+    # -------------------------------------------------------------
+    raw_amount = float(receipt.total_amount)
+    decision.requested_amount_original = raw_amount
+    base_amount_usd, exchange_rate, normalized_currency = convert_to_usd(raw_amount, receipt.currency)
+    
+    decision.currency = normalized_currency
+    decision.exchange_rate = exchange_rate
+    decision.base_amount_usd = base_amount_usd
+
+    if normalized_currency != "USD":
+        decision.flags.append(
+            f"💱 Currency Converted: {raw_amount:,.2f} {normalized_currency} → ${base_amount_usd:,.2f} USD (FX rate: {exchange_rate:.6f})"
+        )
+
     current_date = None
     if receipt.date:
         try:
@@ -52,17 +85,16 @@ def validate_receipt(
         current_date = date.today()
 
     # -------------------------------------------------------------
-    # 1. Multi-Channel Deduplication Check
+    # 2. Multi-Channel Deduplication Check
     # -------------------------------------------------------------
-    # Check exact/perceptual image hash across any submission channel
     duplicate = db.query(Receipt).filter(Receipt.image_hash == receipt.image_hash).first()
     if not duplicate and receipt.vendor and receipt.date:
-        # Fuzzy match: same employee, vendor, date, and amount
+        # Fuzzy match on employee + vendor + date + original amount
         duplicate = db.query(Receipt).filter(
             Receipt.employee_id == employee_id,
             Receipt.vendor == receipt.vendor,
             Receipt.transaction_date == current_date,
-            func.abs(Receipt.original_amount - total) < 0.05
+            func.abs(Receipt.original_amount - raw_amount) < 0.05
         ).first()
 
     if duplicate:
@@ -77,21 +109,21 @@ def validate_receipt(
         return decision
 
     # -------------------------------------------------------------
-    # 2. Math Discrepancy Verification
+    # 3. Math Discrepancy Verification
     # -------------------------------------------------------------
     if receipt.is_itemized and receipt.line_items:
         items_sum = sum(item.amount for item in receipt.line_items)
         expected_total = items_sum + receipt.calculated_tax + receipt.calculated_tip
-        if abs(expected_total - total) > 0.75:
+        if abs(expected_total - raw_amount) > 0.75:
             decision.flags.append(
-                f"⚠️ Math mismatch: Line items sum (${items_sum:.2f}) does not match total (${total:.2f})."
+                f"⚠️ Math mismatch: Line items sum ({items_sum:,.2f}) does not match printed total ({raw_amount:,.2f} {normalized_currency})."
             )
 
     # -------------------------------------------------------------
-    # 3. Partial Reimbursement: Item-Level Disallowance (e.g. Alcohol)
+    # 4. Partial Reimbursement: Item-Level Disallowance (e.g. Alcohol)
     # -------------------------------------------------------------
     disallowed_keywords = policy.get("non_reimbursable_keywords", [])
-    disallowed_amount = 0.0
+    disallowed_amount_orig = 0.0
     disallowed_names = []
     processed_items = []
 
@@ -102,8 +134,8 @@ def validate_receipt(
         
         if is_prohibited:
             item_dict["disallowed"] = True
-            disallowed_amount += item.amount
-            disallowed_names.append(f"{item.description} (${item.amount:.2f})")
+            disallowed_amount_orig += item.amount
+            disallowed_names.append(f"{item.description} ({item.amount:,.2f} {normalized_currency})")
         else:
             item_dict["disallowed"] = False
         
@@ -111,31 +143,34 @@ def validate_receipt(
 
     decision.processed_line_items = processed_items
 
-    if disallowed_amount > 0:
+    # Convert disallowed deduction into base USD
+    disallowed_amount_usd = round(disallowed_amount_orig * exchange_rate, 2)
+
+    if disallowed_amount_orig > 0:
         decision.flags.append(
-            f"🚫 Disallowed items deducted: {', '.join(disallowed_names)}"
+            f"🚫 Disallowed items deducted: {', '.join(disallowed_names)} (-${disallowed_amount_usd:,.2f} USD)"
         )
         decision.status = "PARTIAL"
 
-    reimbursable = max(0.0, total - disallowed_amount)
+    reimbursable_usd = max(0.0, base_amount_usd - disallowed_amount_usd)
 
     # -------------------------------------------------------------
-    # 4. Client Meal & Attendee Count Verification
+    # 5. Client Meal & Attendee Count Verification
     # -------------------------------------------------------------
     if category == "Meals" and client_name:
         per_person_limit = policy.get("client_meal_per_person_limit", 60.0)
         eff_attendees = max(1, attendee_count)
         max_client_allowance = per_person_limit * eff_attendees
-        if reimbursable > max_client_allowance:
-            excess = reimbursable - max_client_allowance
+        if reimbursable_usd > max_client_allowance:
+            excess = reimbursable_usd - max_client_allowance
             decision.flags.append(
-                f"⚠️ Exceeds client meal allowance (${per_person_limit:.2f}/person x {eff_attendees} attendees = ${max_client_allowance:.2f}). Excess: ${excess:.2f}"
+                f"⚠️ Exceeds client meal allowance (${per_person_limit:.2f}/person x {eff_attendees} attendees = ${max_client_allowance:.2f} USD). Excess: ${excess:.2f}"
             )
-            reimbursable = max_client_allowance
+            reimbursable_usd = max_client_allowance
             decision.status = "PARTIAL"
 
     # -------------------------------------------------------------
-    # 5. On-the-Fly Daily City Cap Accumulation
+    # 6. On-the-Fly Daily City Cap Accumulation (in USD)
     # -------------------------------------------------------------
     city_caps = policy.get("city_daily_caps", {})
     daily_cap = city_caps.get(city, city_caps.get("Default", 75.0))
@@ -150,16 +185,16 @@ def validate_receipt(
 
     if category == "Meals":
         remaining_daily_budget = max(0.0, daily_cap - daily_spent_so_far)
-        if reimbursable > remaining_daily_budget:
+        if reimbursable_usd > remaining_daily_budget:
             capped_amount = remaining_daily_budget
             decision.flags.append(
-                f"⚠️ Exceeds {city} daily meal cap (${daily_cap:.2f}). Already spent ${daily_spent_so_far:.2f} today. Capping at remaining ${remaining_daily_budget:.2f}."
+                f"⚠️ Exceeds {city} daily meal cap (${daily_cap:.2f} USD). Already approved ${daily_spent_so_far:.2f} today. Capped at remaining ${remaining_daily_budget:.2f} USD."
             )
-            reimbursable = capped_amount
-            decision.status = "PARTIAL" if reimbursable > 0 else "REJECTED"
+            reimbursable_usd = capped_amount
+            decision.status = "PARTIAL" if reimbursable_usd > 0 else "REJECTED"
 
     # -------------------------------------------------------------
-    # 6. On-the-Fly Monthly Limit Accumulation
+    # 7. On-the-Fly Monthly Limit Accumulation (in USD)
     # -------------------------------------------------------------
     monthly_limit = policy.get("monthly_limit", 2000.0)
     month_start = date(current_date.year, current_date.month, 1)
@@ -172,41 +207,43 @@ def validate_receipt(
     monthly_spent_so_far = float(monthly_spent_query or 0.0)
 
     remaining_monthly = max(0.0, monthly_limit - monthly_spent_so_far)
-    if reimbursable > remaining_monthly:
+    if reimbursable_usd > remaining_monthly:
         decision.flags.append(
-            f"📉 Monthly employee budget limit ($ {monthly_limit:.2f}) reached. Already spent ${monthly_spent_so_far:.2f} this month."
+            f"📉 Monthly employee budget limit (${monthly_limit:.2f} USD) reached. Already spent ${monthly_spent_so_far:.2f} this month."
         )
-        reimbursable = remaining_monthly
-        decision.status = "PARTIAL" if reimbursable > 0 else "REJECTED"
+        reimbursable_usd = remaining_monthly
+        decision.status = "PARTIAL" if reimbursable_usd > 0 else "REJECTED"
 
     # -------------------------------------------------------------
-    # 7. High-Value Manager Approval Threshold
+    # 8. High-Value Manager Approval Threshold (in USD)
     # -------------------------------------------------------------
     approval_threshold = policy.get("approval_threshold", 200.0)
-    if total > approval_threshold:
+    if base_amount_usd > approval_threshold:
         decision.flags.append(
-            f"🔒 High amount (>${approval_threshold:.2f}): Requires manager sign-off."
+            f"🔒 High amount (>${approval_threshold:.2f} USD): Requires manager sign-off."
         )
         if decision.status in ["APPROVED", "PARTIAL"]:
             decision.status = "PENDING_APPROVAL"
 
-    decision.approved_amount = round(reimbursable, 2)
+    decision.approved_amount = round(reimbursable_usd, 2)
 
     # -------------------------------------------------------------
-    # 8. Human-Readable Explanation Synthesis
+    # 9. Human-Readable Explanation Synthesis
     # -------------------------------------------------------------
     parts = []
+    curr_prefix = f"{raw_amount:,.2f} {normalized_currency}" if normalized_currency != "USD" else f"${raw_amount:,.2f}"
+    
     if decision.status == "APPROVED":
-        parts.append(f"Fully approved for ${decision.approved_amount:.2f}.")
+        parts.append(f"Fully approved for ${decision.approved_amount:,.2f} USD.")
     elif decision.status == "PARTIAL":
-        parts.append(f"Partially approved for ${decision.approved_amount:.2f} (Requested: ${total:.2f}).")
+        parts.append(f"Partially approved for ${decision.approved_amount:,.2f} USD (Submitted: {curr_prefix}).")
     elif decision.status == "PENDING_APPROVAL":
-        parts.append(f"Approved for ${decision.approved_amount:.2f}, pending manager sign-off.")
+        parts.append(f"Approved for ${decision.approved_amount:,.2f} USD, pending manager approval.")
     else:
-        parts.append(f"Rejected ($0.00 reimbursement).")
+        parts.append("Submission rejected ($0.00 reimbursement).")
 
-    if disallowed_amount > 0:
-        parts.append(f"Deducted ${disallowed_amount:.2f} for non-reimbursable items.")
+    if disallowed_amount_usd > 0:
+        parts.append(f"Deducted ${disallowed_amount_usd:,.2f} USD for non-reimbursable items.")
     if decision.flags:
         parts.append("Policy notes: " + "; ".join(decision.flags))
 
