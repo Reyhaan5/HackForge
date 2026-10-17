@@ -57,13 +57,20 @@ export const ReceiptProvider = ({ children }) => {
         category: item.category || 'General Expense',
         client_name: item.client_name || '',
         submission_channel: item.submission_channel || 'web',
-        imageUrl: item.imageUrl || undefined,
+        imageUrl: item.image_url || item.imageUrl || undefined,
         timestamp: item.timestamp || new Date().toISOString()
       }));
 
       setHistory(current => {
         const localById = new Map(current.map(item => [item.id, item]));
-        return backendItems.map(item => ({ ...localById.get(item.id), ...item, imageUrl: localById.get(item.id)?.imageUrl }));
+        return backendItems.map(item => {
+          const local = localById.get(item.id);
+          return {
+            ...local,
+            ...item,
+            imageUrl: local?.imageUrl || item.imageUrl
+          };
+        });
       });
     } catch (err) {
       console.warn('Could not refresh receipt history:', err);
@@ -102,7 +109,7 @@ export const ReceiptProvider = ({ children }) => {
         category: metadata.category,
         client_name: metadata.client_name,
         submission_channel: metadata.submission_channel || res.submission_channel || 'web',
-        imageUrl: metadata.imageUrl
+        imageUrl: res.image_url || metadata.imageUrl
       };
 
       setHistory(prev => [newItem, ...prev]);

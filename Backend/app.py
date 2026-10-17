@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, date
@@ -124,6 +125,7 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
 # Create uploads storage folder
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 @app.on_event("startup")
 def startup_event():
@@ -235,6 +237,7 @@ async def process_receipt(
         return JSONResponse(content={
             "success": True,
             "receipt_id": receipt_record.id,
+            "image_url": f"/uploads/{temp_filename}",
             "submission_channel": submission_channel,
             "currency": decision.currency,
             "original_amount": decision.requested_amount_original,
@@ -313,6 +316,7 @@ def list_receipts(
             "flags": r.flags,
             "explanation": r.explanation,
             "line_items": r.line_items,
+            "image_url": f"/uploads/{os.path.basename(r.image_path)}" if r.image_path and os.path.exists(os.path.join(UPLOAD_DIR, os.path.basename(r.image_path))) else None,
             "created_at": r.created_at.isoformat() if r.created_at else None
         }
         for r in receipts
@@ -459,6 +463,7 @@ def get_session_data(current_user: Login = Depends(get_current_user), db: Sessio
             "category": r.category,
             "client_name": r.client_name or "",
             "submission_channel": r.submission_channel,
+            "image_url": f"/uploads/{os.path.basename(r.image_path)}" if r.image_path and os.path.exists(os.path.join(UPLOAD_DIR, os.path.basename(r.image_path))) else None,
             "timestamp": r.created_at.isoformat() if r.created_at else datetime.utcnow().isoformat(),
             "receipt": {
                 "vendor": r.vendor or "Unknown",

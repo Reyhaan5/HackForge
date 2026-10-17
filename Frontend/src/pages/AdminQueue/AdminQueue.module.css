@@ -141,6 +141,98 @@
   gap: 8px;
 }
 
+.artifactToggle {
+  display: flex;
+  background-color: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.toggleBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggleBtn:hover {
+  color: var(--text-primary);
+}
+
+.toggleBtnActive {
+  background-color: var(--primary-color);
+  color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.scannedImageWrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.noScanNotice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 24px;
+  max-width: 340px;
+  margin: auto;
+  color: #94A3B8;
+  gap: 12px;
+}
+
+.noScanIcon {
+  color: #64748B;
+  opacity: 0.8;
+}
+
+.noScanTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #F1F5F9;
+  margin: 0;
+}
+
+.noScanSub {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.switchModeBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 14px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #FFFFFF;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.switchModeBtn:hover {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
 .imageScrollArea {
   flex: 1;
   overflow-y: auto;

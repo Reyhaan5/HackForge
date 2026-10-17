@@ -6,11 +6,18 @@ import {
   FileText,
   AlertTriangle,
   Receipt,
-  CheckCheck
+  CheckCheck,
+  Camera
 } from 'lucide-react';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import { useReceipts } from '../../context/ReceiptContext';
 import styles from './AdminQueue.module.css';
+
+const getFullImageUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('http')) return url;
+  return `http://localhost:8000${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 const formatCurrency = (amount, currency = 'USD') => {
   try {
@@ -33,6 +40,7 @@ export const AdminQueue = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [managerNotes, setManagerNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [viewMode, setViewMode] = useState('scanned'); // 'scanned' | 'simulated'
 
   // Selected item
   const currentItem = queueItems[selectedIndex] || queueItems[0] || null;
@@ -123,18 +131,58 @@ export const AdminQueue = () => {
                 <div className={styles.panelHeader}>
                   <div className={styles.panelTitle}>
                     <FileText size={18} />
-                    <span>Receipt Document Artifact</span>
+                    <span>Receipt Artifact</span>
                   </div>
+
+                  <div className={styles.artifactToggle}>
+                    <button
+                      type="button"
+                      className={`${styles.toggleBtn} ${viewMode === 'scanned' ? styles.toggleBtnActive : ''}`}
+                      onClick={() => setViewMode('scanned')}
+                      title="View original uploaded photo"
+                    >
+                      <Camera size={14} />
+                      <span>Original Photo</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.toggleBtn} ${viewMode === 'simulated' ? styles.toggleBtnActive : ''}`}
+                      onClick={() => setViewMode('simulated')}
+                      title="View digital paper ledger"
+                    >
+                      <Receipt size={14} />
+                      <span>Digital Ledger</span>
+                    </button>
+                  </div>
+
                   <StatusBadge status={currentItem.result.status} />
                 </div>
 
                 <div className={styles.imageScrollArea}>
-                  {currentItem.imageUrl ? (
-                    <img
-                      src={currentItem.imageUrl}
-                      alt="Scanned receipt visual"
-                      className={styles.receiptImg}
-                    />
+                  {viewMode === 'scanned' ? (
+                    getFullImageUrl(currentItem.imageUrl) ? (
+                      <div className={styles.scannedImageWrap}>
+                        <img
+                          src={getFullImageUrl(currentItem.imageUrl)}
+                          alt="Scanned receipt visual"
+                          className={styles.receiptImg}
+                        />
+                      </div>
+                    ) : (
+                      <div className={styles.noScanNotice}>
+                        <Camera size={44} className={styles.noScanIcon} />
+                        <h4 className={styles.noScanTitle}>No Scanned Image File</h4>
+                        <p className={styles.noScanSub}>This receipt was submitted without a binary image file or via quick preset.</p>
+                        <button
+                          type="button"
+                          className={styles.switchModeBtn}
+                          onClick={() => setViewMode('simulated')}
+                        >
+                          <Receipt size={14} />
+                          <span>View Digitized Ledger</span>
+                        </button>
+                      </div>
+                    )
                   ) : (
                     /* Simulated High-Fidelity Paper Receipt */
                     <div className={styles.simulatedReceipt}>
