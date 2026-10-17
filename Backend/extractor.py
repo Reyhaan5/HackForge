@@ -1,51 +1,51 @@
 import os
 import hashlib
+from datetime import datetime
 from typing import List, Optional
+
 from pydantic import BaseModel, Field
-from PIL import Image, ImageOps, ImageEnhance
+from PIL import Image, ImageEnhance, ImageOps
 import imagehash
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from fx_converter import normalize_currency
+
+from fx_converter import OFFLINE_RATES_TO_USD, normalize_currency
 
 ENV_PATH = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(ENV_PATH)
 load_dotenv()
 
+
 class LineItem(BaseModel):
     description: str
     amount: float
-    disallowed: bool=False
+    disallowed: bool = False
+
 
 class ExtractedReceipt(BaseModel):
-    vendor: Optional[str]="Unknown Vendor"
-    date: Optional[str]=None
-    total_amount: float=0.0
-    currency: str="USD"
-    category: str="Meals"
-    line_items: List[LineItem]=Field(default_factory=list)
-    calculated_tax: Optional[float]=0.0
-    calculated_tip: Optional[float]=0.0
-    is_itemized: bool=False
-    image_hash: str=""
+    vendor: Optional[str] = None
+    date: Optional[str] = None
+    total_amount: Optional[float] = None
+    currency: Optional[str] = None
+    category: Optional[str] = None
+    line_items: List[LineItem] = Field(default_factory=list)
+    calculated_tax: Optional[float] = None
+    calculated_tip: Optional[float] = None
+    is_itemized: Optional[bool] = None
+    image_hash: str = ""
+
 
 def preprocess_receipt_image(image_path: str) -> None:
     try:
         with Image.open(image_path) as img:
-            # 1. Rotate based on EXIF tag (mobile camera angles)
             img = ImageOps.exif_transpose(img).convert("RGB")
-            
-            # 2. Enhance contrast slightly for faded thermal paper
-            contrast_enhancer = ImageEnhance.Contrast(img)
-            img = contrast_enhancer.enhance(1.2)
-            
-            # 3. Enhance sharpness for faint text
-            sharpness_enhancer = ImageEnhance.Sharpness(img)
-            img = sharpness_enhancer.enhance(1.2)
+            img = ImageEnhance.Contrast(img).enhance(1.2)
+            img = ImageEnhance.Sharpness(img).enhance(1.2)
             img.save(image_path)
     except Exception as e:
         print(f"Warning: Image pre-processing skipped: {e}")
+
 
 def compute_image_hash(image_path: str) -> str:
     try:
@@ -59,24 +59,6 @@ def compute_image_hash(image_path: str) -> str:
         except Exception:
             return hashlib.md5(str(image_path).encode()).hexdigest()
 
-def rasterize_pdf_if_needed(file_path: str) -> str:
-    """
-    If file is a PDF, renders page 0 to high-res PNG for OCR vision extraction
-    and returns the rendered PNG path.
-    """
-    if file_path.lower().endswith(".pdf"):
-        try:
-            import pymupdf
-            doc = pymupdf.open(file_path)
-            if len(doc) > 0:
-                pix = doc[0].get_pixmap(dpi=200)
-                png_path = file_path.rsplit(".", 1)[0] + ".png"
-                pix.save(png_path)
-                return png_path
-        except Exception as e:
-            print(f"[WARN] PDF rasterization failed: {e}")
-    return file_path
-
 def extract_receipt(image_path: str) -> ExtractedReceipt:
     """
     Extracts structured receipt data using the Gemini multimodal model.
@@ -85,8 +67,8 @@ def extract_receipt(image_path: str) -> ExtractedReceipt:
     # 1. Ensure file is rasterized if PDF, then Preprocess & Hash
     image_path = rasterize_pdf_if_needed(image_path)
     preprocess_receipt_image(image_path)
-    img_hash = compute_image_hash(image_path)
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    img_hash=compute_image_hash(image_path)
+    api_key=os.getenv("GEMINI_API_KEY")
     if api_key:
         prompt = """Analyze this receipt carefully and extract its structured data.
         Rules:

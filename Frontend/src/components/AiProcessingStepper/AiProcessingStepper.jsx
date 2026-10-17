@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Sparkles,
   Camera,
@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Loader2,
   FileText,
-  ShieldCheck,
   Zap
 } from 'lucide-react';
 import styles from './AiProcessingStepper.module.css';
@@ -41,8 +40,8 @@ const STAGES = [
 ];
 
 export const AiProcessingStepper = ({ previewUrl, fileName = 'receipt.jpg' }) => {
-  const [currentStageIdx, setCurrentStageIdx] = useState(0);
   const [progress, setProgress] = useState(12);
+  const currentStageIdx = progress < 35 ? 0 : progress < 72 ? 1 : 2;
 
   useEffect(() => {
     // Dynamic progressive ticker that advances gracefully while awaiting backend response
@@ -57,16 +56,6 @@ export const AiProcessingStepper = ({ previewUrl, fileName = 'receipt.jpg' }) =>
 
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    if (progress < 35) {
-      setCurrentStageIdx(0);
-    } else if (progress < 72) {
-      setCurrentStageIdx(1);
-    } else {
-      setCurrentStageIdx(2);
-    }
-  }, [progress]);
 
   return (
     <div className={styles.stepperContainer}>
@@ -146,7 +135,6 @@ export const AiProcessingStepper = ({ previewUrl, fileName = 'receipt.jpg' }) =>
           {STAGES.map((stage, idx) => {
             const isCompleted = currentStageIdx > idx;
             const isActive = currentStageIdx === idx;
-            const isPending = currentStageIdx < idx;
             const StageIcon = stage.icon;
 
             return (
