@@ -1,50 +1,21 @@
-### 3. Create a virtual environment and install dependencies
+#  Receipt Graveyard Resolver - Backend
 
-Run from the project root.
+An AI-powered expense receipt auditor that runs 100% locally on an NVIDIA RTX 5050. Built with FastAPI and the Qwen2-VL-2B Vision-Language Model.
 
-**macOS/Linux**
-```bash
-python3 -m venv Backend/venv
-Backend/venv/bin/python -m pip install --upgrade pip
-Backend/venv/bin/python -m pip install -r Backend/requirements.txt
+## ️ Prerequisites
+- **Python 3.10 or higher**
+- **NVIDIA RTX 5050 GPU** (Ensure your NVIDIA drivers are up to date)
+- **Windows 10 / 11**
+
+## 🚀 Setup & Installation (Windows)
+
+### 1. Create and Activate Virtual Environment
+Open **Command Prompt (cmd)** or **PowerShell** inside this `Backend` folder and run:
+
+```cmd
+cd Backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+python -m uvicorn app:app --app-dir Backend --host 127.0.0.1 --port 8000 --reload
 ```
-
-**Windows PowerShell**
-```powershell
-py -m venv Backend/venv
-Backend/venv/Scripts/python.exe -m pip install --upgrade pip
-Backend/venv/Scripts/python.exe -m pip install -r Backend/requirements.txt
-```
-
-### 4. Start the backend
-
-From the project root:
-
-**macOS/Linux**
-```bash
-Backend/venv/bin/python -m uvicorn app:app --app-dir Backend --host 127.0.0.1 --port 8000 --reload
-```
-
-**Windows PowerShell**
-```powershell
-Backend/venv/Scripts/python.exe -m uvicorn app:app --app-dir Backend --host 127.0.0.1 --port 8000 --reload
-```
-
-At startup the app creates missing tables and seeds the default policy and sample users without replacing existing rows. Open [http://127.0.0.1:8000](http://127.0.0.1:8000) for the API or [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) for interactive documentation. Stop with Ctrl+C.
-
-Sample development accounts are `alice`, `bob`, and `carlos` (password `password123`) and `admin` (password `admin123`). Change or remove these before using the service beyond local development. Public registration creates Employee accounts.
-
-## Troubleshooting
-
-- **Database connection error:** check PostgreSQL is running and `DATABASE_URL` has the right host, port, database, and credentials.
-- **JWT configuration error:** set `JWT_SECRET` in `Backend/.env` to a random value of at least 32 characters and restart.
-- **Receipt extraction error:** check `GEMINI_API_KEY` and outbound connectivity to Google APIs.
-- **Port 8000 is busy:** stop the other process or change Uvicorn `--port`.
-
-## Project paths
-
-- API: `Backend/app.py`
-- Database models and startup seeding: `Backend/database.py`
-- Environment template: `Backend/.env.example`
-- SQL schema reference: `Backend/schema.sql`
-- Backend tests: `test/`
