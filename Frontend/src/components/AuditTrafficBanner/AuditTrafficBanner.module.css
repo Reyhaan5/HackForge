@@ -1,0 +1,211 @@
+.bannerContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-radius: var(--border-radius);
+  border: 1px solid transparent;
+  gap: 20px;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.contentLeft {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 1;
+}
+
+.iconWrap {
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.statusIcon {
+  width: 28px;
+  height: 28px;
+}
+
+.metaWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badgeCode {
+  font-family: monospace;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.bannerTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.bannerSubtitle {
+  margin: 0;
+  font-size: 0.82rem;
+  opacity: 0.88;
+}
+
+.chipsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.flagChip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  display: inline-flex;
+  align-items: center;
+}
+
+.contentRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 150px;
+}
+
+.amountLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+
+.amountDisplay {
+  font-family: monospace;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+/* ================= 🟢 APPROVED ================= */
+.bannerApproved {
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+  border-color: #6ee7b7;
+  color: #065f46;
+}
+
+.bannerApproved .statusIcon {
+  color: #059669;
+}
+
+.bannerApproved .badgeCode {
+  background: #059669;
+  color: #ffffff;
+}
+
+.bannerApproved .amountDisplay {
+  color: #047857;
+}
+
+/* ================= 🟡 PARTIAL / FLAGGED ================= */
+.bannerPartial {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.bannerPartial .statusIcon {
+  color: #d97706;
+}
+
+.bannerPartial .badgeCode {
+  background: #d97706;
+  color: #ffffff;
+}
+
+.bannerPartial .amountDisplay {
+  color: #b45309;
+}
+
+.bannerPartial .flagChip {
+  background: rgba(217, 119, 6, 0.12);
+  border-color: rgba(217, 119, 6, 0.25);
+  color: #78350f;
+}
+
+/* ================= 🟠 PENDING_APPROVAL ================= */
+.bannerPending {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-color: #7dd3fc;
+  color: #075985;
+}
+
+.bannerPending .statusIcon {
+  color: #0284c7;
+  animation: spinSlow 8s linear infinite;
+}
+
+@keyframes spinSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.bannerPending .badgeCode {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.bannerPending .amountDisplay {
+  color: #0369a1;
+}
+
+/* ================= 🔴 REJECTED ================= */
+.bannerRejected {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.bannerRejected .statusIcon {
+  color: #dc2626;
+}
+
+.bannerRejected .badgeCode {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.bannerRejected .amountDisplay {
+  color: #b91c1c;
+}
+
+.bannerRejected .flagChip {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.25);
+  color: #7f1d1d;
+}
+
+@media (max-width: 768px) {
+  .bannerContainer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .contentRight {
+    align-items: flex-start;
+  }
+}

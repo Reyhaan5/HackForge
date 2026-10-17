@@ -134,7 +134,7 @@ Important Extraction Rules:
             else:
                 print(f"⚠️ Gemini API returned status {response.status_code}: {response.text}")
         except Exception as e:
-            print(f"⚠️ Gemini cloud extraction error: {e}")
+            print(f"[WARN] Cloud vision extraction error: {e}. Falling back to heuristic extractor.")
 
     # 3. Graceful fallback if offline or request fails
     return ExtractedReceipt(

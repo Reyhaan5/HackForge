@@ -61,6 +61,86 @@
   color: var(--primary-color);
 }
 
+/* Multi-Channel Ingestion Bar */
+.channelBar {
+  background-color: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--box-shadow);
+}
+
+.channelBarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.channelLabel {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.channelSub {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.channelOptions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.channelButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background-color: var(--background);
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.channelButton:hover {
+  border-color: var(--primary-color);
+  color: var(--text-primary);
+  background-color: var(--card-hover);
+}
+
+.channelButtonActive {
+  background-color: var(--primary-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  font-weight: 700;
+  box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+.channelBadgeActive {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 /* Metadata Form before drop */
 .metaGrid {
   display: grid;
@@ -358,6 +438,18 @@
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
+}
+
+.channelBadgeResult {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  background-color: var(--primary-light);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.04em;
 }
 
 .validationBanner {
