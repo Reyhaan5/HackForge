@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { getSession, resetSession as apiResetSession } from '../services/api';
+import { clearAccessToken, getSession, resetSession as apiResetSession } from '../services/api';
 
 const DEFAULT_MONTHLY_LIMIT = 2000.0;
 
@@ -22,6 +22,7 @@ export const ReceiptProvider = ({ children }) => {
   }, []);
 
   const logoutUser = useCallback(() => {
+    clearAccessToken();
     setUser(null);
   }, []);
 
@@ -114,11 +115,13 @@ export const ReceiptProvider = ({ children }) => {
   const resetAllData = useCallback(async () => {
     sessionRequestRef.current += 1;
     try {
-      await apiResetSession();
+      if (['Admin', 'Finance'].includes(user?.role)) {
+        await apiResetSession();
+      }
     } finally {
       setHistory([]);
     }
-  }, []);
+  }, [user]);
 
   return (
     <ReceiptContext.Provider

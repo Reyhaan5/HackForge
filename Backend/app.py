@@ -7,10 +7,12 @@ from datetime import datetime, date
 import tempfile
 import os
 import shutil
+from uuid import uuid4
 
 from database import init_db, get_db, Receipt, Employee, Policy, Login
 from extractor import extract_receipt, compute_image_hash
 from policy_engine import validate_receipt
+from auth import hash_password, verify_password, create_access_token, get_current_user, require_admin
 from pydantic import BaseModel
 from typing import Optional
 
@@ -31,25 +33,34 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     username: str
     password: str
-    role: Optional[str] = "Employee"
-    employee_id: Optional[str] = None
 
 @app.post("/api/login")
 @app.post("/auth/login")
 def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(Login).filter_by(username=payload.username.strip()).first()
-    if not user or user.password_hash != payload.password.strip():
+    if not user or not verify_password(payload.password.strip(), user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
+    # Automatically upgrade legacy plaintext password to secure PBKDF2 hash
+    if "$" not in user.password_hash:
+        user.password_hash = hash_password(payload.password.strip())
+        db.commit()
+
     emp_name = None
     emp_dept = None
     if user.employee:
         emp_name = user.employee.name
         emp_dept = user.employee.department
 
+    token = create_access_token({
+        "sub": user.username,
+        "role": user.role,
+        "employee_id": user.employee_id
+    })
+
     return {
         "success": True,
-        "token": f"token_{user.username}_{user.role.lower()}",
+        "token": token,
         "user": {
             "username": user.username,
             "role": user.role,
@@ -66,19 +77,37 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
 
+    # Public registration always creates a new employee identity. Callers cannot
+    # link an account to another employee or assign themselves a privileged role.
+    emp_id = f"EMP-{uuid4().hex[:12].upper()}"
+    db.add(Employee(
+        id=emp_id,
+        name=payload.username.strip().title(),
+        email=f"{emp_id.lower()}@company.com",
+        department="General",
+    ))
+
+    # Security fix: Public registration strictly assigns "Employee" role
+    # Admin/Finance roles cannot be self-assigned through public registration
     new_login = Login(
         username=payload.username.strip(),
-        password_hash=payload.password.strip(),
-        role=payload.role or "Employee",
-        employee_id=payload.employee_id
+        password_hash=hash_password(payload.password.strip()),
+        role="Employee",
+        employee_id=emp_id,
     )
     db.add(new_login)
     db.commit()
     db.refresh(new_login)
 
+    token = create_access_token({
+        "sub": new_login.username,
+        "role": new_login.role,
+        "employee_id": new_login.employee_id
+    })
+
     return {
         "success": True,
-        "token": f"token_{new_login.username}_{new_login.role.lower()}",
+        "token": token,
         "user": {
             "username": new_login.username,
             "role": new_login.role,
@@ -100,18 +129,30 @@ def startup_event():
 @app.post("/api/process-receipt")
 async def process_receipt(
     file: UploadFile = File(...),
-    employee_id: str = Form("EMP-101"),
+    employee_id: Optional[str] = Form(None),
     submission_channel: str = Form("web"), # 'web', 'email', 'mobile', 'slack', 'api'
     city: str = Form("New York"),
     category: str = Form("Meals"),
     client_name: str = Form(""),
     attendee_count: int = Form(1),
+    current_user: Login = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Ingests and validates a receipt from any submission channel (web, email, mobile, slack, api).
     Extracts structured data using a cloud model, enforces layered policies, and stores results.
     """
+    if current_user.role in ["Admin", "Finance"]:
+        employee_id = employee_id.strip() if employee_id else current_user.employee_id
+        if not employee_id:
+            raise HTTPException(status_code=400, detail="employee_id is required for administrative submissions")
+    else:
+        if not current_user.employee_id:
+            raise HTTPException(status_code=403, detail="This account is not linked to an employee")
+        if employee_id and employee_id.strip() != current_user.employee_id:
+            raise HTTPException(status_code=403, detail="You may only submit receipts for your own employee account")
+        employee_id = current_user.employee_id
+
     print(f"\n[Ingest] Ingesting receipt: {file.filename} | Employee: {employee_id} | Channel: {submission_channel} | City: {city}")
 
     # Check employee existence
@@ -229,11 +270,18 @@ def list_receipts(
     employee_id: str = Query(None),
     submission_channel: str = Query(None),
     status: str = Query(None),
+    current_user: Login = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Lists receipts with on-the-fly filtering by employee, channel, or status."""
     query = db.query(Receipt)
-    if employee_id:
+    if current_user.role not in ["Admin", "Finance"]:
+        if not current_user.employee_id:
+            raise HTTPException(status_code=403, detail="This account is not linked to an employee")
+        if employee_id and employee_id != current_user.employee_id:
+            raise HTTPException(status_code=403, detail="You may only view your own receipts")
+        query = query.filter(Receipt.employee_id == current_user.employee_id)
+    elif employee_id:
         query = query.filter(Receipt.employee_id == employee_id)
     if submission_channel:
         query = query.filter(Receipt.submission_channel == submission_channel)
@@ -267,9 +315,17 @@ def list_receipts(
     ]
 
 @app.get("/api/employees")
-def list_employees(db: Session = Depends(get_db)):
+def list_employees(
+    current_user: Login = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Returns employees with on-the-fly monthly spend calculations."""
-    employees = db.query(Employee).all()
+    employee_query = db.query(Employee)
+    if current_user.role not in ["Admin", "Finance"]:
+        if not current_user.employee_id:
+            raise HTTPException(status_code=403, detail="This account is not linked to an employee")
+        employee_query = employee_query.filter(Employee.id == current_user.employee_id)
+    employees = employee_query.all()
     month_start = date(date.today().year, date.today().month, 1)
     
     result = []
@@ -293,16 +349,16 @@ def list_employees(db: Session = Depends(get_db)):
     return result
 
 @app.get("/api/policy")
-def get_policy(db: Session = Depends(get_db)):
-    """Fetches the active policy configuration JSON."""
+def get_policy(current_user: Login = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Fetches the active policy configuration JSON (Requires Authentication)."""
     policy = db.query(Policy).filter_by(is_active=True).first()
     if not policy:
         raise HTTPException(status_code=404, detail="No active policy found")
     return {"id": policy.id, "rules": policy.rules}
 
 @app.put("/api/policy")
-def update_policy(rules: dict, db: Session = Depends(get_db)):
-    """Updates the active policy rules JSON."""
+def update_policy(rules: dict, admin_user: Login = Depends(require_admin), db: Session = Depends(get_db)):
+    """Updates the active policy rules JSON (Requires Admin/Finance Privileges)."""
     policy = db.query(Policy).filter_by(is_active=True).first()
     if not policy:
         policy = Policy(id="DEFAULT-EXPENSE-POLICY", is_active=True, rules=rules)
@@ -313,16 +369,24 @@ def update_policy(rules: dict, db: Session = Depends(get_db)):
     return {"success": True, "message": "Policy updated successfully", "rules": policy.rules}
 
 @app.get("/api/session")
-def get_session_data(db: Session = Depends(get_db)):
-    """Returns all processed receipts, monthly total, and hash history."""
-    receipts = db.query(Receipt).order_by(Receipt.created_at.desc()).all()
+def get_session_data(current_user: Login = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Returns processed receipts and spend scoped by employee role (Requires Authentication)."""
+    query = db.query(Receipt).order_by(Receipt.created_at.desc())
+    if current_user.role not in ["Admin", "Finance"]:
+        query = query.filter(Receipt.employee_id == current_user.employee_id)
+
+    receipts = query.all()
     hashes = [r.image_hash for r in receipts if r.image_hash]
     
     month_start = date(date.today().year, date.today().month, 1)
-    monthly_spent = db.query(func.coalesce(func.sum(Receipt.approved_amount), 0.0)).filter(
+    spend_query = db.query(func.coalesce(func.sum(Receipt.approved_amount), 0.0)).filter(
         Receipt.transaction_date >= month_start,
         Receipt.status.in_(["APPROVED", "PARTIAL", "PENDING_APPROVAL"])
-    ).scalar()
+    )
+    if current_user.role not in ["Admin", "Finance"]:
+        spend_query = spend_query.filter(Receipt.employee_id == current_user.employee_id)
+
+    monthly_spent = spend_query.scalar()
 
     history = []
     for r in receipts:
@@ -355,18 +419,23 @@ def get_session_data(db: Session = Depends(get_db)):
 
 @app.post("/api/reset-session")
 @app.post("/api/reset")
-def reset_database(db: Session = Depends(get_db)):
-    """Wipes all receipts and resets for testing."""
+def reset_database(admin_user: Login = Depends(require_admin), db: Session = Depends(get_db)):
+    """Wipes all receipts and resets system (Requires Admin/Finance Privileges)."""
     db.query(Receipt).delete()
     db.commit()
-    return {"success": True, "message": "All receipt submissions reset"}
+    return {"success": True, "message": "All receipt submissions reset by admin"}
 
 @app.get("/api/export-csv")
-def export_csv(db: Session = Depends(get_db)):
+def export_csv(current_user: Login = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Exports receipt reports to CSV scoped by caller privileges (Requires Authentication)."""
     import csv
     import io
 
-    receipts = db.query(Receipt).order_by(Receipt.created_at.desc()).all()
+    query = db.query(Receipt).order_by(Receipt.created_at.desc())
+    if current_user.role not in ["Admin", "Finance"]:
+        query = query.filter(Receipt.employee_id == current_user.employee_id)
+
+    receipts = query.all()
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["ID", "Date", "Vendor", "Amount", "Currency", "Category", "City", "Status", "Approved Amount", "Flags", "Employee ID"])

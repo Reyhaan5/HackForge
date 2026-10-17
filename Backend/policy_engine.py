@@ -85,33 +85,71 @@ def validate_receipt(
         current_date = date.today()
 
     # -------------------------------------------------------------
-    # 2. Multi-Channel Deduplication Check
+    # 2. Duplicate & Cross-Employee Double Claiming Check
     # -------------------------------------------------------------
-    duplicate = db.query(Receipt).filter(Receipt.image_hash == receipt.image_hash).first()
-    if not duplicate and receipt.vendor and receipt.date:
-        # Fuzzy match on employee + vendor + date + original amount
-        duplicate = db.query(Receipt).filter(
+    # Find matching hash if exists
+    hash_match = db.query(Receipt).filter(Receipt.image_hash == receipt.image_hash).first()
+
+    # Check 2A: Cross-Employee Double Claim (Collusion / Duplicate Submission)
+    cross_match = None
+    if hash_match and hash_match.employee_id != employee_id:
+        cross_match = hash_match
+    elif receipt.vendor and receipt.date:
+        # Check fuzzy match against other employees (same vendor, same date, identical amount)
+        cross_match = db.query(Receipt).filter(
+            Receipt.employee_id != employee_id,
+            Receipt.vendor == receipt.vendor,
+            Receipt.transaction_date == current_date,
+            func.abs(Receipt.original_amount - raw_amount) < 0.50
+        ).first()
+
+    if cross_match:
+        decision.status = "REJECTED"
+        decision.flags.append(
+            f"🚨 FRAUD ALERT: Cross-employee double claim! An identical expense was already claimed by employee '{cross_match.employee_id}' (Receipt #{cross_match.id} on {cross_match.transaction_date})."
+        )
+        decision.approved_amount = 0.0
+        decision.explanation = f"Submission rejected: identical receipt already claimed by employee {cross_match.employee_id}."
+        decision.processed_line_items = [item.model_dump() for item in receipt.line_items]
+        return decision
+
+    # Check 2B: Same-Employee Duplicate Submission
+    same_match = hash_match if (hash_match and hash_match.employee_id == employee_id) else None
+    if not same_match and receipt.vendor and receipt.date:
+        same_match = db.query(Receipt).filter(
             Receipt.employee_id == employee_id,
             Receipt.vendor == receipt.vendor,
             Receipt.transaction_date == current_date,
             func.abs(Receipt.original_amount - raw_amount) < 0.05
         ).first()
 
-    if duplicate:
+    if same_match:
         decision.status = "REJECTED"
-        channel_info = f"via '{duplicate.submission_channel}' channel" if duplicate.submission_channel else ""
         decision.flags.append(
-            f"🚨 DUPLICATE DETECTED: This receipt was already submitted {channel_info} on {duplicate.created_at.strftime('%Y-%m-%d')}"
+            f"🚨 DUPLICATE DETECTED: You already submitted this receipt on {same_match.created_at.strftime('%Y-%m-%d')} (Receipt #{same_match.id})"
         )
         decision.approved_amount = 0.0
-        decision.explanation = f"Submission rejected as duplicate. Receipt #{duplicate.id} already exists in the system."
+        decision.explanation = f"Submission rejected as duplicate of your previous submission #{same_match.id}."
         decision.processed_line_items = [item.model_dump() for item in receipt.line_items]
         return decision
 
     # -------------------------------------------------------------
-    # 3. Math Discrepancy Verification
+    # 3. Unitemized Receipt Breakdown & Math Verification
     # -------------------------------------------------------------
-    if receipt.is_itemized and receipt.line_items:
+    is_unitemized = not receipt.is_itemized or len(receipt.line_items) == 0
+    if is_unitemized:
+        # Flag unitemized claims since non-reimbursables cannot be verified
+        is_round = (raw_amount >= 50.0 and raw_amount % 10 == 0)
+        warning_msg = f"⚠️ UNITEMIZED RECEIPT: Total ({raw_amount:,.2f} {normalized_currency}) lacks itemized breakdown. Non-reimbursable exclusions (alcohol, gifts) cannot be verified."
+        if is_round:
+            warning_msg += " Flat round amount detected."
+        warning_msg += " Requires itemized merchant invoice before reimbursement."
+        
+        decision.flags.append(warning_msg)
+        if decision.status == "APPROVED":
+            decision.status = "PENDING_APPROVAL"
+
+    elif receipt.line_items:
         items_sum = sum(item.amount for item in receipt.line_items)
         expected_total = items_sum + receipt.calculated_tax + receipt.calculated_tip
         if abs(expected_total - raw_amount) > 0.75:
@@ -170,6 +208,21 @@ def validate_receipt(
             decision.status = "PARTIAL"
 
     # -------------------------------------------------------------
+    # 5B. Category Cap Enforcement
+    # -------------------------------------------------------------
+    category_caps = policy.get("category_caps", {})
+    cat_cap = category_caps.get(category)
+    if cat_cap is not None:
+        cat_cap = float(cat_cap)
+        if reimbursable_usd > cat_cap:
+            excess = reimbursable_usd - cat_cap
+            decision.flags.append(
+                f"⚠️ Exceeds {category} cap (${cat_cap:.2f} USD). Excess: ${excess:.2f} USD."
+            )
+            reimbursable_usd = cat_cap
+            decision.status = "PARTIAL" if reimbursable_usd > 0 else "REJECTED"
+
+    # -------------------------------------------------------------
     # 6. On-the-Fly Daily City Cap Accumulation (in USD)
     # -------------------------------------------------------------
     city_caps = policy.get("city_daily_caps", {})
@@ -223,6 +276,29 @@ def validate_receipt(
             f"🔒 High amount (>${approval_threshold:.2f} USD): Requires manager sign-off."
         )
         if decision.status in ["APPROVED", "PARTIAL"]:
+            decision.status = "PENDING_APPROVAL"
+
+    # -------------------------------------------------------------
+    # 8B. Structuring / Threshold Evasion Detection
+    # -------------------------------------------------------------
+    structuring_lower = policy.get("structuring_lower_bound", approval_threshold * 0.75) # e.g. $150.00
+    if structuring_lower <= base_amount_usd <= approval_threshold:
+        from datetime import timedelta
+        window_start = current_date - timedelta(days=2)
+        recent_structured = db.query(Receipt).filter(
+            Receipt.employee_id == employee_id,
+            Receipt.transaction_date >= window_start,
+            Receipt.transaction_date <= current_date,
+            Receipt.base_amount_usd >= structuring_lower,
+            Receipt.base_amount_usd <= approval_threshold,
+            Receipt.status.in_(["APPROVED", "PARTIAL", "PENDING_APPROVAL"])
+        ).all()
+        
+        if recent_structured:
+            receipt_refs = ", ".join([f"#{r.id} (${float(r.base_amount_usd):.2f} on {r.transaction_date})" for r in recent_structured])
+            decision.flags.append(
+                f"🚨 STRUCTURING ALERT: Multiple expenses near manager threshold (${approval_threshold:.2f} USD) within 48h ({receipt_refs}). Escalated for manager audit."
+            )
             decision.status = "PENDING_APPROVAL"
 
     decision.approved_amount = round(reimbursable_usd, 2)

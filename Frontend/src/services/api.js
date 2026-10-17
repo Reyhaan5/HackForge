@@ -8,6 +8,27 @@ const apiClient = axios.create({
   timeout: 45000,
 });
 
+let accessToken = null;
+
+export function clearAccessToken() {
+  accessToken = null;
+}
+
+apiClient.interceptors.request.use((config) => {
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+});
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) clearAccessToken();
+    return Promise.reject(error);
+  }
+);
+
 /**
  * Authenticate user against Backend logins table
  * @param {string} username
@@ -16,6 +37,7 @@ const apiClient = axios.create({
 export async function login(username, password) {
   try {
     const response = await apiClient.post('/api/login', { username, password });
+    accessToken = response.data?.token || null;
     return response.data;
   } catch (error) {
     throw new Error(
@@ -31,17 +53,14 @@ export async function login(username, password) {
  * Register user into Backend logins table
  * @param {string} username
  * @param {string} password
- * @param {string} role
- * @param {string|null} employeeId
  */
-export async function register(username, password, role = 'Employee', employeeId = null) {
+export async function register(username, password) {
   try {
     const response = await apiClient.post('/api/register', {
       username,
-      password,
-      role,
-      employee_id: employeeId
+      password
     });
+    accessToken = response.data?.token || null;
     return response.data;
   } catch (error) {
     throw new Error(
