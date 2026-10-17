@@ -600,6 +600,76 @@
   font-weight: 500;
 }
 
+/* Direct Clipboard Paste Pill */
+.pasteShortcutPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-top: 6px;
+}
+
+.kbdBadge {
+  font-family: monospace;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: var(--card-hover, #f1f5f9);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-bottom: 2px solid var(--border-color, #94a3b8);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.plusSign {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.72rem;
+}
+
+.pasteShortcutText {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Paste Success Banner */
+.pasteSuccessBanner {
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  color: #065f46;
+  padding: 12px 18px;
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
+  animation: slideInDown 0.25s ease-out;
+}
+
+.pasteIcon {
+  color: #059669;
+  flex-shrink: 0;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 768px) {
   .metaGrid {
     grid-template-columns: 1fr;

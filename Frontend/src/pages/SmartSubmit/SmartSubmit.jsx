@@ -19,6 +19,7 @@ import { getEmployees, processReceipt } from '../../services/api';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import ReceiptSplitView from '../../components/ReceiptSplitView/ReceiptSplitView';
 import AuditStatusPill from '../../components/AuditStatusPill/AuditStatusPill';
+import AiProcessingStepper from '../../components/AiProcessingStepper/AiProcessingStepper';
 import styles from './SmartSubmit.module.css';
 
 const SUBMISSION_CHANNELS = [
@@ -51,6 +52,7 @@ export const SmartSubmit = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  const [pasteNotice, setPasteNotice] = useState(null);
 
   useEffect(() => {
     if (!isPrivileged) return;
@@ -70,6 +72,49 @@ export const SmartSubmit = () => {
   useEffect(() => () => {
     if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
   }, [previewUrl]);
+
+  const selectFile = (selectedFile) => {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(selectedFile?.type)) {
+      setError('Choose a JPG, PNG, or WEBP image. PDF uploads are not supported by the receipt processor.');
+      return;
+    }
+    setFile(selectedFile);
+    setError(null);
+    setResult(null);
+
+    // Create preview
+    const url = URL.createObjectURL(selectedFile);
+    setPreviewUrl(url);
+  };
+
+  // Direct Clipboard (Ctrl+V) listener
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const activeTag = document.activeElement?.tagName?.toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
+        return;
+      }
+
+      if (e.clipboardData && e.clipboardData.items) {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type && items[i].type.startsWith('image/')) {
+            const pastedFile = items[i].getAsFile();
+            if (pastedFile) {
+              e.preventDefault();
+              selectFile(pastedFile);
+              setPasteNotice('📸 Receipt image pasted directly from clipboard!');
+              const timer = setTimeout(() => setPasteNotice(null), 4000);
+              return () => clearTimeout(timer);
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, []);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -95,81 +140,64 @@ export const SmartSubmit = () => {
     }
   };
 
-  const selectFile = (selectedFile) => {
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(selectedFile?.type)) {
-      setError('Choose a JPG, PNG, or WEBP image. PDF uploads are not supported by the receipt processor.');
-      return;
-    }
-    setFile(selectedFile);
+  // Helper to load authentic real sample receipts for live judge demonstrations
+  const loadQuickSample = async (sampleType) => {
     setError(null);
     setResult(null);
 
-    // Create preview
-    const url = URL.createObjectURL(selectedFile);
-    setPreviewUrl(url);
-  };
-
-  // Helper to create synthetic test receipts for instant judge demo
-  const loadQuickSample = (sampleType) => {
-    setError(null);
-    setResult(null);
-
-    let sampleFileName = 'receipt_sample.jpg';
+    let sampleFileUrl = '/demo_receipts/6_client_lunch_approved.jpg';
+    let sampleFileName = 'client_lunch_approved.jpg';
     let sampleCity = 'New York';
     let sampleCat = 'Meals';
-    let sampleClient = 'Q4 Hackathon Client Meet';
+    let sampleClient = 'Acme Corp Review Dinner';
 
     if (sampleType === 'approved') {
-      sampleFileName = 'nyc_lunch_approved.jpg';
+      sampleFileUrl = '/demo_receipts/6_client_lunch_approved.jpg';
+      sampleFileName = 'client_lunch_approved.jpg';
       sampleCity = 'New York';
       sampleCat = 'Meals';
-      sampleClient = 'Acme Corp Review';
-    } else if (sampleType === 'over_cap') {
-      sampleFileName = 'sf_dinner_overcap.jpg';
-      sampleCity = 'San Francisco';
-      sampleCat = 'Meals';
-      sampleClient = 'Bay Area Executive Dinner';
+      sampleClient = 'Acme Corp Review Dinner';
     } else if (sampleType === 'alcohol') {
-      sampleFileName = 'bar_bistro_alcohol.jpg';
+      sampleFileUrl = '/demo_receipts/5_dinner_cocktails_alcohol.jpg';
+      sampleFileName = 'dinner_cocktails_alcohol.jpg';
       sampleCity = 'Chicago';
       sampleCat = 'Meals';
       sampleClient = 'Team Happy Hour';
-    } else if (sampleType === 'hotel') {
-      sampleFileName = 'austin_hotel_over200.jpg';
+    } else if (sampleType === 'messy_thermal') {
+      sampleFileUrl = '/demo_receipts/1_messy_thermal_receipt.jpg';
+      sampleFileName = 'messy_thermal_receipt.jpg';
+      sampleCity = 'New York';
+      sampleCat = 'Meals';
+      sampleClient = 'Client Field Lunch';
+    } else if (sampleType === 'bistro_dining') {
+      sampleFileUrl = '/demo_receipts/2_restaurant_bistro_receipt.jpg';
+      sampleFileName = 'restaurant_bistro_receipt.jpg';
+      sampleCity = 'San Francisco';
+      sampleCat = 'Meals';
+      sampleClient = 'Executive Partner Dinner';
+    } else if (sampleType === 'wrinkled_market') {
+      sampleFileUrl = '/demo_receipts/7_wrinkled_market_receipt.jpg';
+      sampleFileName = 'wrinkled_market_receipt.jpg';
       sampleCity = 'Austin';
-      sampleCat = 'Lodging';
-      sampleClient = 'Conference Speaker Stay';
+      sampleCat = 'Meals';
+      sampleClient = 'Hardware Supplies Sprint';
     }
 
     setCity(sampleCity);
     setCategory(sampleCat);
     setClientName(sampleClient);
 
-    // Create dummy image file blob
-    const canvas = document.createElement('canvas');
-    canvas.width = 400;
-    canvas.height = 600;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, 400, 600);
-      ctx.fillStyle = '#111827';
-      ctx.font = 'bold 20px monospace';
-      ctx.fillText(`RECEIPT GRAVEYARD`, 40, 50);
-      ctx.font = '14px monospace';
-      ctx.fillText(`Sample: ${sampleType.toUpperCase()}`, 40, 80);
-      ctx.fillText(`City: ${sampleCity}`, 40, 110);
-      ctx.fillText(`Category: ${sampleCat}`, 40, 130);
-      ctx.fillText(`Date: 2026-10-17`, 40, 150);
-      ctx.fillText(`-----------------------------`, 40, 170);
+    try {
+      const response = await fetch(sampleFileUrl);
+      if (!response.ok) throw new Error(`Could not fetch ${sampleFileName}`);
+      const blob = await response.blob();
+      const fileObj = new File([blob], sampleFileName, { type: blob.type || 'image/jpeg' });
+      setFile(fileObj);
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+    } catch (err) {
+      setError(`Failed to load preset image: ${err.message}`);
     }
-    canvas.toBlob(blob => {
-      if (blob) {
-        const sampleFile = new File([blob], sampleFileName, { type: 'image/jpeg' });
-        setFile(sampleFile);
-        setPreviewUrl(canvas.toDataURL('image/jpeg'));
-      }
-    }, 'image/jpeg');
   };
 
   const handleProcess = async () => {
@@ -227,39 +255,58 @@ export const SmartSubmit = () => {
           Drop receipt photos, scans, or itemized slips. The backend extracts the receipt, checks it against the active expense policy, and stores the result in your expense history.
         </p>
 
-        {/* Quick Sample Selector for Easy Testing */}
+        {/* Quick Sample Selector for Live Judge Demonstrations */}
         <div className={styles.quickPills}>
-          <span className={styles.pillLabel}>Quick Test Presets:</span>
+          <span className={styles.pillLabel}>Judge Demo Presets:</span>
           <button
             type="button"
             className={styles.samplePill}
             onClick={() => loadQuickSample('approved')}
+            title="Clean, in-policy business lunch ($84)"
           >
-             Normal Meals (NYC $84)
-          </button>
-          <button
-            type="button"
-            className={styles.samplePill}
-            onClick={() => loadQuickSample('over_cap')}
-          >
-             Over City Cap (SF $135)
+            🍽️ Clean Lunch (NYC $84)
           </button>
           <button
             type="button"
             className={styles.samplePill}
             onClick={() => loadQuickSample('alcohol')}
+            title="Dinner check with itemized alcohol - triggers policy warning"
           >
-             Alcohol Detected
+            🍷 Alcohol Policy Flag
           </button>
           <button
             type="button"
             className={styles.samplePill}
-            onClick={() => loadQuickSample('hotel')}
+            onClick={() => loadQuickSample('messy_thermal')}
+            title="Real-world crumpled thermal receipt (Microsoft AI dataset)"
           >
-             Hotel &gt; $200 (Approval Req.)
+            📄 Messy Thermal Paper
+          </button>
+          <button
+            type="button"
+            className={styles.samplePill}
+            onClick={() => loadQuickSample('bistro_dining')}
+            title="High-density multi-item French bistro check (Mindee dataset)"
+          >
+            ☕ Multi-Item Bistro
+          </button>
+          <button
+            type="button"
+            className={styles.samplePill}
+            onClick={() => loadQuickSample('wrinkled_market')}
+            title="Faded degraded paper receipt"
+          >
+            🧾 Faded Thermal Slip
           </button>
         </div>
       </div>
+
+      {pasteNotice && (
+        <div className={styles.pasteSuccessBanner} role="status">
+          <Sparkles size={18} className={styles.pasteIcon} />
+          <span>{pasteNotice}</span>
+        </div>
+      )}
 
       {error && (
         <div className={styles.errorBanner} role="alert">
@@ -390,6 +437,12 @@ export const SmartSubmit = () => {
               <p className={styles.dropSub}>
                 Supports JPG, PNG, and WEBP receipt images
               </p>
+              <div className={styles.pasteShortcutPill}>
+                <span className={styles.kbdBadge}>Ctrl</span>
+                <span className={styles.plusSign}>+</span>
+                <span className={styles.kbdBadge}>V</span>
+                <span className={styles.pasteShortcutText}>to paste screenshot from clipboard</span>
+              </div>
             </div>
           ) : (
             <div className={styles.filePreviewCard}>
@@ -432,16 +485,10 @@ export const SmartSubmit = () => {
       )}
 
       {isProcessing && (
-        <div className={styles.loadingContainer}>
-          <div className={styles.scanLine} />
-          <div className={styles.scannerBeam}>
-            <Scan size={52} />
-          </div>
-          <h3 className={styles.loadingTitle}>AI is exhuming data...</h3>
-          <p className={styles.loadingSubtitle}>
-            Our neural OCR is extracting merchant headers, timestamp, line items, and running policy compliance checks.
-          </p>
-        </div>
+        <AiProcessingStepper
+          previewUrl={previewUrl}
+          fileName={file?.name || 'receipt_capture.jpg'}
+        />
       )}
 
 
