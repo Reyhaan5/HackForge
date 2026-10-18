@@ -29,16 +29,12 @@ from typing import Optional, List
 import asyncio
 
 app = FastAPI(title="Expense Graveyard Policy Engine API", version="2.0")
-
-# Background autonomous S3 ingestion task
 async def s3_background_watcher():
-    """Periodically checks s3://<bucket>/inbox/ every 30 seconds for new receipts."""
-    await asyncio.sleep(5) # Brief delay to let app initialize
+    await asyncio.sleep(5)
     poller = S3BucketPoller()
     if not poller.is_configured():
         print("[S3AutoWatcher] S3 bucket is not configured. Background watcher idle.")
         return
-
     print(f"[S3AutoWatcher] Active: Watching s3://{poller.bucket_name}/{poller.inbox_prefix} every 30s")
     while True:
         try:
@@ -71,7 +67,6 @@ async def log_bad_request_body(request: Request, exc: HTTPException):
         content={"detail": exc.detail},
         headers=exc.headers,
     )
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -150,13 +145,11 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.add(new_login)
     db.commit()
     db.refresh(new_login)
-
     token=create_access_token({
         "sub": new_login.username,
         "role": new_login.role,
         "employee_id": new_login.employee_id
     })
-
     return {
         "success": True,
         "token": token,
@@ -419,10 +412,6 @@ async def process_receipt(
         print(f"[ERROR] Error processing receipt: {str(e)}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
-# =====================================================================
-# STAGE 1: AUTOMATED INGESTION (CHANNEL A: INBOUND EMAIL)
-# =====================================================================
-
 @app.post("/api/ingest/email-webhook")
 @app.post("/api/ingest/email/simulate")
 async def ingest_email_endpoint(
@@ -432,16 +421,8 @@ async def ingest_email_endpoint(
     body: str = Form(""),
     db: Session = Depends(get_db)
 ):
-    """
-    Automated Email Ingestion (Channel A):
-    Receives forwarded receipts (via webhook or email simulator),
-    auto-resolves employee identity from sender email, parses metadata
-    (city/category/client hints) from subject & body, rejects signature junk,
-    and executes the automated extraction & policy validation pipeline.
-    """
     file_bytes = await file.read()
     filename = file.filename or "receipt.jpg"
-
     is_valid, reason = is_valid_receipt_attachment(filename, file_bytes)
     if not is_valid:
         return JSONResponse(status_code=400, content={
@@ -449,13 +430,8 @@ async def ingest_email_endpoint(
             "error": reason,
             "filename": filename
         })
-
-    # Resolve Employee
     emp = resolve_or_create_employee(db, from_email)
-
-    # Parse metadata hints from email subject & body
     meta = parse_metadata_from_text(subject, body)
-
     try:
         result = process_single_receipt_document(
             db=db,
@@ -468,7 +444,6 @@ async def ingest_email_endpoint(
             client_name=meta["client_name"],
             attendee_count=meta["attendee_count"]
         )
-
         return JSONResponse(content={
             "success": True,
             "channel": "email",
@@ -491,10 +466,6 @@ async def ingest_raw_mime_email(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """
-    Parses a full raw RFC822 (.eml) MIME email file containing headers,
-    body, and multiple attachments.
-    """
     raw_bytes = await file.read()
     try:
         summary = process_mime_email(raw_bytes, db)
@@ -505,7 +476,6 @@ async def ingest_raw_mime_email(
 
 @app.get("/api/ingest/email/status")
 def get_email_ingest_status():
-    """Returns the configuration status of the IMAP email listener."""
     poller = IMAPInboxPoller()
     return {
         "channel": "email",
@@ -521,21 +491,16 @@ def sync_email_inbox(
     max_emails: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db)
 ):
-    """
-    Manually triggers an IMAP inbox check for unread receipt emails.
-    """
     poller = IMAPInboxPoller()
     result = poller.sync_inbox(db=db, max_emails=max_emails)
-    status_code = 200 if result.get("success") else 400
+    if result.get("success"):
+        status_code=200
+    else:
+        status_code=400
     return JSONResponse(status_code=status_code, content=result)
-
-# =====================================================================
-# STAGE 1: AUTOMATED INGESTION (CHANNEL B: AWS S3 CLOUD STORAGE)
-# =====================================================================
 
 @app.get("/api/ingest/s3/status")
 def get_s3_ingest_status():
-    """Returns configuration and connection health of the AWS S3 Bucket listener."""
     poller = S3BucketPoller()
     conn_info = poller.check_bucket_connection()
     return {
@@ -554,9 +519,6 @@ def sync_s3_inbox_endpoint(
     max_files: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db)
 ):
-    """
-    Manually triggers polling of s3://<bucket>/inbox/ for pending receipt files.
-    """
     poller = S3BucketPoller()
     result = poller.sync_inbox(db=db, max_files=max_files)
     status_code = 200 if result.get("success") else 400
@@ -572,13 +534,8 @@ async def simulate_s3_upload_endpoint(
     attendee_count: int = Form(1),
     db: Session = Depends(get_db)
 ):
-    """
-    Simulates an automated drop into s3://<bucket>/inbox/<employee_id>/
-    and processes the receipt with submission_channel='s3'.
-    """
     file_bytes = await file.read()
     filename = file.filename or "receipt.jpg"
-
     is_valid, reason = is_valid_receipt_attachment(filename, file_bytes)
     if not is_valid:
         return JSONResponse(status_code=400, content={
@@ -586,7 +543,6 @@ async def simulate_s3_upload_endpoint(
             "error": reason,
             "filename": filename
         })
-
     try:
         result = process_single_receipt_document(
             db=db,
@@ -615,22 +571,15 @@ async def s3_event_notification_webhook(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """
-    AWS S3 Event Notification Webhook (s3:ObjectCreated:*).
-    Receives notification payload when a file is uploaded to the S3 bucket,
-    downloads the object, and processes it in sub-second time.
-    """
     try:
         body = await request.json()
         records = body.get("Records", [])
         if not records:
             return JSONResponse(content={"message": "No S3 records to process."})
-
         poller = S3BucketPoller()
         client = poller.get_client()
         if not client:
             return JSONResponse(status_code=400, content={"error": "S3 client not configured."})
-
         processed = []
         for rec in records:
             bucket_name = rec.get("s3", {}).get("bucket", {}).get("name")
@@ -673,7 +622,6 @@ def list_receipts(
     current_user: Login=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Lists receipts with on-the-fly filtering by employee, channel, or status."""
     query = db.query(Receipt)
     if current_user.role not in ["Admin", "Finance"]:
         if not current_user.employee_id:

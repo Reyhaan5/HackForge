@@ -3,9 +3,8 @@ import re
 import email
 import imaplib
 from email.header import decode_header
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime, date
-import shutil
+from datetime import date, datetime
+from typing import Any, Dict, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from dotenv import load_dotenv
@@ -14,26 +13,40 @@ ENV_PATH = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(ENV_PATH, override=True)
 load_dotenv(override=True)
 
-from database import Receipt, Employee, get_db
+from database import Receipt, Employee
 from extractor import extract_receipt, rasterize_pdf_if_needed
 from policy_engine import validate_receipt
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# List of common signature / icon keywords to discard
-JUNK_FILENAME_KEYWORDS = [
-    "logo", "signature", "sigimg", "icon", "banner", "footer", 
-    "header", "facebook", "twitter", "linkedin", "instagram", 
-    "whatsapp", "badge", "avatar", "mail-icon", "pixel"
-]
+JUNK_FILENAME_KEYWORDS = (
+    "logo", "signature", "sigimg", "icon", "banner", "footer",
+    "header", "facebook", "twitter", "linkedin", "instagram",
+    "whatsapp", "badge", "avatar", "mail-icon", "pixel",
+)
+
+CITY_ALIASES = {
+    "Mumbai": ("mumbai", "bombay"),
+    "Bengaluru": ("bengaluru", "bangalore", "blr"),
+    "Delhi NCR": ("delhi", "ncr", "gurgaon", "noida"),
+    "Hyderabad": ("hyderabad", "secunderabad"),
+    "Pune": ("pune",),
+    "Chennai": ("chennai", "madras"),
+    "Kolkata": ("kolkata", "calcutta"),
+    "Ahmedabad": ("ahmedabad",),
+    "Jaipur": ("jaipur",),
+    "New York": ("new york", "nyc"),
+    "San Francisco": ("san francisco", "sf"),
+    "Chicago": ("chicago",),
+    "Austin": ("austin",),
+    "London": ("london",),
+}
 
 def sanitize_filename(filename: str) -> str:
-    """Removes special characters and whitespace from filename."""
     return re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)
 
 def decode_mime_words(raw_header: Optional[str]) -> str:
-    """Decodes MIME encoded-words in headers (e.g., =?utf-8?b?...?=)."""
     if not raw_header:
         return ""
     decoded_fragments = []
@@ -57,90 +70,43 @@ def parse_metadata_from_text(subject: str, body: str) -> Dict[str, Any]:
       - Attendees: 3
     """
     full_text = f"{subject}\n{body}"
+    lower_text = full_text.lower()
     meta = {
         "city": "Default",
         "category": "Meals",
         "client_name": "",
         "attendee_count": 1
     }
-
-    # 1. City extraction
     city_match = re.search(r'(?:city|location|in)\s*[:=\-]?\s*([a-zA-Z\s]{3,20})', full_text, re.IGNORECASE)
     if city_match:
         candidate_city = city_match.group(1).strip()
-        # Normalization for common aliases
-        c_lower = candidate_city.lower()
-        if "mumbai" in c_lower or "bombay" in c_lower:
-            meta["city"] = "Mumbai"
-        elif "bengaluru" in c_lower or "bangalore" in c_lower or "blr" in c_lower:
-            meta["city"] = "Bengaluru"
-        elif "delhi" in c_lower or "ncr" in c_lower or "gurgaon" in c_lower or "noida" in c_lower:
-            meta["city"] = "Delhi NCR"
-        elif "hyderabad" in c_lower or "secunderabad" in c_lower:
-            meta["city"] = "Hyderabad"
-        elif "pune" in c_lower:
-            meta["city"] = "Pune"
-        elif "chennai" in c_lower or "madras" in c_lower:
-            meta["city"] = "Chennai"
-        elif "kolkata" in c_lower or "calcutta" in c_lower:
-            meta["city"] = "Kolkata"
-        elif "ahmedabad" in c_lower:
-            meta["city"] = "Ahmedabad"
-        elif "jaipur" in c_lower:
-            meta["city"] = "Jaipur"
-        elif "new york" in c_lower or "nyc" in c_lower:
-            meta["city"] = "New York"
-        elif "san francisco" in c_lower or "sf" in c_lower:
-            meta["city"] = "San Francisco"
-        elif "chicago" in c_lower:
-            meta["city"] = "Chicago"
-        elif "austin" in c_lower:
-            meta["city"] = "Austin"
-        elif "london" in c_lower:
-            meta["city"] = "London"
-        else:
-            meta["city"] = candidate_city.title()
-    else:
-        # Check bracketed [Mumbai], [Bengaluru], [NYC], [London], etc.
-        bracket_match = re.search(
-            r'\[(Mumbai|Bombay|Bengaluru|Bangalore|BLR|Delhi|Delhi NCR|Gurgaon|Noida|Hyderabad|Pune|Chennai|Madras|Kolkata|Ahmedabad|Jaipur|New York|NYC|San Francisco|Chicago|Austin|London)\]',
-            subject,
-            re.IGNORECASE
+        lower_city = candidate_city.lower()
+        meta["city"] = next(
+            (city for city, aliases in CITY_ALIASES.items()
+             if any(alias in lower_city for alias in aliases)),
+            candidate_city.title(),
         )
+    else:
+        city_names = "|".join(
+            re.escape(alias.title()) for aliases in CITY_ALIASES.values() for alias in aliases
+        )
+        bracket_match = re.search(rf"\[({city_names})\]", subject, re.IGNORECASE)
         if bracket_match:
-            b_city = bracket_match.group(1).lower()
-            if b_city in ["mumbai", "bombay"]:
-                meta["city"] = "Mumbai"
-            elif b_city in ["bengaluru", "bangalore", "blr"]:
-                meta["city"] = "Bengaluru"
-            elif b_city in ["delhi", "delhi ncr", "gurgaon", "noida"]:
-                meta["city"] = "Delhi NCR"
-            elif b_city in ["hyderabad"]:
-                meta["city"] = "Hyderabad"
-            elif b_city in ["pune"]:
-                meta["city"] = "Pune"
-            elif b_city in ["chennai", "madras"]:
-                meta["city"] = "Chennai"
-            elif b_city in ["kolkata"]:
-                meta["city"] = "Kolkata"
-            elif b_city in ["ahmedabad"]:
-                meta["city"] = "Ahmedabad"
-            elif b_city in ["jaipur"]:
-                meta["city"] = "Jaipur"
-            elif b_city in ["nyc", "new york"]:
-                meta["city"] = "New York"
-            else:
-                meta["city"] = bracket_match.group(1).title()
+            bracket_city = bracket_match.group(1).lower()
+            meta["city"] = next(
+                (city for city, aliases in CITY_ALIASES.items() if bracket_city in aliases),
+                bracket_match.group(1).title(),
+            )
 
     # 2. Category extraction
     cat_match = re.search(r'(?:category)\s*[:=\-]?\s*(Meals|Travel|Transport|Lodging|Office Supplies|Software)', full_text, re.IGNORECASE)
     if cat_match:
         meta["category"] = cat_match.group(1).title()
-    elif "hotel" in full_text.lower() or "lodging" in full_text.lower():
+    elif "hotel" in lower_text or "lodging" in lower_text:
         meta["category"] = "Lodging"
-    elif "uber" in full_text.lower() or "flight" in full_text.lower() or "transport" in full_text.lower():
+    elif any(word in lower_text for word in ("uber", "flight", "transport")):
         meta["category"] = "Transport"
-    elif "supplies" in full_text.lower():
+    elif "supplies" in lower_text:
         meta["category"] = "Office Supplies"
 
     # 3. Client name extraction
@@ -153,10 +119,7 @@ def parse_metadata_from_text(subject: str, body: str) -> Dict[str, Any]:
     # 4. Attendees count extraction
     att_match = re.search(r'(?:attendees?|people|guests?|party of)\s*[:=\-]?\s*(\d{1,2})', full_text, re.IGNORECASE)
     if att_match:
-        try:
-            meta["attendee_count"] = max(1, int(att_match.group(1)))
-        except ValueError:
-            pass
+        meta["attendee_count"] = max(1, int(att_match.group(1)))
 
     return meta
 
@@ -256,13 +219,9 @@ def process_single_receipt_document(
             parsed_date = datetime.strptime(extracted.date, "%Y-%m-%d").date()
         except ValueError:
             parsed_date = date.today()
-
-    # 4. Check for Straight-Through Processing (STP) condition:
-    # If 100% compliant with zero flags and status is APPROVED -> STP Completed!
+            
     is_stp = (decision.status == "APPROVED" and len(decision.flags) == 0)
     final_status = decision.status
-
-    # 5. Store record in database
     receipt_record = Receipt(
         employee_id=employee_id,
         image_path=saved_file_path,
@@ -306,10 +265,6 @@ def process_single_receipt_document(
     }
 
 def process_mime_email(raw_email_bytes: bytes, db: Session) -> Dict[str, Any]:
-    """
-    Parses an RFC822 MIME email payload, extracts attachments, filters junk,
-    and runs each valid receipt through the processing pipeline.
-    """
     msg = email.message_from_bytes(raw_email_bytes)
     raw_from = msg.get("From", "")
     sender_name, sender_email = email.utils.parseaddr(raw_from)
@@ -347,7 +302,6 @@ def process_mime_email(raw_email_bytes: bytes, db: Session) -> Dict[str, Any]:
 
     # Iterate over all attachments
     for part in msg.walk():
-        content_disposition = str(part.get("Content-Disposition", ""))
         filename = part.get_filename()
 
         if filename:

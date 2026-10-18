@@ -12,29 +12,20 @@ from sqlalchemy.orm import Session
 
 from database import Login, get_db
 
-
 SECRET_KEY = os.getenv("JWT_SECRET", "").strip()
 JWT_ALGORITHM = "HS256"
 JWT_ISSUER = "hackforge-expense-api"
 JWT_AUDIENCE = "hackforge-expense-clients"
 security = HTTPBearer(auto_error=False)
 
-
 def hash_password(password: str) -> str:
-    """Hashes a password using PBKDF2-HMAC-SHA256 with a secure random salt."""
     salt = secrets.token_hex(16)
     key = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 100_000)
     return f"{salt}${key.hex()}"
 
-
 def verify_password(password: str, stored_hash: str) -> bool:
-    """
-    Verifies a password against a stored PBKDF2 hash.
-    Also handles transparent legacy upgrade if password was previously plaintext.
-    """
     if not stored_hash:
         return False
-
     if "$" in stored_hash:
         try:
             salt, key = stored_hash.split("$", 1)
@@ -42,13 +33,9 @@ def verify_password(password: str, stored_hash: str) -> bool:
             return secrets.compare_digest(key, new_key.hex())
         except Exception:
             return False
-
-    # Backward compatibility for legacy plaintext passwords
     return secrets.compare_digest(stored_hash, password)
 
-
 def create_access_token(payload: Dict[str, Any], expires_in_seconds: int = 86400 * 7) -> str:
-    """Create an HS256-signed access token with required issuer and audience claims."""
     now = int(time.time())
     claims = {
         **payload,
@@ -59,9 +46,7 @@ def create_access_token(payload: Dict[str, Any], expires_in_seconds: int = 86400
     }
     return jwt.encode(claims, SECRET_KEY, algorithm=JWT_ALGORITHM)
 
-
 def decode_access_token(token: str) -> Dict[str, Any]:
-    """Validate the signature, algorithm, issuer, audience, and required time claims."""
     try:
         payload = jwt.decode(
             token,
@@ -76,17 +61,14 @@ def decode_access_token(token: str) -> Dict[str, Any]:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired authentication token",
         ) from exc
-
     if not isinstance(payload.get("sub"), str) or not payload["sub"].strip():
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject")
     return payload
-
 
 def get_current_user(
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db),
 ) -> Login:
-    """Extract a validated bearer token and load its user from the database."""
     if not auth or not auth.credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -104,9 +86,7 @@ def get_current_user(
         )
     return user
 
-
 def require_admin(current_user: Login = Depends(get_current_user)) -> Login:
-    """Require an authenticated Admin or Finance account."""
     if current_user.role not in ["Admin", "Finance"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
