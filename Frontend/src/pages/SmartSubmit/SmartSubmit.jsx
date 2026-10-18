@@ -546,6 +546,7 @@ export const SmartSubmit = () => {
         <AiProcessingStepper
           previewUrl={previewUrl}
           fileName={file?.name || 'receipt_capture.jpg'}
+          fileType={file?.type}
         />
       )}
 
@@ -592,11 +593,11 @@ export const SmartSubmit = () => {
 
           <ReceiptSplitView
             imageUrl={previewUrl}
+            fileType={file?.type}
             receiptData={result}
             city={city}
             category={category}
             clientName={clientName}
-            readOnly
           />
 
           <div className={styles.resetProcessRow}>
