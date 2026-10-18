@@ -23,10 +23,10 @@ def test_deduplication_and_fraud():
     sample_receipt = ExtractedReceipt(
         vendor="Acme Bistro",
         date="2026-10-15",
-        total_amount=45.00,
-        currency="USD",
+        total_amount=450.00,
+        currency="INR",
         category="Meals",
-        line_items=[LineItem(description="Business Lunch", amount=45.00)],
+        line_items=[LineItem(description="Business Lunch", amount=450.00)],
         is_itemized=True,
         image_hash="perceptual_hash_abc_123"
     )
@@ -44,8 +44,8 @@ def test_deduplication_and_fraud():
         db=db
     )
     assert d1.status == "APPROVED"
-    assert d1.approved_amount == 45.00
-    print(f"    ✓ First submission approved: ${d1.approved_amount:.2f}")
+    assert d1.approved_amount == 450.00
+    print(f"    ✓ First submission approved: ₹{d1.approved_amount:.2f}")
 
     # Save to database
     r1 = Receipt(
@@ -57,10 +57,10 @@ def test_deduplication_and_fraud():
         transaction_date=date(2026, 10, 15),
         category="Meals",
         city="New York",
-        currency="USD",
+        currency="INR",
         original_amount=sample_receipt.total_amount,
         exchange_rate=1.0,
-        base_amount_usd=sample_receipt.total_amount,
+        base_amount_inr=sample_receipt.total_amount,
         line_items=d1.processed_line_items,
         status=d1.status,
         approved_amount=d1.approved_amount,
@@ -109,10 +109,10 @@ def test_deduplication_and_fraud():
     fuzzy_receipt = ExtractedReceipt(
         vendor="Acme Bistro",
         date="2026-10-15",
-        total_amount=45.00,
-        currency="USD",
+        total_amount=450.00,
+        currency="INR",
         category="Meals",
-        line_items=[LineItem(description="Business Lunch", amount=45.00)],
+        line_items=[LineItem(description="Business Lunch", amount=450.00)],
         is_itemized=True,
         image_hash="distinct_photo_hash_different_angle"
     )

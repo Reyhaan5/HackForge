@@ -98,6 +98,17 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+
+    # Auto-migrate legacy column base_amount_usd to base_amount_inr if found
+    from sqlalchemy import inspect, text
+    with engine.connect() as conn:
+        inspector = inspect(engine)
+        if "receipts" in inspector.get_table_names():
+            cols = [col["name"] for col in inspector.get_columns("receipts")]
+            if "base_amount_usd" in cols and "base_amount_inr" not in cols:
+                conn.execute(text("ALTER TABLE receipts RENAME COLUMN base_amount_usd TO base_amount_inr;"))
+                conn.commit()
+
     db = SessionLocal()
     try:
         # Seed default policy if missing
