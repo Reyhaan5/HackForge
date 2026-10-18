@@ -2,6 +2,7 @@ import os
 import sys
 import io
 import uuid
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 # Add Backend to python path
@@ -9,10 +10,27 @@ BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "Bac
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
+import app as backend_app
 from app import app
+from extractor import ExtractedReceipt, LineItem, compute_image_hash
 from fixtures import generate_test_images
 
 client = TestClient(app)
+
+
+def extract_test_receipt(image_path):
+    return ExtractedReceipt(
+        vendor="Test Deli",
+        date="2026-10-15",
+        total_amount=22.50,
+        currency="USD",
+        category="Meals",
+        line_items=[LineItem(description="Turkey Club", amount=18.00), LineItem(description="Iced Tea", amount=4.50)],
+        calculated_tax=0.0,
+        calculated_tip=0.0,
+        is_itemized=True,
+        image_hash=compute_image_hash(image_path),
+    )
 
 def test_api_endpoints():
     print("Testing FastAPI Endpoints & Security Controls...")
@@ -100,20 +118,21 @@ def test_api_endpoints():
 
     # 8. Process Receipt via 'web' channel
     print("\n  [Endpoint Test] POST /api/process-receipt via 'web'...")
-    with open(images["usd"], "rb") as f:
-        response = client.post(
-            "/api/process-receipt",
-            data={
-                "employee_id": "EMP-101",
-                "submission_channel": "web",
-                "city": "New York",
-                "category": "Meals",
-                "client_name": "Test Client",
-                "attendee_count": 1
-            },
-            files={"file": ("receipt_normal_usd.jpg", f, "image/jpeg")},
-            headers=admin_headers
-        )
+    with patch.object(backend_app, "extract_receipt", side_effect=extract_test_receipt):
+        with open(images["usd"], "rb") as f:
+            response = client.post(
+                "/api/process-receipt",
+                data={
+                    "employee_id": "EMP-101",
+                    "submission_channel": "web",
+                    "city": "New York",
+                    "category": "Meals",
+                    "client_name": "Test Client",
+                    "attendee_count": 1
+                },
+                files={"file": ("receipt_normal_usd.jpg", f, "image/jpeg")},
+                headers=admin_headers
+            )
     assert response.status_code == 200
     data = response.json()
     assert data["success"] is True

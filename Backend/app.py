@@ -136,9 +136,9 @@ def startup_event():
 async def process_receipt(
     file: UploadFile = File(...),
     employee_id: Optional[str] = Form(None),
-    submission_channel: str = Form("web"), # 'web', 'email', 'mobile', 'slack', 'api'
-    city: str = Form("New York"),
-    category: str = Form("Meals"),
+    submission_channel: str = Form("web"),
+    city: str = Form(...),
+    category: str = Form(...),
     client_name: str = Form(""),
     attendee_count: int = Form(1),
     current_user: Login = Depends(get_current_user),

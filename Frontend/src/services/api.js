@@ -102,20 +102,20 @@ export async function register(username, password) {
  */
 export async function processReceipt(
   file,
-  city = 'New York',
-  category = 'Meals',
+  city,
+  category,
   clientName = '',
   optionsOrChannel = 'web',
-  employeeId = 'EMP-101',
+  employeeId,
   attendeeCount = 1
 ) {
-  let submissionChannel = 'web';
+  let submissionChannel;
   let empId = employeeId;
   let attendees = attendeeCount;
 
   if (typeof optionsOrChannel === 'object' && optionsOrChannel !== null) {
     submissionChannel = optionsOrChannel.submissionChannel || 'web';
-    empId = optionsOrChannel.employeeId || 'EMP-101';
+    empId = optionsOrChannel.employeeId;
     attendees = optionsOrChannel.attendeeCount ?? 1;
   } else {
     submissionChannel = optionsOrChannel || 'web';

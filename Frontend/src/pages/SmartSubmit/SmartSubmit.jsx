@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   UploadCloud,
   FileText,
-  Scan,
   AlertTriangle,
   Sparkles,
   ArrowRight,
@@ -104,8 +103,8 @@ export const SmartSubmit = () => {
 
   // Form states
   const [channel, setChannel] = useState('web');
-  const [city, setCity] = useState('New York');
-  const [category, setCategory] = useState('Meals');
+  const [city, setCity] = useState('');
+  const [category, setCategory] = useState('');
   const [clientName, setClientName] = useState('');
   const [employees, setEmployees] = useState([]);
   const [employeeId, setEmployeeId] = useState(user?.employee_id || '');
@@ -282,6 +281,10 @@ export const SmartSubmit = () => {
       setError('Select an employee before submitting a receipt for them.');
       return;
     }
+    if (!city || !category) {
+      setError('Choose the expense city and category before submitting.');
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
@@ -411,6 +414,7 @@ export const SmartSubmit = () => {
                 value={city}
                 onChange={e => setCity(e.target.value)}
               >
+                <option value="" disabled>Select a city</option>
                 {['New York', 'San Francisco', 'Chicago', 'Austin', 'Default'].map(location => (
                   <option key={location} value={location}>
                     {location === 'Default' ? 'Other / Default' : location}
@@ -427,6 +431,7 @@ export const SmartSubmit = () => {
                 value={category}
                 onChange={e => setCategory(e.target.value)}
               >
+                <option value="" disabled>Select a category</option>
                 <option value="Meals">Meals & Client Dining</option>
                 <option value="Travel">Flights & Ground Transit</option>
                 <option value="Lodging">Lodging & Hotels</option>

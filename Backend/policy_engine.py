@@ -149,7 +149,7 @@ def validate_receipt(
         if decision.status == "APPROVED":
             decision.status = "PENDING_APPROVAL"
 
-    elif receipt.line_items:
+    elif receipt.line_items and receipt.calculated_tax is not None and receipt.calculated_tip is not None:
         items_sum = sum(item.amount for item in receipt.line_items)
         expected_total = items_sum + receipt.calculated_tax + receipt.calculated_tip
         if abs(expected_total - raw_amount) > 0.75:

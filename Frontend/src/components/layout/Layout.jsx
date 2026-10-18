@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Receipt,
   LayoutDashboard,
   UploadCloud,
   FileSpreadsheet,

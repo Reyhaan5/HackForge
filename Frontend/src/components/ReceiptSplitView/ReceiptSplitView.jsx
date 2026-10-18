@@ -1,39 +1,32 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import {
   ZoomIn,
   ZoomOut,
   RotateCw,
   FileText,
   AlertCircle,
-  Crosshair,
   Check,
-  X,
   Sparkles,
-  Layers,
-  ArrowUpRight,
   Camera,
   Receipt,
-  ChevronRight,
   CheckCircle2,
-  Trash2,
-  Edit2
 } from 'lucide-react';
 import StatusBadge from '../StatusBadge/StatusBadge';
 import styles from './ReceiptSplitView.module.css';
 
+const EMPTY_LINE_ITEMS = [];
+
 export const ReceiptSplitView = ({
   imageUrl,
   receiptData,
-  city = 'New York',
-  category = 'Meals',
+  city,
+  category,
   clientName = '',
-  onSave,
-  readOnly = false
+  onSave
 }) => {
   // Zoom & view states
   const [zoom, setZoom] = useState(1.15);
   const [rotation, setRotation] = useState(0);
-  const [showAllTargets, setShowAllTargets] = useState(true);
   const [viewMode, setViewMode] = useState(imageUrl ? 'scanned' : 'simulated');
 
   // Rossum-style active field tracking
@@ -41,216 +34,26 @@ export const ReceiptSplitView = ({
   const [confirmedFields, setConfirmedFields] = useState({});
 
   // Editable state synced with receiptData
-  const [vendor, setVendor] = useState(receiptData?.extracted?.vendor || 'Unknown Vendor');
-  const [date, setDate] = useState(receiptData?.extracted?.date || '2026-10-17');
-  const [totalAmount, setTotalAmount] = useState(
-    receiptData?.extracted?.total_amount ?? receiptData?.validation?.reimbursement_amount ?? 0
-  );
-  const [lineItems, setLineItems] = useState(receiptData?.extracted?.line_items || []);
-  const [calculatedTax, setCalculatedTax] = useState(receiptData?.extracted?.calculated_tax || 0);
-
-  // DOM Refs for dynamic SVG bezier connector & auto-centering
-  const splitWrapperRef = useRef(null);
-  const canvasAreaRef = useRef(null);
-  const imageFrameRef = useRef(null);
-  const activeFieldDomRef = useRef(null);
-  const activeBoxDomRef = useRef(null);
-
-  // SVG Connector Line state
-  const [connectorPath, setConnectorPath] = useState('');
-  const [connectorStart, setConnectorStart] = useState({ x: 0, y: 0 });
+  const vendor = receiptData?.extracted?.vendor || '';
+  const date = receiptData?.extracted?.date || '';
+  const totalAmount = receiptData?.extracted?.total_amount ?? null;
+  const currency = receiptData?.extracted?.currency || '';
+  const lineItems = receiptData?.extracted?.line_items || EMPTY_LINE_ITEMS;
+  const calculatedTax = receiptData?.extracted?.calculated_tax ?? null;
 
   const status = receiptData?.validation?.status || 'APPROVED';
   const flags = receiptData?.validation?.flags || [];
-  const reimbAmt = receiptData?.validation?.reimbursement_amount ?? totalAmount;
 
-  // Normalized Bounding Boxes (Rossum Layout Mapping)
-  const boundingBoxes = useMemo(() => {
-    const boxes = [];
+  const reviewFieldIds = useMemo(() => [
+    'vendor',
+    'date',
+    ...lineItems.map((_, idx) => `item_${idx}`),
+    ...(calculatedTax != null ? ['tax'] : []),
+    'total'
+  ], [lineItems, calculatedTax]);
 
-    // 1. Vendor / Header
-    boxes.push({
-      id: 'vendor',
-      label: vendor,
-      fieldLabel: 'Vendor / Merchant',
-      section: 'basic',
-      confidence: 99,
-      top: 9,
-      left: 12,
-      width: 76,
-      height: 7,
-      category: 'VENDOR'
-    });
-
-    // 2. Date
-    boxes.push({
-      id: 'date',
-      label: date,
-      fieldLabel: 'Issue Date',
-      section: 'basic',
-      confidence: 96,
-      top: 18,
-      left: 18,
-      width: 64,
-      height: 4.8,
-      category: 'DATE'
-    });
-
-    // 3. Line Items
-    if (lineItems.length > 0) {
-      const startTop = 27;
-      const availableHeight = 44;
-      const rowHeight = Math.min(6.5, Math.max(4.2, (availableHeight / lineItems.length) * 0.85));
-      const step = lineItems.length > 1 ? (availableHeight - rowHeight) / (lineItems.length - 1) : 0;
-
-      lineItems.forEach((item, idx) => {
-        const topPos = startTop + (idx * step);
-        boxes.push({
-          id: `item_${idx}`,
-          itemIndex: idx,
-          label: `$${Number(item.amount || 0).toFixed(2)}`,
-          sublabel: item.description || `Item #${idx + 1}`,
-          fieldLabel: item.description || `Line Item #${idx + 1}`,
-          section: 'items',
-          confidence: item.disallowed ? 86 : 98,
-          isDisallowed: item.disallowed,
-          top: Number(topPos.toFixed(1)),
-          left: 10,
-          width: 80,
-          height: Number(rowHeight.toFixed(1)),
-          category: 'LINE_ITEM'
-        });
-      });
-    }
-
-    // 4. Tax
-    if (calculatedTax && calculatedTax > 0) {
-      boxes.push({
-        id: 'tax',
-        label: `$${Number(calculatedTax).toFixed(2)}`,
-        fieldLabel: 'Sales Tax',
-        section: 'amounts',
-        confidence: 97,
-        top: 73,
-        left: 20,
-        width: 60,
-        height: 4.5,
-        category: 'TAX'
-      });
-    }
-
-    // 5. Total
-    boxes.push({
-      id: 'total',
-      label: `$${Number(totalAmount).toFixed(2)}`,
-      fieldLabel: 'Total Amount',
-      section: 'amounts',
-      confidence: 99,
-      top: 80,
-      left: 12,
-      width: 76,
-      height: 7.5,
-      category: 'TOTAL'
-    });
-
-    return boxes;
-  }, [vendor, date, lineItems, calculatedTax, totalAmount]);
-
-  // Active box object
-  const activeBox = useMemo(() => {
-    return boundingBoxes.find(b => b.id === activeFieldId) || boundingBoxes[0];
-  }, [boundingBoxes, activeFieldId]);
-
-  // Recalculate Rossum SVG Bezier Connector Path
-  const updateConnectorLine = useCallback(() => {
-    if (!splitWrapperRef.current || !activeFieldDomRef.current || !activeBoxDomRef.current) {
-      setConnectorPath('');
-      return;
-    }
-    const containerRect = splitWrapperRef.current.getBoundingClientRect();
-    const sourceRect = activeFieldDomRef.current.getBoundingClientRect();
-    const targetRect = activeBoxDomRef.current.getBoundingClientRect();
-
-    // Source anchor: center-right edge of active sidebar row
-    const startX = sourceRect.right - containerRect.left;
-    const startY = sourceRect.top + sourceRect.height / 2 - containerRect.top;
-
-    // Target anchor: center-left edge of active document bounding box
-    const endX = targetRect.left - containerRect.left;
-    const endY = targetRect.top + targetRect.height / 2 - containerRect.top;
-
-    // Smooth spline curve matching Rossum's exact horizontal lead-in & lead-out
-    const dx = Math.max(30, (endX - startX) * 0.45);
-    const path = `M ${startX} ${startY} L ${startX + 14} ${startY} C ${startX + dx} ${startY}, ${endX - dx} ${endY}, ${endX - 10} ${endY} L ${endX} ${endY}`;
-
-    setConnectorPath(path);
-    setConnectorStart({ x: startX, y: startY });
-  }, []);
-
-  // Smooth Auto-Center Camera Movement onto Bounding Box
-  const centerBoundingBox = useCallback((boxId) => {
-    const box = boundingBoxes.find(b => b.id === boxId);
-    if (!box || !canvasAreaRef.current || !imageFrameRef.current) return;
-
-    const canvas = canvasAreaRef.current;
-    const frame = imageFrameRef.current;
-
-    // Center coordinates in frame
-    const boxCenterX = (box.left + box.width / 2) * (frame.offsetWidth / 100);
-    const boxCenterY = (box.top + box.height / 2) * (frame.offsetHeight / 100);
-
-    const scaledX = boxCenterX * zoom;
-    const scaledY = boxCenterY * zoom;
-
-    const targetScrollX = scaledX - canvas.clientWidth / 2;
-    const targetScrollY = scaledY - canvas.clientHeight / 2;
-
-    canvas.scrollTo({
-      left: Math.max(0, targetScrollX),
-      top: Math.max(0, targetScrollY),
-      behavior: 'smooth'
-    });
-  }, [boundingBoxes, zoom]);
-
-  // When activeFieldId changes, auto-center and update connector line
   const handleSelectField = (fieldId) => {
     setActiveFieldId(fieldId);
-    centerBoundingBox(fieldId);
-  };
-
-  useEffect(() => {
-    centerBoundingBox(activeFieldId);
-  }, []); // Run on mount
-
-  useEffect(() => {
-    const timer = setTimeout(updateConnectorLine, 80);
-    return () => clearTimeout(timer);
-  }, [activeFieldId, zoom, rotation, viewMode, updateConnectorLine]);
-
-  // Recalculate line on canvas scroll or resize
-  useEffect(() => {
-    const canvas = canvasAreaRef.current;
-    if (!canvas) return;
-
-    const handleScroll = () => {
-      requestAnimationFrame(updateConnectorLine);
-    };
-
-    canvas.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleScroll);
-    return () => {
-      canvas.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleScroll);
-    };
-  }, [updateConnectorLine]);
-
-  // Confirm current field and advance to next (Rossum workflow)
-  const handleConfirmField = (fieldId) => {
-    setConfirmedFields(prev => ({ ...prev, [fieldId]: true }));
-    const currentIndex = boundingBoxes.findIndex(b => b.id === fieldId);
-    if (currentIndex >= 0 && currentIndex < boundingBoxes.length - 1) {
-      handleSelectField(boundingBoxes[currentIndex + 1].id);
-    }
   };
 
   const handleZoomIn = () => setZoom(prev => Math.min(Number((prev + 0.15).toFixed(2)), 2.6));
@@ -258,48 +61,22 @@ export const ReceiptSplitView = ({
   const handleResetZoom = () => {
     setZoom(1.15);
     setRotation(0);
-    setTimeout(() => centerBoundingBox(activeFieldId), 50);
   };
   const handleRotate = () => setRotation(prev => (prev + 90) % 360);
 
   // Group fields by section
   const basicFields = [
-    { id: 'vendor', label: 'Vendor Name', value: vendor, setter: setVendor },
-    { id: 'date', label: 'Issue Date', value: date, setter: setDate }
+    { id: 'vendor', label: 'Vendor Name', value: vendor || 'Not read from receipt' },
+    { id: 'date', label: 'Issue Date', value: date || 'Not read from receipt' }
   ];
 
   const amountFields = [
-    ...(calculatedTax > 0 ? [{ id: 'tax', label: 'Sales Tax', value: `$${Number(calculatedTax).toFixed(2)}` }] : []),
-    { id: 'total', label: 'Total Amount', value: `$${Number(totalAmount).toFixed(2)}` }
+    ...(calculatedTax != null ? [{ id: 'tax', label: 'Sales Tax', value: `${currency} ${Number(calculatedTax).toFixed(2)}`.trim() }] : []),
+    { id: 'total', label: 'Total Amount', value: totalAmount == null ? 'Not read from receipt' : `${currency} ${Number(totalAmount).toFixed(2)}`.trim() }
   ];
 
   return (
-    <div className={styles.rossumShell} ref={splitWrapperRef}>
-      {/* Dynamic Rossum Spline Connector SVG Layer */}
-      <svg className={styles.connectorSvgOverlay}>
-        {connectorPath && viewMode === 'scanned' && (
-          <>
-            <path
-              d={connectorPath}
-              className={styles.connectorGlowPath}
-              fill="none"
-            />
-            <path
-              d={connectorPath}
-              className={styles.connectorMainPath}
-              fill="none"
-            />
-            {/* Start circle node on the sidebar active item */}
-            <circle
-              cx={connectorStart.x}
-              cy={connectorStart.y}
-              r="4.5"
-              className={styles.connectorStartNode}
-            />
-          </>
-        )}
-      </svg>
-
+    <div className={styles.rossumShell}>
       {/* ================= LEFT COLUMN: ROSSUM INSPECTION SIDEBAR ================= */}
       <aside className={styles.rossumSidebar}>
         {/* Sidebar Header */}
@@ -313,7 +90,7 @@ export const ReceiptSplitView = ({
               {city} • {category} {clientName ? `• ${clientName}` : ''}
             </span>
             <span className={styles.verifiedCounter}>
-              {Object.keys(confirmedFields).length} / {boundingBoxes.length} verified
+              {Object.keys(confirmedFields).length} / {reviewFieldIds.length} verified
             </span>
           </div>
         </div>
@@ -328,7 +105,6 @@ export const ReceiptSplitView = ({
               return (
                 <div
                   key={f.id}
-                  ref={isActive ? activeFieldDomRef : null}
                   className={`${styles.fieldRow} ${isActive ? styles.fieldRowActive : ''}`}
                   onClick={() => handleSelectField(f.id)}
                 >
@@ -361,7 +137,6 @@ export const ReceiptSplitView = ({
                 return (
                   <div
                     key={itemId}
-                    ref={isActive ? activeFieldDomRef : null}
                     className={`${styles.fieldRow} ${isActive ? styles.fieldRowActive : ''} ${
                       item.disallowed ? styles.fieldRowDisallowed : ''
                     }`}
@@ -400,7 +175,6 @@ export const ReceiptSplitView = ({
               return (
                 <div
                   key={f.id}
-                  ref={isActive ? activeFieldDomRef : null}
                   className={`${styles.fieldRow} ${isActive ? styles.fieldRowActive : ''}`}
                   onClick={() => handleSelectField(f.id)}
                 >
@@ -446,7 +220,7 @@ export const ReceiptSplitView = ({
                     vendor,
                     date,
                     total_amount: totalAmount,
-                    currency: 'USD',
+                    currency,
                     line_items: lineItems
                   },
                   city,
@@ -456,7 +230,7 @@ export const ReceiptSplitView = ({
               }
               // Mark all verified
               const allVerified = {};
-              boundingBoxes.forEach(b => (allVerified[b.id] = true));
+              reviewFieldIds.forEach(fieldId => (allVerified[fieldId] = true));
               setConfirmedFields(allVerified);
             }}
           >
@@ -480,7 +254,7 @@ export const ReceiptSplitView = ({
                 type="button"
                 className={`${styles.toggleBtn} ${viewMode === 'scanned' ? styles.toggleBtnActive : ''}`}
                 onClick={() => setViewMode('scanned')}
-                title="View original uploaded photo with OCR targets"
+                title="View the original uploaded photo"
               >
                 <Camera size={13} />
                 <span>Original Photo</span>
@@ -498,21 +272,6 @@ export const ReceiptSplitView = ({
           </div>
 
           <div className={styles.toolbarRight}>
-            {viewMode === 'scanned' && (
-              <>
-                <button
-                  type="button"
-                  className={`${styles.toolBtn} ${showAllTargets ? styles.toolBtnActive : ''}`}
-                  onClick={() => setShowAllTargets(!showAllTargets)}
-                  title="Toggle all pastel OCR highlighters"
-                >
-                  <Layers size={14} />
-                  <span>Highlighters</span>
-                </button>
-                <div className={styles.toolDivider} />
-              </>
-            )}
-
             <button type="button" className={styles.toolBtn} onClick={handleZoomOut} title="Zoom Out">
               <ZoomOut size={15} />
             </button>
@@ -530,12 +289,11 @@ export const ReceiptSplitView = ({
         </header>
 
         {/* Viewport Canvas (Auto-Centering Container) */}
-        <div className={styles.canvasViewport} ref={canvasAreaRef}>
+        <div className={styles.canvasViewport}>
           {viewMode === 'scanned' ? (
             imageUrl ? (
               <div
                 className={styles.imageFrame}
-                ref={imageFrameRef}
                 style={{
                   transform: `scale(${zoom}) rotate(${rotation}deg)`,
                   transformOrigin: 'center center'
@@ -547,87 +305,9 @@ export const ReceiptSplitView = ({
                   className={styles.receiptImage}
                 />
 
-                {/* All Bounding Boxes & Floating Rossum Card Layer */}
-                <div className={styles.boundingOverlay}>
-                  {boundingBoxes.map(box => {
-                    const isActive = activeFieldId === box.id;
-                    const isConfirmed = confirmedFields[box.id];
-
-                    if (!showAllTargets && !isActive) return null;
-
-                    return (
-                      <div
-                        key={box.id}
-                        ref={isActive ? activeBoxDomRef : null}
-                        className={`${styles.boxRect} ${
-                          isActive
-                            ? styles.boxRectActive
-                            : box.isDisallowed
-                            ? styles.boxRectDisallowed
-                            : styles.boxRectPastel
-                        } ${isConfirmed ? styles.boxRectConfirmed : ''}`}
-                        style={{
-                          top: `${box.top}%`,
-                          left: `${box.left}%`,
-                          width: `${box.width}%`,
-                          height: `${box.height}%`
-                        }}
-                        onClick={() => handleSelectField(box.id)}
-                      >
-                        {/* Corner Reticles for Active Box (Rossum Style) */}
-                        {isActive && (
-                          <>
-                            <span className={styles.cornerHandleTL} />
-                            <span className={styles.cornerHandleTR} />
-                            <span className={styles.cornerHandleBL} />
-                            <span className={styles.cornerHandleBR} />
-                          </>
-                        )}
-
-                        {/* ================= ROSSUM FLOATING CARD ================= */}
-                        {isActive && (
-                          <div
-                            className={styles.rossumFloatingCard}
-                            onClick={e => e.stopPropagation()}
-                          >
-                            <div className={styles.cardHeaderRow}>
-                              <div className={styles.cardValueLarge}>
-                                {box.label}
-                              </div>
-                              <span className={styles.cardConfidence}>
-                                {box.confidence}%
-                              </span>
-                            </div>
-
-                            <div className={styles.cardSublabel}>
-                              {box.fieldLabel}
-                            </div>
-
-                            {/* Confirm / Reject Buttons matching Rossum UI */}
-                            <div className={styles.cardActionsRow}>
-                              <button
-                                type="button"
-                                className={styles.cardActionReject}
-                                onClick={() => setActiveFieldId(null)}
-                                title="Dismiss selection"
-                              >
-                                <X size={13} />
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.cardActionConfirm}
-                                onClick={() => handleConfirmField(box.id)}
-                                title="Confirm field and advance"
-                              >
-                                <Check size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                <p className={styles.imageReviewNote} role="note">
+                  Compare the extracted values with the original image; field coordinates are not available.
+                </p>
               </div>
             ) : (
               <div className={styles.noScanNotice}>
@@ -648,7 +328,6 @@ export const ReceiptSplitView = ({
             /* ================= SIMULATED DIGITAL PAPER RECEIPT ================= */
             <div
               className={styles.simulatedPaper}
-              ref={imageFrameRef}
               style={{
                 transform: `scale(${zoom}) rotate(${rotation}deg)`,
                 transformOrigin: 'center center'
@@ -660,7 +339,7 @@ export const ReceiptSplitView = ({
                 <div className={styles.simMeta}>
                   <span>DATE: {date}</span> • <span>LOC: {city}</span>
                 </div>
-                <div className={styles.simMeta}>CATEGORY: {category.toUpperCase()}</div>
+                <div className={styles.simMeta}>CATEGORY: {category?.toUpperCase() || 'NOT SELECTED'}</div>
               </div>
 
               <div className={styles.simDivider}>================================</div>
@@ -672,7 +351,6 @@ export const ReceiptSplitView = ({
                   return (
                     <div
                       key={itemId}
-                      ref={isActive ? activeBoxDomRef : null}
                       className={`${styles.simLineRow} ${isActive ? styles.simLineActive : ''} ${
                         line.disallowed ? styles.simLineDisallowed : ''
                       }`}
@@ -696,7 +374,7 @@ export const ReceiptSplitView = ({
 
               <div className={styles.simTotalRow}>
                 <span>TOTAL PAID</span>
-                <span>${Number(totalAmount).toFixed(2)} USD</span>
+                <span>{totalAmount == null ? 'Total not read' : `${currency} ${Number(totalAmount).toFixed(2)}`.trim()}</span>
               </div>
 
               <div className={styles.simAuditStamp}>
@@ -712,12 +390,12 @@ export const ReceiptSplitView = ({
           <div className={styles.footerHint}>
             <Sparkles size={13} className={styles.footerSparkle} />
             <span>
-              Click any field in the left sidebar to fly camera & auto-center on receipt. Click ✓ to confirm.
+              Review the extracted values against the original receipt image.
             </span>
           </div>
           <span className={styles.biSyncPill}>
             <span className={styles.livePulse} />
-            Rossum HITL Active
+            Manual Review
           </span>
         </footer>
       </main>

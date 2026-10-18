@@ -1,10 +1,7 @@
-import React from 'react';
 import {
   CheckCircle2,
-  AlertTriangle,
   Clock,
   XCircle,
-  ShieldCheck,
   Split
 } from 'lucide-react';
 import styles from './AuditTrafficBanner.module.css';
