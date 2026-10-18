@@ -37,7 +37,7 @@ An intelligent, multi-channel expense receipt auditor and policy compliance plat
 ---
 
 ## Video
-[<img src="https://youtube.com" width="100%" alt="Watch the video">](https://youtu.be/Y1RQUvaVM5M)
+[<img src="https://youtu.be/Y1RQUvaVM5M" width="100%" alt="Watch the video">](https://youtu.be/Y1RQUvaVM5M)
 
 
 ## 🌟 Key Features
