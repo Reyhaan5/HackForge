@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=python,fastapi,postgres,react,vite,tailwind,threejs,aws,docker,git,postman" alt="Tech Stack Logos" />
+  <img src="https://skillicons.dev/icons?i=python,fastapi,postgres,react,vite,tailwind,aws,git,postman" alt="Tech Stack Logos" />
 </p>
 
 An intelligent, multi-channel expense receipt auditor and policy compliance platform. Built with **FastAPI**, **Google Gemini Vision AI**, and **React 19**, Receipt Graveyard Resolver transforms manual receipt handling into an automated pipeline—extracting receipt items, enforcing corporate financial policies, detecting duplicates via perceptual hashing, and routing exceptions for human review.
