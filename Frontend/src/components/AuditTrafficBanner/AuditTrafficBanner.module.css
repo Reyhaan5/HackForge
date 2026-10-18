@@ -115,7 +115,7 @@
 
 .bannerApproved .badgeCode {
   background: var(--status-approved-accent);
-  color: #ffffff;
+  color: var(--status-approved-badge-text);
 }
 
 .bannerApproved .amountDisplay {
@@ -135,7 +135,7 @@
 
 .bannerPartial .badgeCode {
   background: var(--status-partial-accent);
-  color: #ffffff;
+  color: var(--status-partial-badge-text);
 }
 
 .bannerPartial .amountDisplay {
@@ -167,7 +167,7 @@
 
 .bannerPending .badgeCode {
   background: var(--status-pending-accent);
-  color: #ffffff;
+  color: var(--status-pending-badge-text);
 }
 
 .bannerPending .amountDisplay {
@@ -187,7 +187,7 @@
 
 .bannerRejected .badgeCode {
   background: var(--status-rejected-accent);
-  color: #ffffff;
+  color: var(--status-rejected-badge-text);
 }
 
 .bannerRejected .amountDisplay {

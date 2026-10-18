@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useState } from "react";
 
 const ThemeContext = createContext(null);
 
@@ -17,7 +17,7 @@ function getInitialTheme() {
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(getInitialTheme);
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     window.localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
