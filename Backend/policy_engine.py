@@ -37,11 +37,6 @@ def get_active_policy(db: Session) -> Dict[str, Any]:
             "Kolkata": 2500.0,
             "Ahmedabad": 2500.0,
             "Jaipur": 2500.0,
-            "New York": 8350.0,
-            "San Francisco": 7515.0,
-            "Chicago": 6263.0,
-            "Austin": 6263.0,
-            "London": 8500.0,
             "Default": 2500.0
         },
         "category_caps": {
