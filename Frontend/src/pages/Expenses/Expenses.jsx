@@ -14,7 +14,7 @@ import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import tableStyles from '../../components/Table/Table.module.css';
 import styles from './Expenses.module.css';
 
-const formatCurrency = (amount, currency = 'INR') => {
+const formatCurrency=(amount, currency='INR') => {
   try {
     return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(amount) || 0);
   } catch {

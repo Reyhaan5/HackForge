@@ -12,10 +12,10 @@ const SmartSubmit = lazy(() => import('./pages/SmartSubmit/SmartSubmit'));
 const Expenses = lazy(() => import('./pages/Expenses/Expenses'));
 const AdminQueue = lazy(() => import('./pages/AdminQueue/AdminQueue'));
 const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics/AdminAnalytics'));
-const PolicySettings = lazy(() => import('./pages/admin/PolicySettings'));
-const AdminProcess = lazy(() => import('./pages/admin/AdminProcess'));
+const PolicySettings=lazy(() => import('./pages/admin/PolicySettings'));
+const AdminProcess=lazy(() => import('./pages/admin/AdminProcess'));
 
-const pageWithLayout = (page, requiredRole) => (
+const pageWithLayout=(page, requiredRole) => (
   <ProtectedRoute requiredRole={requiredRole}><Layout>{page}</Layout></ProtectedRoute>
 );
 

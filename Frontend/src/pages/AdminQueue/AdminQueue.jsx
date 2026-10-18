@@ -13,13 +13,13 @@ import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import { useReceipts } from '../../context/ReceiptContext';
 import styles from './AdminQueue.module.css';
 
-const getFullImageUrl = (url) => {
+const getFullImageUrl=(url) => {
   if (!url) return null;
   if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('http')) return url;
-  return `http://localhost:8000${url.startsWith('/') ? '' : '/'}${url}`;
+  return `http://localhost:8000${url.startsWith('/') ? '':'/'}${url}`;
 };
 
-const formatCurrency = (amount, currency = 'INR') => {
+const formatCurrency=(amount, currency='INR') => {
   try {
     return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(amount) || 0);
   } catch {
@@ -28,7 +28,7 @@ const formatCurrency = (amount, currency = 'INR') => {
 };
 
 export const AdminQueue = () => {
-  const { history, policyRules, updateReceiptStatus } = useReceipts();
+  const { history, policyRules, updateReceiptStatus }=useReceipts();
 
   // Find all receipts pending approval or flagged
   const queueItems = history.filter(
@@ -39,14 +39,14 @@ export const AdminQueue = () => {
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [managerNotes, setManagerNotes] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [actionError, setActionError] = useState('');
-  const [viewMode, setViewMode] = useState('scanned'); // 'scanned' | 'simulated'
+  const [isSubmitting, setIsSubmitting]=useState(false);
+  const [actionError, setActionError]=useState('');
+  const [viewMode, setViewMode]=useState('scanned'); // 'scanned' | 'simulated'
 
   // Selected item
   const currentItem = queueItems[selectedIndex] || queueItems[0] || null;
 
-  const handleApprove = async () => {
+  const handleApprove=async () => {
     if (!currentItem || isSubmitting) return;
     setActionError('');
     setIsSubmitting(true);
@@ -63,7 +63,7 @@ export const AdminQueue = () => {
     }
   };
 
-  const handleReject = async () => {
+  const handleReject=async () => {
     if (!currentItem || isSubmitting) return;
     if (!managerNotes.trim()) {
       setActionError('Add a short reason so the employee understands why this receipt was rejected.');
@@ -153,7 +153,7 @@ export const AdminQueue = () => {
                   <div className={styles.artifactToggle}>
                     <button
                       type="button"
-                      className={`${styles.toggleBtn} ${viewMode === 'scanned' ? styles.toggleBtnActive : ''}`}
+                      className={`${styles.toggleBtn} ${viewMode === 'scanned' ? styles.toggleBtnActive:''}`}
                       onClick={() => setViewMode('scanned')}
                       title="View original uploaded photo"
                     >
@@ -162,7 +162,7 @@ export const AdminQueue = () => {
                     </button>
                     <button
                       type="button"
-                      className={`${styles.toggleBtn} ${viewMode === 'simulated' ? styles.toggleBtnActive : ''}`}
+                      className={`${styles.toggleBtn} ${viewMode === 'simulated' ? styles.toggleBtnActive:''}`}
                       onClick={() => setViewMode('simulated')}
                       title="View digital paper ledger"
                     >
@@ -184,7 +184,7 @@ export const AdminQueue = () => {
                           className={styles.receiptImg}
                         />
                       </div>
-                    ) : (
+                    ):(
                       <div className={styles.noScanNotice}>
                         <Camera size={44} className={styles.noScanIcon} />
                         <h4 className={styles.noScanTitle}>No Scanned Image File</h4>
@@ -333,7 +333,7 @@ export const AdminQueue = () => {
                     disabled={isSubmitting}
                   >
                     <CheckCircle2 size={18} />
-                    <span>{isSubmitting ? 'Approving...' : 'Approve Expense'}</span>
+                    <span>{isSubmitting ? 'Approving...':'Approve Expense'}</span>
                   </button>
 
                   <button
@@ -343,7 +343,7 @@ export const AdminQueue = () => {
                     disabled={isSubmitting}
                   >
                     <XCircle size={18} />
-                    <span>{isSubmitting ? 'Rejecting...' : 'Reject Expense'}</span>
+                    <span>{isSubmitting ? 'Rejecting...':'Reject Expense'}</span>
                   </button>
                 </div>
               </div>

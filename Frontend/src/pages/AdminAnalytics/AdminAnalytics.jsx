@@ -20,7 +20,7 @@ import { useReceipts } from '../../context/ReceiptContext';
 import { exportCSV } from '../../services/api';
 import styles from './AdminAnalytics.module.css';
 
-const formatINR = amount => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(amount) || 0);
+const formatINR=amount => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(amount) || 0);
 
 const STATUS_COLORS = {
   APPROVED: 'var(--status-approved-accent)',
@@ -31,13 +31,13 @@ const STATUS_COLORS = {
 };
 
 export const AdminAnalytics = () => {
-  const { history, monthlySpent } = useReceipts();
+  const { history, monthlySpent }=useReceipts();
 
   // Aggregate category spend
   const categoryMap = {};
   history.forEach(item => {
     const cat = item.category || 'General';
-    const amt = item.receipt.base_amount_inr ?? item.result.reimbursement_amount ?? 0;
+    const amt=item.receipt.base_amount_inr ?? item.result.reimbursement_amount ?? 0;
     if (!categoryMap[cat]) {
       categoryMap[cat] = { total: 0, count: 0 };
     }

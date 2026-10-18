@@ -6,23 +6,23 @@ import {
 } from 'lucide-react';
 import styles from './AuditTrafficBanner.module.css';
 
-const formatINR = amount => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(Number(amount) || 0);
+const formatINR=amount => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(Number(amount) || 0);
 
 /**
  * AuditTrafficBanner
  * Matches schema: 'APPROVED', 'PARTIAL', 'PENDING_APPROVAL', 'REJECTED', 'FLAGGED'
  */
-export const AuditTrafficBanner = ({
-  status = 'APPROVED',
-  requestedAmount = 0,
-  approvedAmount = 0,
-  flags = [],
-  currency = 'INR',
-  explanation = ''
+export const AuditTrafficBanner=({
+  status='APPROVED',
+  requestedAmount=0,
+  approvedAmount=0,
+  flags=[],
+  currency='INR',
+  explanation=''
 }) => {
-  const normStatus = (status || '').toUpperCase();
+  const normStatus=(status || '').toUpperCase();
 
-  const renderContent = () => {
+  const renderContent=() => {
     switch (normStatus) {
       case 'APPROVED':
         return {
@@ -69,7 +69,7 @@ export const AuditTrafficBanner = ({
     }
   };
 
-  const config = renderContent();
+  const config=renderContent();
 
   return (
     <div className={`${styles.bannerContainer} ${config.bannerClass}`}>

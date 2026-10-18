@@ -47,7 +47,6 @@
   --channel-mobile-bg: #dcfce7;
   --channel-mobile-text: #15803d;
 
-  /* Keep scanned and simulated receipt previews looking like paper in both themes. */
   --receipt-paper: #ffffff;
   --receipt-ink: #111827;
   --receipt-muted: #475569;
@@ -160,7 +159,6 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Pleo and legacy tokens share the same dark palette. */
   --bg-canvas: #0c0a09;
   --bg-container: #201d1a;
   --surface-white: #171412;

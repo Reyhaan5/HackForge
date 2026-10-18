@@ -8,12 +8,12 @@ export const EditableReceiptForm = ({
   category: initialCategory = 'Meals',
   clientName: initialClientName = '',
   onSave,
-  readOnly = false
+  readOnly=false
 }) => {
   const [vendor, setVendor] = useState(initialData.vendor || '');
   const [date, setDate] = useState(initialData.date || new Date().toISOString().split('T')[0]);
   const [totalAmount, setTotalAmount] = useState(initialData.total_amount?.toString() || '0');
-  const [currency, setCurrency] = useState(initialData.currency || 'INR');
+  const [currency, setCurrency]=useState(initialData.currency || 'INR');
   const [city, setCity] = useState(initialCity || 'New York');
   const [category, setCategory] = useState(initialCategory || 'Meals');
   const [clientName, setClientName] = useState(initialClientName || '');

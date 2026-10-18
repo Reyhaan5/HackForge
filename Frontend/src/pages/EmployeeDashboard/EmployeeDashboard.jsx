@@ -20,10 +20,10 @@ import StatCard from '../../components/StatCard/StatCard';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import styles from './EmployeeDashboard.module.css';
 
-const formatINR = amount => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(Number(amount) || 0);
+const formatINR=amount => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(Number(amount) || 0);
 
 export const EmployeeDashboard = () => {
-  const { user, history, monthlySpent, monthlyLimit, policyRules } = useReceipts();
+  const { user, history, monthlySpent, monthlyLimit, policyRules }=useReceipts();
 
   // Compute stat metrics
   const totalReimbursed = history
@@ -39,20 +39,19 @@ export const EmployeeDashboard = () => {
   ).length;
 
   const remainingBudget = Math.max(0, monthlyLimit - monthlySpent);
-  const budgetPercent = Math.min(100, Math.round((monthlySpent / (monthlyLimit || 1)) * 100));
+  const budgetPercent=Math.min(100, Math.round((monthlySpent / (monthlyLimit || 1)) * 100));
 
-  // Track today's meal spend in the latest city with a receipt today.
-  const today = new Date().toISOString().slice(0, 10);
-  const todayMeals = history.filter(item => item.category === 'Meals' && item.receipt?.date === today);
-  const trackedCity = todayMeals[0]?.city || 'Default';
-  const cityDailyCap = Number(policyRules?.city_daily_caps?.[trackedCity] ?? policyRules?.city_daily_caps?.Default ?? 6263);
-  const cityTodaySpent = todayMeals
+  const todayBuddy=new Date().toISOString().slice(0, 10);
+  const todayMeals=history.filter(item => item.category === 'Meals' && item.receipt?.date === todayBuddy);
+  const trackedCity=todayMeals[0]?.city || 'Default';
+  const cityDailyCap=Number(policyRules?.city_daily_caps?.[trackedCity] ?? policyRules?.city_daily_caps?.Default ?? 6263);
+  const cityTodaySpent=todayMeals
     .filter(item => item.city === trackedCity)
     .reduce((acc, curr) => acc + (Number(curr.receipt?.base_amount_inr ?? curr.receipt?.total_amount) || 0), 0);
-  const cityPercent = Math.min(100, Math.round((cityTodaySpent / (cityDailyCap || 1)) * 100));
+  const cityPercent=Math.min(100, Math.round((cityTodaySpent / (cityDailyCap || 1)) * 100));
 
   // Last 8 submissions for the Live Feed Table
-  const recentSubmissions = history.slice(0, 8);
+  const recentSubmissions=history.slice(0, 8);
 
   return (
     <div className={styles.dashboard}>
@@ -101,7 +100,7 @@ export const EmployeeDashboard = () => {
 
       {/* 2-Column Split: Section 2 Live Feed Table (Left/Center) + Section 3 Policy Tracker (Right Sidebar) */}
       <div className={styles.mainContentGrid}>
-        {/* Section 2: Live Feed Table */}
+        {}
         <section className={styles.liveFeedCard}>
           <div className={styles.cardHeader}>
             <div className={styles.cardHeaderTitleGroup}>
@@ -127,7 +126,7 @@ export const EmployeeDashboard = () => {
                 Submit your first receipt <ArrowRight size={14} />
               </Link>
             </div>
-          ) : (
+          ):(
             <div className={styles.tableWrapper}>
               <table className={styles.feedTable}>
                 <thead>
@@ -141,26 +140,26 @@ export const EmployeeDashboard = () => {
                 </thead>
                 <tbody>
                   {recentSubmissions.map((item) => {
-                    const status = item.result?.status || 'PENDING_APPROVAL';
-                    const isApproved = status === 'APPROVED';
-                    const isPartial = status === 'PARTIAL';
-                    const isViolated = status === 'REJECTED' || (item.result?.flags && item.result.flags.some(f => f.toLowerCase().includes('duplicate') || f.toLowerCase().includes('alcohol')));
+                    const status=item.result?.status || 'PENDING_APPROVAL';
+                    const isApproved=status === 'APPROVED';
+                    const isPartial=status === 'PARTIAL';
+                    const isViolated=status === 'REJECTED' || (item.result?.flags && item.result.flags.some(f => f.toLowerCase().includes('duplicate') || f.toLowerCase().includes('alcohol')));
 
                     let matchBadgeClass = styles.matchPillClear;
-                    let matchLabel = '100% Policy Match';
+                    let matchLabel='100% Policy Match';
 
                     if (isViolated) {
-                      matchBadgeClass = styles.matchPillDanger;
-                      matchLabel = item.result?.flags?.[0] || 'Violation Detected';
+                      matchBadgeClass=styles.matchPillDanger;
+                      matchLabel=item.result?.flags?.[0] || 'Violation Detected';
                     } else if (isPartial || item.result?.flags?.length > 0) {
-                      matchBadgeClass = styles.matchPillWarn;
-                      matchLabel = item.result?.flags?.[0] || 'Requires Review';
+                      matchBadgeClass=styles.matchPillWarn;
+                      matchLabel=item.result?.flags?.[0] || 'Requires Review';
                     } else if (status === 'PENDING_APPROVAL') {
-                      matchBadgeClass = styles.matchPillPending;
-                      matchLabel = 'In Admin Queue';
+                      matchBadgeClass=styles.matchPillPending;
+                      matchLabel='In Admin Queue';
                     }
 
-                    const formattedAmount = new Intl.NumberFormat(undefined, {
+                    const formattedAmount=new Intl.NumberFormat(undefined, {
                       style: 'currency',
                       currency: 'INR'
                     }).format(Number(item.receipt?.base_amount_inr ?? item.receipt?.total_amount) || 0);
@@ -219,7 +218,7 @@ export const EmployeeDashboard = () => {
           )}
         </section>
 
-        {/* Section 3: Policy Tracker Sidebar */}
+        {}
         <aside className={styles.policyTrackerSidebar}>
           <div className={styles.trackerCard}>
             <div className={styles.trackerHeader}>
@@ -230,7 +229,7 @@ export const EmployeeDashboard = () => {
               <span className={styles.trackerSubheading}>Accumulating limits & policy caps</span>
             </div>
 
-            {/* Monthly Limit Progress */}
+            {}
             <div className={styles.limitBlock}>
               <div className={styles.limitLabelRow}>
                 <span className={styles.limitLabel}>Monthly Spend vs Cap</span>
@@ -240,7 +239,7 @@ export const EmployeeDashboard = () => {
               </div>
               <div className={styles.progressBarTrack}>
                 <div
-                  className={`${styles.progressBarFill} ${budgetPercent > 90 ? styles.progressDanger : budgetPercent > 70 ? styles.progressWarn : styles.progressNormal}`}
+                  className={`${styles.progressBarFill} ${budgetPercent > 90 ? styles.progressDanger:budgetPercent > 70 ? styles.progressWarn:styles.progressNormal}`}
                   style={{ width: `${budgetPercent}%` }}
                 />
               </div>
@@ -250,7 +249,7 @@ export const EmployeeDashboard = () => {
               </div>
             </div>
 
-            {/* City Per-Diem Cap Progress */}
+            {}
             <div className={styles.limitBlock}>
               <div className={styles.limitLabelRow}>
                 <span className={styles.limitLabel}>{trackedCity} Daily Per-Diem</span>
@@ -260,7 +259,7 @@ export const EmployeeDashboard = () => {
               </div>
               <div className={styles.progressBarTrack}>
                 <div
-                  className={`${styles.progressBarFill} ${cityPercent > 90 ? styles.progressDanger : cityPercent > 70 ? styles.progressWarn : styles.progressNormal}`}
+                  className={`${styles.progressBarFill} ${cityPercent > 90 ? styles.progressDanger:cityPercent > 70 ? styles.progressWarn:styles.progressNormal}`}
                   style={{ width: `${cityPercent}%` }}
                 />
               </div>
@@ -272,7 +271,7 @@ export const EmployeeDashboard = () => {
 
             <div className={styles.divider} />
 
-            {/* Guardrail Rules Overview */}
+            {}
             <div className={styles.guardrailsSection}>
               <span className={styles.guardrailsTitle}>ACTIVE POLICY GUARDRAILS</span>
               <ul className={styles.guardrailsList}>
@@ -295,7 +294,7 @@ export const EmployeeDashboard = () => {
               </ul>
             </div>
 
-            {/* Admin Routing Indicator */}
+            {}
             <div className={styles.routingBanner}>
               <div className={styles.routingIndicator}>
                 <span className={styles.routingPulse} />

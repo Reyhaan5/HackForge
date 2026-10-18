@@ -1,7 +1,7 @@
 import StatusBadge from '../StatusBadge/StatusBadge';
 import styles from './ReceiptSplitView.module.css';
 
-const ReceiptSplitView = ({
+const ReceiptSplitView=({
   imageUrl,
   fileType,
   receiptData,
@@ -9,17 +9,17 @@ const ReceiptSplitView = ({
   category,
   clientName = '',
 }) => {
-  const extracted = receiptData?.extracted || {};
-  const lineItems = extracted.line_items || [];
+  const extracted=receiptData?.extracted || {};
+  const lineItems=extracted.line_items || [];
   const flags = receiptData?.validation?.flags || [];
-  const status = receiptData?.validation?.status || 'PENDING';
-  const isPdf = fileType === 'application/pdf';
-  const imagePath = imageUrl?.split(/[?#]/)[0] || '';
-  const imagePreview = !isPdf || /\.(png|jpe?g|webp)$/i.test(imagePath);
-  const context = [city, category, clientName].filter(Boolean).join(' · ');
-  const formatAmount = (amount) =>
-    amount == null ? 'Not read from receipt' : `${extracted.currency || ''} ${Number(amount).toFixed(2)}`.trim();
-  const formatINR = amount => new Intl.NumberFormat('en-IN', {
+  const status=receiptData?.validation?.status || 'PENDING';
+  const isPdf=fileType === 'application/pdf';
+  const imagePath=imageUrl?.split(/[?#]/)[0] || '';
+  const imagePreview=!isPdf || /\.(png|jpe?g|webp)$/i.test(imagePath);
+  const context=[city, category, clientName].filter(Boolean).join(' · ');
+  const formatAmount=(amount) =>
+    amount == null ? 'Not read from receipt':`${extracted.currency || ''} ${Number(amount).toFixed(2)}`.trim();
+  const formatINR=amount => new Intl.NumberFormat('en-IN', {
     style: 'currency', currency: 'INR', minimumFractionDigits: 2
   }).format(Number(amount) || 0);
 
@@ -90,10 +90,10 @@ const ReceiptSplitView = ({
         {imageUrl ? (
           imagePreview ? (
             <img className={styles.receiptImage} src={imageUrl} alt="Uploaded receipt" />
-          ) : (
+          ):(
             <iframe className={styles.receiptPdf} src={imageUrl} title="Uploaded receipt PDF" />
           )
-        ) : (
+        ):(
           <p>Receipt preview unavailable.</p>
         )}
       </section>

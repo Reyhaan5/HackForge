@@ -26,7 +26,7 @@ import { useReceipts } from '../../context/ReceiptContext';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import styles from './AdminProcess.module.css';
 
-const CHANNELS = [
+const CHANNELS=[
   { id: 'all', label: 'All Channels', icon: Filter },
   { id: 'web', label: 'Web Portal', icon: Globe },
   { id: 'slack', label: 'Slack Bot', icon: MessageSquare },
@@ -34,7 +34,7 @@ const CHANNELS = [
   { id: 'mobile', label: 'Mobile Camera', icon: Smartphone },
 ];
 
-const getChannelDetails = (channelId) => {
+const getChannelDetails=(channelId) => {
   switch ((channelId || '').toLowerCase()) {
     case 'slack':
       return { label: 'Slack Bot', icon: MessageSquare, badgeClass: styles.channelSlack };
@@ -48,51 +48,51 @@ const getChannelDetails = (channelId) => {
   }
 };
 
-export const AdminProcess = () => {
-  const { history, updateReceiptStatus } = useReceipts();
-  const [selectedChannel, setSelectedChannel] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedReceipt, setSelectedReceipt] = useState(null);
-  const [managerNotes, setManagerNotes] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [actionError, setActionError] = useState('');
-  const [actionSuccess, setActionSuccess] = useState('');
+export const AdminProcess=() => {
+  const { history, updateReceiptStatus }=useReceipts();
+  const [selectedChannel, setSelectedChannel]=useState('all');
+  const [searchQuery, setSearchQuery]=useState('');
+  const [selectedReceipt, setSelectedReceipt]=useState(null);
+  const [managerNotes, setManagerNotes]=useState('');
+  const [isSubmitting, setIsSubmitting]=useState(false);
+  const [actionError, setActionError]=useState('');
+  const [actionSuccess, setActionSuccess]=useState('');
 
-  // Filter receipts by channel and search
-  const filteredReceipts = useMemo(() => {
+
+  const filteredReceipts=useMemo(() => {
     return (history || []).filter(item => {
-      // Channel filter
+
       if (selectedChannel !== 'all') {
-        const itemChannel = (item.submission_channel || 'web').toLowerCase();
+        const itemChannel=(item.submission_channel || 'web').toLowerCase();
         if (itemChannel !== selectedChannel) return false;
       }
 
-      // Search filter
+
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const vendor = (item.receipt?.vendor || '').toLowerCase();
-        const emp = (item.employee_id || '').toLowerCase();
-        const city = (item.city || '').toLowerCase();
-        const channel = (item.submission_channel || '').toLowerCase();
+        const q=searchQuery.toLowerCase();
+        const vendor=(item.receipt?.vendor || '').toLowerCase();
+        const emp=(item.employee_id || '').toLowerCase();
+        const city=(item.city || '').toLowerCase();
+        const channel=(item.submission_channel || '').toLowerCase();
         return vendor.includes(q) || emp.includes(q) || city.includes(q) || channel.includes(q);
       }
       return true;
     });
   }, [history, selectedChannel, searchQuery]);
 
-  // Channel breakdown counts
-  const channelCounts = useMemo(() => {
-    const counts = { all: history.length, web: 0, slack: 0, email: 0, mobile: 0 };
+
+  const channelCounts=useMemo(() => {
+    const counts={ all: history.length, web: 0, slack: 0, email: 0, mobile: 0 };
     (history || []).forEach(r => {
-      const ch = (r.submission_channel || 'web').toLowerCase();
+      const ch=(r.submission_channel || 'web').toLowerCase();
       if (counts[ch] !== undefined) counts[ch]++;
       else counts.web++;
     });
     return counts;
   }, [history]);
 
-  // Handle Approve
-  const handleApprove = async () => {
+
+  const handleApprove=async () => {
     if (!selectedReceipt || isSubmitting) return;
     setIsSubmitting(true);
     setActionError('');
@@ -104,7 +104,7 @@ export const AdminProcess = () => {
       setSelectedReceipt(prev => prev ? {
         ...prev,
         result: { ...prev.result, status: 'APPROVED' }
-      } : null);
+      }:null);
     } catch (err) {
       setActionError(err.response?.data?.detail || err.message || 'Could not approve receipt.');
     } finally {
@@ -112,8 +112,8 @@ export const AdminProcess = () => {
     }
   };
 
-  // Handle Reject
-  const handleReject = async () => {
+
+  const handleReject=async () => {
     if (!selectedReceipt || isSubmitting) return;
     if (!managerNotes.trim()) {
       setActionError('Please provide a rejection reason so the submitting employee understands the policy conflict.');
@@ -129,7 +129,7 @@ export const AdminProcess = () => {
       setSelectedReceipt(prev => prev ? {
         ...prev,
         result: { ...prev.result, status: 'REJECTED' }
-      } : null);
+      }:null);
     } catch (err) {
       setActionError(err.response?.data?.detail || err.message || 'Could not reject receipt.');
     } finally {
@@ -139,7 +139,7 @@ export const AdminProcess = () => {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
+      {}
       <div className={styles.headerCard}>
         <div className={styles.titleArea}>
           <div className={styles.titleRow}>
@@ -160,7 +160,7 @@ export const AdminProcess = () => {
         </div>
       </div>
 
-      {/* Notifications */}
+      {}
       {actionSuccess && (
         <div className={styles.successBanner}>
           <CheckCircle2 size={16} />
@@ -180,18 +180,18 @@ export const AdminProcess = () => {
         </div>
       )}
 
-      {/* Channel Filters Bar */}
+      {}
       <div className={styles.channelBar}>
         <div className={styles.channelTabs}>
           {CHANNELS.map(ch => {
-            const Icon = ch.icon;
-            const count = channelCounts[ch.id] || 0;
-            const isActive = selectedChannel === ch.id;
+            const Icon=ch.icon;
+            const count=channelCounts[ch.id] || 0;
+            const isActive=selectedChannel === ch.id;
             return (
               <button
                 key={ch.id}
                 type="button"
-                className={`${styles.channelFilterBtn} ${isActive ? styles.channelFilterBtnActive : ''}`}
+                className={`${styles.channelFilterBtn} ${isActive ? styles.channelFilterBtnActive:''}`}
                 onClick={() => setSelectedChannel(ch.id)}
               >
                 <Icon size={15} />
@@ -214,10 +214,10 @@ export const AdminProcess = () => {
         </div>
       </div>
 
-      {/* Incoming submissions */}
+      {}
       <div className={styles.mainGrid}>
         
-        {/* Table of Submissions */}
+        {}
         <div className={styles.tableCard}>
           <div className={styles.tableCardHeader}>
             <h3 className={styles.cardHeading}>
@@ -235,7 +235,7 @@ export const AdminProcess = () => {
               <h4>No receipts found</h4>
               <p>No submissions match the selected channel filter or search query.</p>
             </div>
-          ) : (
+          ):(
             <div className={styles.tableOverflow}>
               <table className={styles.queueTable}>
                 <thead>
@@ -251,21 +251,21 @@ export const AdminProcess = () => {
                 </thead>
                 <tbody>
                   {filteredReceipts.map(item => {
-                    const channelInfo = getChannelDetails(item.submission_channel);
-                    const ChannelIcon = channelInfo.icon;
-                    const isSelected = selectedReceipt?.id === item.id;
+                    const channelInfo=getChannelDetails(item.submission_channel);
+                    const ChannelIcon=channelInfo.icon;
+                    const isSelected=selectedReceipt?.id === item.id;
 
                     return (
                       <tr
                         key={item.id}
-                        className={`${styles.tableRow} ${isSelected ? styles.tableRowSelected : ''}`}
+                        className={`${styles.tableRow} ${isSelected ? styles.tableRowSelected:''}`}
                         onClick={() => {
                           setSelectedReceipt(item);
                           setActionError('');
                           setActionSuccess('');
                         }}
                       >
-                        {/* Channel Badge */}
+                        {}
                         <td>
                           <span className={`${styles.channelPill} ${channelInfo.badgeClass}`}>
                             <ChannelIcon size={13} />
@@ -273,7 +273,7 @@ export const AdminProcess = () => {
                           </span>
                         </td>
 
-                        {/* Employee */}
+                        {}
                         <td>
                           <div className={styles.empCell}>
                             <User size={14} className={styles.empIcon} />
@@ -281,7 +281,7 @@ export const AdminProcess = () => {
                           </div>
                         </td>
 
-                        {/* Vendor */}
+                        {}
                         <td>
                           <div className={styles.vendorCell}>
                             <span className={styles.vendorName}>{item.receipt?.vendor || 'Unknown'}</span>
@@ -289,7 +289,7 @@ export const AdminProcess = () => {
                           </div>
                         </td>
 
-                        {/* Date & City */}
+                        {}
                         <td>
                           <div className={styles.dateCell}>
                             <span>{item.receipt?.date || 'N/A'}</span>
@@ -297,19 +297,19 @@ export const AdminProcess = () => {
                           </div>
                         </td>
 
-                        {/* Amount */}
+                        {}
                         <td className={styles.alignRight}>
                           <span className={styles.amountText}>
                             {new Intl.NumberFormat(undefined, { style: 'currency', currency: 'INR' }).format(Number(item.receipt?.base_amount_inr ?? item.receipt?.total_amount) || 0)}
                           </span>
                         </td>
 
-                        {/* Status */}
+                        {}
                         <td>
                           <StatusBadge status={item.result?.status} />
                         </td>
 
-                        {/* Action */}
+                        {}
                         <td className={styles.alignRight}>
                           <button
                             type="button"
@@ -346,7 +346,7 @@ export const AdminProcess = () => {
 
       </div>
 
-      {/* Review & Smart Audit Split Drawer/Modal */}
+      {}
       {selectedReceipt && (
         <div className={styles.modalBackdrop} onClick={() => setSelectedReceipt(null)}>
           <div className={styles.modalPanel} onClick={(e) => e.stopPropagation()}>
@@ -366,12 +366,12 @@ export const AdminProcess = () => {
             </div>
 
             <div className={styles.modalBody}>
-              {/* Left Pane: Receipt Photo & Channel Tag */}
+              {}
               <div className={styles.modalLeftPane}>
                 <div className={styles.modalChannelStrip}>
                   {(() => {
-                    const info = getChannelDetails(selectedReceipt.submission_channel);
-                    const Icon = info.icon;
+                    const info=getChannelDetails(selectedReceipt.submission_channel);
+                    const Icon=info.icon;
                     return (
                       <span className={`${styles.channelPill} ${info.badgeClass}`}>
                         <Icon size={14} />
@@ -391,7 +391,7 @@ export const AdminProcess = () => {
                       alt="Uploaded receipt"
                       className={styles.modalImage}
                     />
-                  ) : (
+                  ):(
                     <div className={styles.modalNoImage}>
                       <Receipt size={48} />
                       <span>Original physical scan</span>
@@ -400,7 +400,7 @@ export const AdminProcess = () => {
                 </div>
               </div>
 
-              {/* Right Pane: Audited Line Items, Policy Checks, and Actions */}
+              {}
               <div className={styles.modalRightPane}>
                 <div className={styles.statusRow}>
                   <StatusBadge status={selectedReceipt.result?.status} />
@@ -409,7 +409,7 @@ export const AdminProcess = () => {
                   </span>
                 </div>
 
-                {/* Flags if any */}
+                {}
                 {selectedReceipt.result?.flags?.length > 0 && (
                   <div className={styles.modalFlagsBox}>
                     <div className={styles.flagsHead}>
@@ -425,7 +425,7 @@ export const AdminProcess = () => {
                   </div>
                 )}
 
-                {/* Line Items Table */}
+                {}
                 <div className={styles.lineItemsWrap}>
                   <h4 className={styles.subHeading}>Itemized Breakdown</h4>
                   <table className={styles.modalTable}>
@@ -439,19 +439,19 @@ export const AdminProcess = () => {
                     <tbody>
                       {(selectedReceipt.receipt?.line_items || []).length > 0 ? (
                         selectedReceipt.receipt.line_items.map((line, idx) => (
-                          <tr key={idx} className={line.disallowed ? styles.rowDisallowed : ''}>
+                          <tr key={idx} className={line.disallowed ? styles.rowDisallowed:''}>
                             <td>{line.description || 'Expense item'}</td>
                             <td className={styles.alignRight}>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(line.amount || 0) * Number(selectedReceipt.receipt?.exchange_rate || 1))}</td>
                             <td className={styles.alignRight}>
                               {line.disallowed ? (
                                 <span className={styles.badgeDisallowed}>Disallowed</span>
-                              ) : (
+                              ):(
                                 <span className={styles.badgeAllowed}>Eligible</span>
                               )}
                             </td>
                           </tr>
                         ))
-                      ) : (
+                      ):(
                         <tr>
                           <td>General Line Item</td>
                           <td className={styles.alignRight}>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(selectedReceipt.receipt?.base_amount_inr ?? selectedReceipt.receipt?.total_amount ?? 0))}</td>
@@ -462,7 +462,7 @@ export const AdminProcess = () => {
                   </table>
                 </div>
 
-                {/* Admin Notes & Actions */}
+                {}
                 <div className={styles.modalActionSection}>
                   <label className={styles.notesLabel}>Admin Reviewer Notes</label>
                   <textarea

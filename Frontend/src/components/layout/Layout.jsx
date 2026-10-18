@@ -21,7 +21,7 @@ import projectLogo from '../../assets/logo.svg';
 import styles from './Layout.module.css';
 
 export const Layout = ({ children }) => {
-  const { user, logoutUser, history, resetAllData } = useReceipts();
+  const { user, logoutUser, history, resetAllData }=useReceipts();
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -115,7 +115,7 @@ export const Layout = ({ children }) => {
               to="/admin/process"
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
-                `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
+                `${styles.navLink} ${isActive ? styles.navLinkActive:''}`
               }
             >
               <Scan size={18} />
@@ -144,7 +144,7 @@ export const Layout = ({ children }) => {
               <BarChart3 size={18} />
               <span>Analytics</span>
             </NavLink>
-            {user?.role === 'Admin' && <NavLink to="/admin/policy" onClick={() => setMobileOpen(false)} className={({ isActive }) => `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}>
+            {user?.role === 'Admin' && <NavLink to="/admin/policy" onClick={() => setMobileOpen(false)} className={({ isActive }) => `${styles.navLink} ${isActive ? styles.navLinkActive:''}`}>
               <SlidersHorizontal size={18} /><span>Policy</span>
             </NavLink>}
           </div>}

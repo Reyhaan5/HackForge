@@ -23,7 +23,7 @@ import AuditStatusPill from '../../components/AuditStatusPill/AuditStatusPill';
 import AiProcessingStepper from '../../components/AiProcessingStepper/AiProcessingStepper';
 import styles from './SmartSubmit.module.css';
 
-const SUBMISSION_CHANNELS = [
+const SUBMISSION_CHANNELS=[
   { id: 'web', label: 'Web Portal', icon: Globe, hint: 'Direct browser upload' },
   { id: 'slack', label: 'Slack Bot', icon: MessageSquare, hint: '@Resolver Slack thread' },
   { id: 'email', label: 'Email Ingestion', icon: Mail, hint: 'receipts@company.com' },
@@ -31,17 +31,17 @@ const SUBMISSION_CHANNELS = [
 ];
 
 export const SmartSubmit = () => {
-  const { user, addProcessedReceipt, refreshSession, policyRules } = useReceipts();
-  const isPrivileged = ['Admin', 'Finance'].includes(user?.role);
-  const cityCaps = policyRules?.city_daily_caps || {};
+  const { user, addProcessedReceipt, refreshSession, policyRules }=useReceipts();
+  const isPrivileged=['Admin', 'Finance'].includes(user?.role);
+  const cityCaps=policyRules?.city_daily_caps || {};
 
   // Form states
-  const [channel, setChannel] = useState('web');
-  const [city, setCity] = useState('');
-  const [category, setCategory] = useState('');
+  const [channel, setChannel]=useState('web');
+  const [city, setCity]=useState('');
+  const [category, setCategory]=useState('');
   const [clientName, setClientName] = useState('');
-  const [employees, setEmployees] = useState([]);
-  const [employeeId, setEmployeeId] = useState(user?.employee_id || '');
+  const [employees, setEmployees]=useState([]);
+  const [employeeId, setEmployeeId]=useState(user?.employee_id || '');
 
   // File states
   const [file, setFile] = useState(null);
@@ -53,11 +53,11 @@ export const SmartSubmit = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
-  const [pasteNotice, setPasteNotice] = useState(null);
+  const [pasteNotice, setPasteNotice]=useState(null);
 
   useEffect(() => {
     if (!isPrivileged) return;
-    let isCurrent = true;
+    let isCurrent=true;
     getEmployees().then(list => {
       if (!isCurrent) return;
       setEmployees(list);
@@ -66,11 +66,11 @@ export const SmartSubmit = () => {
       if (isCurrent) setError(err.message || 'Could not load employees from the backend.');
     });
     return () => {
-      isCurrent = false;
+      isCurrent=false;
     };
   }, [isPrivileged]);
 
-  const location = useLocation();
+  const location=useLocation();
 
   useEffect(() => {
     if (location.state) {
@@ -86,8 +86,8 @@ export const SmartSubmit = () => {
         fetch(location.state.fileUrl)
           .then(res => res.blob())
           .then(blob => {
-            const fileName = location.state.fileName || location.state.fileUrl.split('/').pop();
-            const f = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+            const fileName=location.state.fileName || location.state.fileUrl.split('/').pop();
+            const f=new File([blob], fileName, { type: blob.type || 'image/jpeg' });
             setFile(f);
           })
           .catch(err => console.warn('Could not load the selected receipt file:', err));
@@ -99,9 +99,9 @@ export const SmartSubmit = () => {
     if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
   }, [previewUrl]);
 
-  const selectFile = (selectedFile) => {
-    const isImage = ['image/jpeg', 'image/png', 'image/webp'].includes(selectedFile?.type);
-    const isPdf = selectedFile?.type === 'application/pdf' || selectedFile?.name?.toLowerCase().endsWith('.pdf');
+  const selectFile=(selectedFile) => {
+    const isImage=['image/jpeg', 'image/png', 'image/webp'].includes(selectedFile?.type);
+    const isPdf=selectedFile?.type === 'application/pdf' || selectedFile?.name?.toLowerCase().endsWith('.pdf');
 
     if (!isImage && !isPdf) {
       setError('Choose a JPG, PNG, WEBP image or PDF receipt document.');
@@ -111,28 +111,28 @@ export const SmartSubmit = () => {
     setError(null);
     setResult(null);
 
-    const url = URL.createObjectURL(selectedFile);
+    const url=URL.createObjectURL(selectedFile);
     setPreviewUrl(url);
   };
 
-  // Direct Clipboard (Ctrl+V) listener
+
   useEffect(() => {
-    const handlePaste = (e) => {
-      const activeTag = document.activeElement?.tagName?.toLowerCase();
+    const handlePaste=(e) => {
+      const activeTag=document.activeElement?.tagName?.toLowerCase();
       if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
         return;
       }
 
       if (e.clipboardData && e.clipboardData.items) {
-        const items = e.clipboardData.items;
-        for (let i = 0; i < items.length; i++) {
+        const items=e.clipboardData.items;
+        for (let i=0; i < items.length; i++) {
           if (items[i].type && items[i].type.startsWith('image/')) {
-            const pastedFile = items[i].getAsFile();
+            const pastedFile=items[i].getAsFile();
             if (pastedFile) {
               e.preventDefault();
               selectFile(pastedFile);
               setPasteNotice('📸 Receipt image pasted directly from clipboard!');
-              const timer = setTimeout(() => setPasteNotice(null), 4000);
+              const timer=setTimeout(() => setPasteNotice(null), 4000);
               return () => clearTimeout(timer);
             }
           }
@@ -168,7 +168,7 @@ export const SmartSubmit = () => {
     }
   };
 
-  const loadBistroSample = async () => {
+  const loadBistroSample=async () => {
     setError(null);
     setResult(null);
     setCity('San Francisco');
@@ -176,10 +176,10 @@ export const SmartSubmit = () => {
     setClientName('Executive Partner Dinner');
 
     try {
-      const response = await fetch('/demo_receipts/2_restaurant_bistro_receipt.jpg');
+      const response=await fetch('/demo_receipts/2_restaurant_bistro_receipt.jpg');
       if (!response.ok) throw new Error('Could not load the Multi-Item Bistro sample.');
-      const blob = await response.blob();
-      const sampleFile = new File([blob], '2_restaurant_bistro_receipt.jpg', {
+      const blob=await response.blob();
+      const sampleFile=new File([blob], '2_restaurant_bistro_receipt.jpg', {
         type: blob.type || 'image/jpeg',
       });
       setFile(sampleFile);
@@ -208,7 +208,7 @@ export const SmartSubmit = () => {
 
     try {
       // Call FastAPI backend POST /api/process-receipt
-      const res = await processReceipt(file, city, category, clientName, {
+      const res=await processReceipt(file, city, category, clientName, {
         employeeId: user?.employee_id || employeeId,
         submissionChannel: channel
       });
@@ -236,7 +236,7 @@ export const SmartSubmit = () => {
     setPreviewUrl(null);
     setResult(null);
     setError(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (fileInputRef.current) fileInputRef.current.value='';
   };
 
   return (
@@ -244,7 +244,7 @@ export const SmartSubmit = () => {
       {/* Intro Header */}
       <div className={styles.introCard}>
         <h2 className={styles.introTitle}>
-          {isPrivileged ? 'Admin Smart Processing Engine' : 'Submit Business Expense Receipt'}
+          {isPrivileged ? 'Admin Smart Processing Engine':'Submit Business Expense Receipt'}
         </h2>
         <button type="button" className={styles.sampleButton} onClick={loadBistroSample}>
           <FileText size={15} />
@@ -269,7 +269,7 @@ export const SmartSubmit = () => {
       {/* Main Form & Upload Step */}
       {!result && !isProcessing && (
         <>
-          {/* Multi-Channel Ingestion Selector */}
+          {}
           <div className={styles.channelBar}>
             <div className={styles.channelBarHeader}>
               <span className={styles.channelLabel}>
@@ -282,13 +282,13 @@ export const SmartSubmit = () => {
             </div>
             <div className={styles.channelOptions}>
               {SUBMISSION_CHANNELS.map(ch => {
-                const Icon = ch.icon;
-                const isActive = channel === ch.id;
+                const Icon=ch.icon;
+                const isActive=channel === ch.id;
                 return (
                   <button
                     key={ch.id}
                     type="button"
-                    className={`${styles.channelButton} ${isActive ? styles.channelButtonActive : ''}`}
+                    className={`${styles.channelButton} ${isActive ? styles.channelButtonActive:''}`}
                     onClick={() => setChannel(ch.id)}
                     title={ch.hint}
                   >
@@ -312,8 +312,8 @@ export const SmartSubmit = () => {
                 <option value="" disabled>Select a city</option>
                 {['New York', 'San Francisco', 'Chicago', 'Austin', 'Default'].map(location => (
                   <option key={location} value={location}>
-                    {location === 'Default' ? 'Other / Default' : location}
-                    {cityCaps[location] != null ? ` (₹${Number(cityCaps[location]).toFixed(2)} Cap)` : ''}
+                    {location === 'Default' ? 'Other / Default':location}
+                    {cityCaps[location] != null ? ` (₹${Number(cityCaps[location]).toFixed(2)} Cap)`:''}
                   </option>
                 ))}
               </select>
@@ -430,7 +430,7 @@ export const SmartSubmit = () => {
                 onClick={handleProcess}
               >
                 <Sparkles size={18} />
-                <span>{isPrivileged ? 'Exhume & Smart Submit' : 'Submit Receipt for Admin Processing'}</span>
+                <span>{isPrivileged ? 'Exhume & Smart Submit':'Submit Receipt for Admin Processing'}</span>
               </button>
             </div>
           )}

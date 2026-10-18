@@ -1,7 +1,7 @@
 import requests
 from typing import Tuple, Optional
 
-# Receipt symbols and aliases mapped to ISO-4217 currency codes.
+
 CURRENCY_ALIASES = {
     "$": "USD", "US$": "USD", "USD": "USD",
     "€": "EUR", "EUR": "EUR", "EURO": "EUR",
@@ -13,9 +13,9 @@ CURRENCY_ALIASES = {
     "CNY": "CNY", "RMB": "CNY", "MXN": "MXN", "BRL": "BRL",
 }
 
-# Reference rates are INR per source currency unit and are used only when the
-# live rate service is unavailable.
-OFFLINE_RATES_TO_INR = {
+
+
+OFFLINE_RATES_TO_INR={
     "INR": 1.0,
     "USD": 83.5,
     "EUR": 90.6,
@@ -54,24 +54,24 @@ def get_exchange_rate(currency: str) -> float:
     if curr in _cache:
         return _cache[curr]
     try:
-        response = requests.get(
+        response=requests.get(
             f"https://api.frankfurter.app/latest?from={curr}&to=INR", timeout=1.5
         )
         if response.status_code == 200:
-            rate = float(response.json()["rates"]["INR"])
+            rate=float(response.json()["rates"]["INR"])
             _cache[curr] = rate
             return rate
     except Exception:
         pass
     if curr not in OFFLINE_RATES_TO_INR:
         raise ValueError(f"Currency '{curr}' is not supported for INR conversion.")
-    rate = OFFLINE_RATES_TO_INR[curr]
+    rate=OFFLINE_RATES_TO_INR[curr]
     _cache[curr] = rate
     return rate
 
 
 def convert_to_inr(amount: float, currency: str) -> Tuple[float, float, str]:
     """Convert a source amount to INR; return (INR amount, rate, source code)."""
-    normalized = normalize_currency(currency)
-    rate = get_exchange_rate(normalized)
-    return round(amount * rate, 2), rate, normalized
+    currency_buddy=normalize_currency(currency)
+    rupee_rate_pal=get_exchange_rate(currency_buddy)
+    return round(amount * rupee_rate_pal, 2), rupee_rate_pal, currency_buddy

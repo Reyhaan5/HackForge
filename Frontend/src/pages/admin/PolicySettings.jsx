@@ -4,7 +4,7 @@ import { getPolicy, updatePolicy } from '../../services/api';
 import { useReceipts } from '../../context/ReceiptContext';
 import styles from './PolicySettings.module.css';
 
-const defaults = {
+const defaults={
   monthly_limit: 167000,
   approval_threshold: 16700,
   client_meal_per_person_limit: 5010,
@@ -13,15 +13,15 @@ const defaults = {
   non_reimbursable_keywords: ['alcohol', 'wine', 'beer', 'liquor', 'cocktail', 'spa', 'massage', 'movie', 'casino', 'gift', 'tobacco'],
 };
 
-const asAmount = value => value === '' ? '' : Number(value);
+const asAmount=value => value === '' ? '':Number(value);
 
 export default function PolicySettings() {
-  const { refreshSession } = useReceipts();
-  const [rules, setRules] = useState(defaults);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const { refreshSession }=useReceipts();
+  const [rules, setRules]=useState(defaults);
+  const [loading, setLoading]=useState(true);
+  const [saving, setSaving]=useState(false);
+  const [message, setMessage]=useState('');
+  const [error, setError]=useState('');
 
   useEffect(() => {
     getPolicy().then(data => setRules({ ...defaults, ...data.rules }))
@@ -29,27 +29,27 @@ export default function PolicySettings() {
       .finally(() => setLoading(false));
   }, []);
 
-  const setAmount = (key, value) => setRules(current => ({ ...current, [key]: asAmount(value) }));
-  const setNamedAmount = (key, name, field, value) => setRules(current => {
-    const entries = { ...current[key] };
+  const setAmount=(key, value) => setRules(current => ({ ...current, [key]: asAmount(value) }));
+  const setNamedAmount=(key, name, field, value) => setRules(current => {
+    const entries={ ...current[key] };
     if (field === 'name') {
-      const next = {};
-      Object.entries(entries).forEach(([oldName, amount]) => { next[oldName === name ? value : oldName] = amount; });
+      const next={};
+      Object.entries(entries).forEach(([oldName, amount]) => { next[oldName === name ? value:oldName]=amount; });
       return { ...current, [key]: next };
     }
-    entries[name] = asAmount(value);
+    entries[name]=asAmount(value);
     return { ...current, [key]: entries };
   });
-  const addNamedAmount = key => setRules(current => {
-    const entries = { ...current[key] };
-    let suffix = Object.keys(entries).length + 1;
-    let name = `New rule ${suffix}`;
-    while (name in entries) name = `New rule ${++suffix}`;
-    entries[name] = 0;
+  const addNamedAmount=key => setRules(current => {
+    const entries={ ...current[key] };
+    let suffix=Object.keys(entries).length + 1;
+    let name=`New rule ${suffix}`;
+    while (name in entries) name=`New rule ${++suffix}`;
+    entries[name]=0;
     return { ...current, [key]: entries };
   });
-  const removeNamedAmount = (key, name) => setRules(current => {
-    const entries = { ...current[key] };
+  const removeNamedAmount=(key, name) => setRules(current => {
+    const entries={ ...current[key] };
     delete entries[name];
     return { ...current, [key]: entries };
   });
@@ -60,7 +60,7 @@ export default function PolicySettings() {
     setMessage('');
     setSaving(true);
     try {
-      const payload = {
+      const payload={
         ...rules,
         monthly_limit: Number(rules.monthly_limit),
         approval_threshold: Number(rules.approval_threshold),
@@ -75,7 +75,7 @@ export default function PolicySettings() {
       if ([...Object.entries(payload.city_daily_caps), ...Object.entries(payload.category_caps)].some(([name, amount]) => !name || !Number.isFinite(amount) || amount < 0)) {
         throw new Error('Each city and category needs a name and a zero or positive amount.');
       }
-      const response = await updatePolicy(payload);
+      const response=await updatePolicy(payload);
       setRules({ ...defaults, ...response.rules });
       await refreshSession();
       setMessage('Policy saved. New receipt submissions will use these rules.');
@@ -134,7 +134,7 @@ export default function PolicySettings() {
 
       {error && <p className={styles.error} role="alert">{error}</p>}
       {message && <p className={styles.success} role="status">{message}</p>}
-      <footer className={styles.footer}><span>Changes are stored in the active backend policy.</span><button className={styles.saveButton} type="submit" disabled={saving}><Save size={16} />{saving ? 'Saving…' : 'Save policy'}</button></footer>
+      <footer className={styles.footer}><span>Changes are stored in the active backend policy.</span><button className={styles.saveButton} type="submit" disabled={saving}><Save size={16} />{saving ? 'Saving…':'Save policy'}</button></footer>
     </form>
   </div>;
 }
