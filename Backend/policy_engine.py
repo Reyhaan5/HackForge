@@ -64,9 +64,6 @@ def validate_receipt(
     decision = ValidationDecision()
     policy = get_active_policy(db)
     
-    # -------------------------------------------------------------
-    # 1. Multi-Currency Normalization & FX Conversion
-    # -------------------------------------------------------------
     raw_amount = float(receipt.total_amount)
     decision.requested_amount_original = raw_amount
     base_amount_inr, exchange_rate, normalized_currency=convert_to_inr(raw_amount, receipt.currency)
@@ -77,7 +74,7 @@ def validate_receipt(
 
     if normalized_currency != "INR":
         decision.flags.append(
-            f"💱 Currency Converted: {raw_amount:,.2f} {normalized_currency} → ₹{base_amount_inr:,.2f} INR (FX rate: {exchange_rate:.6f})"
+            f"Currency Converted: {raw_amount:,.2f} {normalized_currency} → ₹{base_amount_inr:,.2f} INR (FX rate: {exchange_rate:.6f})"
         )
 
     current_date = None
@@ -89,13 +86,7 @@ def validate_receipt(
     if current_date is None:
         decision.flags.append("Receipt date could not be read; date-based checks need manual review.")
 
-    # -------------------------------------------------------------
-
-    # -------------------------------------------------------------
-
     hash_match=db.query(Receipt).filter(Receipt.image_hash == receipt.image_hash).first()
-
-
     cross_match=None
     if hash_match and hash_match.employee_id != employee_id:
         cross_match=hash_match
@@ -111,7 +102,7 @@ def validate_receipt(
     if cross_match:
         decision.status="REJECTED"
         decision.flags.append(
-            f"🚨 FRAUD ALERT: Cross-employee double claim! An identical expense was already claimed by employee '{cross_match.employee_id}' (Receipt #{cross_match.id} on {cross_match.transaction_date})."
+            f"FRAUD ALERT: Cross-employee double claim! An identical expense was already claimed by employee '{cross_match.employee_id}' (Receipt #{cross_match.id} on {cross_match.transaction_date})."
         )
         decision.approved_amount=0.0
         decision.explanation=f"Submission rejected: identical receipt already claimed by employee {cross_match.employee_id}."
@@ -131,21 +122,18 @@ def validate_receipt(
     if same_match:
         decision.status = "REJECTED"
         decision.flags.append(
-            f"🚨 DUPLICATE DETECTED: You already submitted this receipt on {same_match.created_at.strftime('%Y-%m-%d')} (Receipt #{same_match.id})"
+            f"DUPLICATE DETECTED: You already submitted this receipt on {same_match.created_at.strftime('%Y-%m-%d')} (Receipt #{same_match.id})"
         )
         decision.approved_amount = 0.0
         decision.explanation=f"Submission rejected as duplicate of your previous submission #{same_match.id}."
         decision.processed_line_items = [item.model_dump() for item in receipt.line_items]
         return decision
-
-    # -------------------------------------------------------------
-
-    # -------------------------------------------------------------
+    
     receipt_is_a_bit_messy=not receipt.is_itemized or len(receipt.line_items) == 0
     if receipt_is_a_bit_messy:
 
         is_round=(raw_amount >= 50.0 and raw_amount % 10 == 0)
-        receipt_note_pal=f"⚠️ UNITEMIZED RECEIPT: Total ({raw_amount:,.2f} {normalized_currency}) lacks itemized breakdown. Non-reimbursable exclusions (alcohol, gifts) cannot be verified."
+        receipt_note_pal=f"UNITEMIZED RECEIPT: Total ({raw_amount:,.2f} {normalized_currency}) lacks itemized breakdown. Non-reimbursable exclusions (alcohol, gifts) cannot be verified."
         if is_round:
             receipt_note_pal += " Flat round amount detected."
         receipt_note_pal += " Requires itemized merchant invoice before reimbursement."
@@ -159,12 +147,9 @@ def validate_receipt(
         expected_total = items_sum + receipt.calculated_tax + receipt.calculated_tip
         if abs(expected_total - raw_amount) > 0.75:
             decision.flags.append(
-                f"⚠️ Math mismatch: Line items sum ({items_sum:,.2f}) does not match printed total ({raw_amount:,.2f} {normalized_currency})."
+                f"Math mismatch: Line items sum ({items_sum:,.2f}) does not match printed total ({raw_amount:,.2f} {normalized_currency})."
             )
 
-    # -------------------------------------------------------------
-    # 4. Partial Reimbursement: Item-Level Disallowance (e.g. Alcohol)
-    # -------------------------------------------------------------
     disallowed_keywords = policy.get("non_reimbursable_keywords", [])
     disallowed_amount_orig = 0.0
     disallowed_names = []
@@ -191,15 +176,11 @@ def validate_receipt(
 
     if disallowed_amount_orig > 0:
         decision.flags.append(
-            f"🚫 Disallowed items deducted: {', '.join(disallowed_names)} (-₹{disallowed_amount_inr:,.2f} INR)"
+            f"Disallowed items deducted: {', '.join(disallowed_names)} (-₹{disallowed_amount_inr:,.2f} INR)"
         )
         decision.status = "PARTIAL"
 
     reimbursable_inr=max(0.0, base_amount_inr - disallowed_amount_inr)
-
-    # -------------------------------------------------------------
-    # 5. Client Meal & Attendee Count Verification
-    # -------------------------------------------------------------
     if category == "Meals" and client_name:
         per_person_limit=policy.get("client_meal_per_person_limit", 5010.0)
         eff_attendees = max(1, attendee_count)
@@ -207,14 +188,11 @@ def validate_receipt(
         if reimbursable_inr > max_client_allowance:
             excess=reimbursable_inr - max_client_allowance
             decision.flags.append(
-                f"⚠️ Exceeds client meal allowance (₹{per_person_limit:.2f}/person x {eff_attendees} attendees = ₹{max_client_allowance:.2f} INR). Excess: ₹{excess:.2f}"
+                f"Exceeds client meal allowance (₹{per_person_limit:.2f}/person x {eff_attendees} attendees = ₹{max_client_allowance:.2f} INR). Excess: ₹{excess:.2f}"
             )
             reimbursable_inr=max_client_allowance
             decision.status = "PARTIAL"
-
-    # -------------------------------------------------------------
-
-
+            
     category_caps=policy.get("category_caps", {})
     cat_cap=category_caps.get(category)
     if cat_cap is not None:
@@ -222,18 +200,14 @@ def validate_receipt(
         if reimbursable_inr > cat_cap:
             excess=reimbursable_inr - cat_cap
             decision.flags.append(
-                f"⚠️ Exceeds {category} cap (₹{cat_cap:.2f} INR). Excess: ₹{excess:.2f} INR."
+                f"Exceeds {category} cap (₹{cat_cap:.2f} INR). Excess: ₹{excess:.2f} INR."
             )
             reimbursable_inr=cat_cap
             decision.status="PARTIAL" if reimbursable_inr > 0 else "REJECTED"
 
-
-
-    # -------------------------------------------------------------
     city_caps = policy.get("city_daily_caps", {})
     daily_cap=city_caps.get(city, city_caps.get("Default", 6263.0))
 
-    # Query total already approved for this employee on this transaction date
     daily_spent_so_far=0.0
     if current_date:
         daily_spent_query=db.query(func.coalesce(func.sum(Receipt.approved_amount), 0.0)).filter(
@@ -248,14 +222,11 @@ def validate_receipt(
         if reimbursable_inr > remaining_daily_budget:
             capped_amount = remaining_daily_budget
             decision.flags.append(
-                f"⚠️ Exceeds {city} daily meal cap (₹{daily_cap:.2f} INR). Already approved ₹{daily_spent_so_far:.2f} today. Capped at remaining ₹{remaining_daily_budget:.2f} INR."
+                f"Exceeds {city} daily meal cap (₹{daily_cap:.2f} INR). Already approved ₹{daily_spent_so_far:.2f} today. Capped at remaining ₹{remaining_daily_budget:.2f} INR."
             )
             reimbursable_inr=capped_amount
             decision.status="PARTIAL" if reimbursable_inr > 0 else "REJECTED"
 
-    # -------------------------------------------------------------
-
-    # -------------------------------------------------------------
     monthly_limit=policy.get("monthly_limit", 167000.0)
     monthly_spent_so_far=0.0
     if current_date:
@@ -275,18 +246,13 @@ def validate_receipt(
         reimbursable_inr=remaining_monthly
         decision.status="PARTIAL" if reimbursable_inr > 0 else "REJECTED"
 
-    # -------------------------------------------------------------
-
-    # -------------------------------------------------------------
     approval_threshold=policy.get("approval_threshold", 16700.0)
     if base_amount_inr > approval_threshold:
         decision.flags.append(
-            f"🔒 High amount (>₹{approval_threshold:.2f} INR): Requires manager sign-off."
+            f"High amount (>₹{approval_threshold:.2f} INR): Requires manager sign-off."
         )
         if decision.status in ["APPROVED", "PARTIAL"]:
             decision.status = "PENDING_APPROVAL"
-
-
 
 
     structuring_lower=policy.get("structuring_lower_bound", approval_threshold * 0.75)
@@ -305,7 +271,7 @@ def validate_receipt(
         if recent_structured:
             receipt_refs=", ".join([f"#{r.id} (₹{float(r.base_amount_inr):.2f} on {r.transaction_date})" for r in recent_structured])
             decision.flags.append(
-                f"🚨 STRUCTURING ALERT: Multiple expenses near manager threshold (₹{approval_threshold:.2f} INR) within 48h ({receipt_refs}). Escalated for manager audit."
+                f"STRUCTURING ALERT: Multiple expenses near manager threshold (₹{approval_threshold:.2f} INR) within 48h ({receipt_refs}). Escalated for manager audit."
             )
             decision.status="PENDING_APPROVAL"
 
@@ -313,10 +279,6 @@ def validate_receipt(
         decision.status="PENDING_APPROVAL"
 
     decision.approved_amount=round(reimbursable_inr, 2)
-
-    # -------------------------------------------------------------
-    # 9. Human-Readable Explanation Synthesis
-    # -------------------------------------------------------------
     parts = []
     curr_prefix=f"{raw_amount:,.2f} {normalized_currency}" if normalized_currency != "INR" else f"₹{raw_amount:,.2f}"
     
