@@ -264,6 +264,37 @@ export async function syncEmailInbox(maxEmails = 10) {
   return response.data;
 }
 
+/**
+ * Check S3 Bucket ingestion status
+ */
+export async function getS3IngestStatus() {
+  const response = await apiClient.get('/api/ingest/s3/status');
+  return response.data;
+}
+
+/**
+ * Trigger manual sync of S3 bucket inbox/ folder
+ */
+export async function syncS3Inbox(maxItems = 20) {
+  const response = await apiClient.post(`/api/ingest/s3/sync?max_items=${maxItems}`);
+  return response.data;
+}
+
+/**
+ * Ingest receipt via simulated S3 upload (Channel B)
+ */
+export async function simulateS3Receipt(file, employeeId, filename = null) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('employee_id', employeeId);
+  if (filename) formData.append('filename', filename);
+
+  const response = await apiClient.post('/api/ingest/s3/simulate', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+}
+
 export default {
   processReceipt,
   getSession,
@@ -273,5 +304,9 @@ export default {
   simulateEmailReceipt,
   getEmailIngestStatus,
   syncEmailInbox,
+  getS3IngestStatus,
+  syncS3Inbox,
+  simulateS3Receipt,
 };
+
 

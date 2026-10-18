@@ -242,15 +242,22 @@ export const Expenses = () => {
                           fontWeight: 500,
                           background: (item.submission_channel === 'email' || item.submissionChannel === 'email')
                             ? 'rgba(59, 130, 246, 0.18)' 
+                            : (item.submission_channel === 's3' || item.submissionChannel === 's3')
+                            ? 'rgba(234, 179, 8, 0.18)'
                             : 'rgba(255, 255, 255, 0.08)',
                           color: (item.submission_channel === 'email' || item.submissionChannel === 'email')
                             ? '#60a5fa' 
+                            : (item.submission_channel === 's3' || item.submissionChannel === 's3')
+                            ? '#facc15'
                             : 'inherit',
                           border: (item.submission_channel === 'email' || item.submissionChannel === 'email')
                             ? '1px solid rgba(96, 165, 250, 0.3)' 
+                            : (item.submission_channel === 's3' || item.submissionChannel === 's3')
+                            ? '1px solid rgba(250, 204, 21, 0.3)'
                             : 'none'
                         }}>
                           {(item.submission_channel === 'email' || item.submissionChannel === 'email') ? '✉️ Email' :
+                           (item.submission_channel === 's3' || item.submissionChannel === 's3') ? '☁️ S3 Bucket' :
                            (item.submission_channel === 'slack' || item.submissionChannel === 'slack') ? '💬 Slack' :
                            (item.submission_channel === 'mobile' || item.submissionChannel === 'mobile') ? '📱 Mobile' :
                            '🌐 Web'}

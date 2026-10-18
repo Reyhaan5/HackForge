@@ -301,6 +301,7 @@ export const AdminQueue = () => {
                     <span className={styles.metaValue}>
                       {currentItem.submission_channel === 'slack' ? '💬 Slack Bot (@Resolver thread)' :
                        currentItem.submission_channel === 'email' ? '✉️ Email Ingestion (receipts@company.com)' :
+                       currentItem.submission_channel === 's3' ? '☁️ AWS S3 Bucket (s3://vault/inbox/)' :
                        currentItem.submission_channel === 'mobile' ? '📱 Mobile Camera App' :
                        '🌐 Web Portal Upload'}
                     </span>

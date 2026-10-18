@@ -69,24 +69,68 @@ def parse_metadata_from_text(subject: str, body: str) -> Dict[str, Any]:
     if city_match:
         candidate_city = city_match.group(1).strip()
         # Normalization for common aliases
-        if "new york" in candidate_city.lower() or "nyc" in candidate_city.lower():
+        c_lower = candidate_city.lower()
+        if "mumbai" in c_lower or "bombay" in c_lower:
+            meta["city"] = "Mumbai"
+        elif "bengaluru" in c_lower or "bangalore" in c_lower or "blr" in c_lower:
+            meta["city"] = "Bengaluru"
+        elif "delhi" in c_lower or "ncr" in c_lower or "gurgaon" in c_lower or "noida" in c_lower:
+            meta["city"] = "Delhi NCR"
+        elif "hyderabad" in c_lower or "secunderabad" in c_lower:
+            meta["city"] = "Hyderabad"
+        elif "pune" in c_lower:
+            meta["city"] = "Pune"
+        elif "chennai" in c_lower or "madras" in c_lower:
+            meta["city"] = "Chennai"
+        elif "kolkata" in c_lower or "calcutta" in c_lower:
+            meta["city"] = "Kolkata"
+        elif "ahmedabad" in c_lower:
+            meta["city"] = "Ahmedabad"
+        elif "jaipur" in c_lower:
+            meta["city"] = "Jaipur"
+        elif "new york" in c_lower or "nyc" in c_lower:
             meta["city"] = "New York"
-        elif "san francisco" in candidate_city.lower() or "sf" in candidate_city.lower():
+        elif "san francisco" in c_lower or "sf" in c_lower:
             meta["city"] = "San Francisco"
-        elif "chicago" in candidate_city.lower():
+        elif "chicago" in c_lower:
             meta["city"] = "Chicago"
-        elif "austin" in candidate_city.lower():
+        elif "austin" in c_lower:
             meta["city"] = "Austin"
-        elif "london" in candidate_city.lower():
+        elif "london" in c_lower:
             meta["city"] = "London"
         else:
             meta["city"] = candidate_city.title()
     else:
-        # Check bracketed [NYC] or [London]
-        bracket_match = re.search(r'\[(New York|NYC|San Francisco|Chicago|Austin|London)\]', subject, re.IGNORECASE)
+        # Check bracketed [Mumbai], [Bengaluru], [NYC], [London], etc.
+        bracket_match = re.search(
+            r'\[(Mumbai|Bombay|Bengaluru|Bangalore|BLR|Delhi|Delhi NCR|Gurgaon|Noida|Hyderabad|Pune|Chennai|Madras|Kolkata|Ahmedabad|Jaipur|New York|NYC|San Francisco|Chicago|Austin|London)\]',
+            subject,
+            re.IGNORECASE
+        )
         if bracket_match:
-            b_city = bracket_match.group(1)
-            meta["city"] = "New York" if b_city.upper() == "NYC" else b_city.title()
+            b_city = bracket_match.group(1).lower()
+            if b_city in ["mumbai", "bombay"]:
+                meta["city"] = "Mumbai"
+            elif b_city in ["bengaluru", "bangalore", "blr"]:
+                meta["city"] = "Bengaluru"
+            elif b_city in ["delhi", "delhi ncr", "gurgaon", "noida"]:
+                meta["city"] = "Delhi NCR"
+            elif b_city in ["hyderabad"]:
+                meta["city"] = "Hyderabad"
+            elif b_city in ["pune"]:
+                meta["city"] = "Pune"
+            elif b_city in ["chennai", "madras"]:
+                meta["city"] = "Chennai"
+            elif b_city in ["kolkata"]:
+                meta["city"] = "Kolkata"
+            elif b_city in ["ahmedabad"]:
+                meta["city"] = "Ahmedabad"
+            elif b_city in ["jaipur"]:
+                meta["city"] = "Jaipur"
+            elif b_city in ["nyc", "new york"]:
+                meta["city"] = "New York"
+            else:
+                meta["city"] = bracket_match.group(1).title()
 
     # 2. Category extraction
     cat_match = re.search(r'(?:category)\s*[:=\-]?\s*(Meals|Travel|Transport|Lodging|Office Supplies|Software)', full_text, re.IGNORECASE)

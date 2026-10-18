@@ -12,11 +12,12 @@ import {
   MessageSquare,
   Mail,
   Smartphone,
+  Cloud,
   ExternalLink,
   Check
 } from 'lucide-react';
 import { useReceipts } from '../../context/ReceiptContext';
-import { getEmployees, processReceipt, simulateEmailReceipt } from '../../services/api';
+import { getEmployees, processReceipt, simulateEmailReceipt, simulateS3Receipt } from '../../services/api';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import ReceiptSplitView from '../../components/ReceiptSplitView/ReceiptSplitView';
 import AuditStatusPill from '../../components/AuditStatusPill/AuditStatusPill';
@@ -27,6 +28,7 @@ const SUBMISSION_CHANNELS=[
   { id: 'web', label: 'Web Portal', icon: Globe, hint: 'Direct browser upload' },
   { id: 'slack', label: 'Slack Bot', icon: MessageSquare, hint: '@Resolver Slack thread' },
   { id: 'email', label: 'Email Ingestion', icon: Mail, hint: 'receipts@company.com' },
+  { id: 's3', label: 'AWS S3 Bucket', icon: Cloud, hint: 's3://vault/inbox/' },
   { id: 'mobile', label: 'Mobile Camera', icon: Smartphone, hint: 'iOS/Android camera' },
 ];
 
@@ -199,7 +201,7 @@ export const SmartSubmit = () => {
       setError('Please select or drop a receipt image or PDF first.');
       return;
     }
-    if (channel !== 'email') {
+    if (channel !== 'email' && channel !== 's3') {
       if (isPrivileged && !employeeId) {
         setError('Select an employee before submitting a receipt for them.');
         return;
@@ -255,6 +257,54 @@ export const SmartSubmit = () => {
           category: emailRes.metadata_inferred?.category || category || 'Meals',
           client_name: emailRes.metadata_inferred?.client_name || clientName,
           submission_channel: 'email',
+          imageUrl: previewUrl || rData.preview_url
+        });
+        await refreshSession();
+        return;
+      }
+
+      if (channel === 's3') {
+        const s3EmpId = user?.employee_id || employeeId || 'EMP-101';
+        const s3Res = await simulateS3Receipt(file, s3EmpId, file.name);
+        if (!s3Res?.success || !s3Res.receipt) {
+          throw new Error(s3Res?.error || 'S3 ingestion failed.');
+        }
+        const rData = s3Res.receipt;
+        const res = {
+          success: true,
+          receipt_id: rData.receipt_id,
+          image_url: rData.preview_url,
+          submission_channel: 's3',
+          currency: rData.currency,
+          original_amount: rData.original_amount,
+          exchange_rate: 1.0,
+          base_amount_usd: rData.base_amount_usd,
+          base_amount_inr: rData.base_amount_inr ?? rData.base_amount_usd,
+          extracted: {
+            vendor: rData.vendor,
+            date: rData.date,
+            total_amount: rData.original_amount,
+            currency: rData.currency,
+            line_items: []
+          },
+          validation: {
+            status: rData.status,
+            flags: rData.flags || [],
+            reimbursement_amount: rData.approved_amount
+          },
+          decision: {
+            status: rData.status,
+            approved_amount: rData.approved_amount,
+            flags: rData.flags || [],
+            explanation: rData.explanation
+          }
+        };
+        setResult(res);
+        addProcessedReceipt(res, {
+          city: s3Res.metadata_inferred?.city || 'Default',
+          category: s3Res.metadata_inferred?.category || 'General',
+          client_name: s3Res.metadata_inferred?.client_name || 'S3 Cloud Ingestion',
+          submission_channel: 's3',
           imageUrl: previewUrl || rData.preview_url
         });
         await refreshSession();
@@ -425,7 +475,78 @@ export const SmartSubmit = () => {
             </div>
           )}
 
-          {channel !== 'email' && (
+          {channel === 's3' && (
+            <div style={{
+              background: 'rgba(234, 179, 8, 0.07)',
+              border: '1px solid rgba(234, 179, 8, 0.3)',
+              borderRadius: '12px',
+              padding: '20px',
+              marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#facc15', fontWeight: 600, fontSize: '1rem' }}>
+                  <Cloud size={20} />
+                  <span>Stage 1 Automated Ingestion: AWS S3 Cloud Storage Bucket</span>
+                </div>
+                <span style={{
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '0.75rem',
+                  background: 'rgba(234, 179, 8, 0.15)',
+                  color: '#facc15',
+                  border: '1px solid rgba(234, 179, 8, 0.3)'
+                }}>
+                  ● S3 Watcher / Webhook Poller
+                </span>
+              </div>
+              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
+                Simulate network scanners, ERP bulk drops, or mobile presigned S3 uploads into <strong>s3://expense-vault/inbox/</strong>. The S3 poller automatically streams the file, extracts the employee and location tags from the object key/filename, verifies policy rules, and moves the file to <code>processed/</code> or <code>quarantine/</code>.
+              </p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                    Target S3 Object Key Path:
+                  </label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={`inbox/${isPrivileged && employeeId ? employeeId : (user?.employee_id || 'EMP-101')}/${file?.name || 'receipt.jpg'}`}
+                    disabled
+                    style={{ opacity: 0.85, cursor: 'not-allowed', background: 'rgba(0,0,0,0.15)', fontFamily: 'monospace', fontSize: '0.82rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                    Associated Employee:
+                  </label>
+                  {isPrivileged ? (
+                    <select
+                      className={styles.select}
+                      value={employeeId}
+                      onChange={e => setEmployeeId(e.target.value)}
+                    >
+                      {employees.map(emp => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.name} ({emp.id})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      className={styles.input}
+                      value={`${user?.name || 'User'} (${user?.employee_id || 'EMP-101'})`}
+                      disabled
+                      style={{ opacity: 0.75, cursor: 'not-allowed', background: 'rgba(0,0,0,0.15)' }}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {channel !== 'email' && channel !== 's3' && (
             <div className={styles.metaGrid}>
             <div className={styles.formGroup}>
               <label className={styles.label}>City Location (Policy Limit)</label>
@@ -435,12 +556,22 @@ export const SmartSubmit = () => {
                 onChange={e => setCity(e.target.value)}
               >
                 <option value="" disabled>Select a city</option>
-                {['New York', 'San Francisco', 'Chicago', 'Austin', 'Default'].map(location => (
-                  <option key={location} value={location}>
-                    {location === 'Default' ? 'Other / Default':location}
-                    {cityCaps[location] != null ? ` (₹${Number(cityCaps[location]).toFixed(2)} Cap)`:''}
-                  </option>
-                ))}
+                <optgroup label="Indian Metros & Tech Hubs">
+                  {['Mumbai', 'Bengaluru', 'Delhi NCR', 'Hyderabad', 'Pune', 'Chennai', 'Kolkata', 'Ahmedabad', 'Jaipur'].map(location => (
+                    <option key={location} value={location}>
+                      {location}
+                      {cityCaps[location] != null ? ` (₹${Number(cityCaps[location]).toLocaleString('en-IN')} Cap)`:''}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="International & Other">
+                  {['New York', 'San Francisco', 'Chicago', 'Austin', 'London', 'Default'].map(location => (
+                    <option key={location} value={location}>
+                      {location === 'Default' ? 'Other / Default':location}
+                      {cityCaps[location] != null ? ` (₹${Number(cityCaps[location]).toLocaleString('en-IN')} Cap)`:''}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
 

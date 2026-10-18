@@ -138,11 +138,25 @@ export const EditableReceiptForm = ({
             onChange={e => setCity(e.target.value)}
             disabled={readOnly}
           >
-            <option value="New York">New York (Meal Cap ?8,350)</option>
-            <option value="San Francisco">San Francisco (Meal Cap ?7,515)</option>
-            <option value="Chicago">Chicago (Meal Cap ?6,263)</option>
-            <option value="Austin">Austin (Meal Cap ?6,263)</option>
-            <option value="Default">Other / Default (?6,263)</option>
+            <optgroup label="Indian Metros & Tech Hubs">
+              <option value="Mumbai">Mumbai (Meal Cap ₹4,000)</option>
+              <option value="Bengaluru">Bengaluru (Meal Cap ₹3,500)</option>
+              <option value="Delhi NCR">Delhi NCR (Meal Cap ₹3,500)</option>
+              <option value="Hyderabad">Hyderabad (Meal Cap ₹3,000)</option>
+              <option value="Pune">Pune (Meal Cap ₹3,000)</option>
+              <option value="Chennai">Chennai (Meal Cap ₹3,000)</option>
+              <option value="Kolkata">Kolkata (Meal Cap ₹2,500)</option>
+              <option value="Ahmedabad">Ahmedabad (Meal Cap ₹2,500)</option>
+              <option value="Jaipur">Jaipur (Meal Cap ₹2,500)</option>
+            </optgroup>
+            <optgroup label="International & Other">
+              <option value="New York">New York (Meal Cap ₹8,350)</option>
+              <option value="San Francisco">San Francisco (Meal Cap ₹7,515)</option>
+              <option value="Chicago">Chicago (Meal Cap ₹6,263)</option>
+              <option value="Austin">Austin (Meal Cap ₹6,263)</option>
+              <option value="London">London (Meal Cap ₹8,500)</option>
+              <option value="Default">Other / Default (₹2,500)</option>
+            </optgroup>
           </select>
         </div>
 

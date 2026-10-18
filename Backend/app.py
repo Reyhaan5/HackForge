@@ -23,6 +23,7 @@ from email_ingest import (
     parse_metadata_from_text,
     is_valid_receipt_attachment
 )
+from s3_ingest import S3BucketPoller, extract_meta_from_s3_key
 from pydantic import BaseModel
 from typing import Optional, List
 
@@ -520,6 +521,141 @@ def sync_email_inbox(
     result = poller.sync_inbox(db=db, max_emails=max_emails)
     status_code = 200 if result.get("success") else 400
     return JSONResponse(status_code=status_code, content=result)
+
+# =====================================================================
+# STAGE 1: AUTOMATED INGESTION (CHANNEL B: AWS S3 CLOUD STORAGE)
+# =====================================================================
+
+@app.get("/api/ingest/s3/status")
+def get_s3_ingest_status():
+    """Returns configuration and connection health of the AWS S3 Bucket listener."""
+    poller = S3BucketPoller()
+    conn_info = poller.check_bucket_connection()
+    return {
+        "channel": "s3",
+        "s3_configured": poller.is_configured(),
+        "connected": conn_info.get("connected", False),
+        "bucket": poller.bucket_name if poller.is_configured() else "Not Configured",
+        "region": poller.region,
+        "inbox_prefix": poller.inbox_prefix,
+        "supported_formats": [".pdf", ".png", ".jpg", ".jpeg", ".webp"],
+        "error": conn_info.get("error")
+    }
+
+@app.post("/api/ingest/s3/sync")
+def sync_s3_inbox_endpoint(
+    max_files: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db)
+):
+    """
+    Manually triggers polling of s3://<bucket>/inbox/ for pending receipt files.
+    """
+    poller = S3BucketPoller()
+    result = poller.sync_inbox(db=db, max_files=max_files)
+    status_code = 200 if result.get("success") else 400
+    return JSONResponse(status_code=status_code, content=result)
+
+@app.post("/api/ingest/s3/simulate")
+async def simulate_s3_upload_endpoint(
+    file: UploadFile = File(...),
+    employee_id: str = Form("EMP-101"),
+    city: str = Form("New York"),
+    category: str = Form("Meals"),
+    client_name: str = Form(""),
+    attendee_count: int = Form(1),
+    db: Session = Depends(get_db)
+):
+    """
+    Simulates an automated drop into s3://<bucket>/inbox/<employee_id>/
+    and processes the receipt with submission_channel='s3'.
+    """
+    file_bytes = await file.read()
+    filename = file.filename or "receipt.jpg"
+
+    is_valid, reason = is_valid_receipt_attachment(filename, file_bytes)
+    if not is_valid:
+        return JSONResponse(status_code=400, content={
+            "success": False,
+            "error": reason,
+            "filename": filename
+        })
+
+    try:
+        result = process_single_receipt_document(
+            db=db,
+            file_bytes=file_bytes,
+            original_filename=filename,
+            employee_id=employee_id,
+            submission_channel="s3",
+            city=city,
+            category=category,
+            client_name=client_name,
+            attendee_count=attendee_count
+        )
+        return JSONResponse(content={
+            "success": True,
+            "channel": "s3",
+            "bucket": os.getenv("S3_BUCKET_NAME", "company-expense-vault"),
+            "key": f"inbox/{employee_id}/{filename}",
+            "receipt": result
+        })
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+@app.post("/api/ingest/s3-webhook")
+async def s3_event_notification_webhook(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    AWS S3 Event Notification Webhook (s3:ObjectCreated:*).
+    Receives notification payload when a file is uploaded to the S3 bucket,
+    downloads the object, and processes it in sub-second time.
+    """
+    try:
+        body = await request.json()
+        records = body.get("Records", [])
+        if not records:
+            return JSONResponse(content={"message": "No S3 records to process."})
+
+        poller = S3BucketPoller()
+        client = poller.get_client()
+        if not client:
+            return JSONResponse(status_code=400, content={"error": "S3 client not configured."})
+
+        processed = []
+        for rec in records:
+            bucket_name = rec.get("s3", {}).get("bucket", {}).get("name")
+            key = rec.get("s3", {}).get("object", {}).get("key")
+            if not bucket_name or not key or key.endswith('/'):
+                continue
+
+            obj = client.get_object(Bucket=bucket_name, Key=key)
+            file_bytes = obj["Body"].read()
+            filename = os.path.basename(key)
+
+            meta = extract_meta_from_s3_key(key)
+            emp_hint = meta["employee_hint"]
+            emp_id = resolve_or_create_employee(db, emp_hint).id if "@" in emp_hint else emp_hint
+
+            res = process_single_receipt_document(
+                db=db,
+                file_bytes=file_bytes,
+                original_filename=filename,
+                employee_id=emp_id,
+                submission_channel="s3",
+                city=meta["city"],
+                category=meta["category"],
+                client_name=meta["client_name"],
+                attendee_count=meta["attendee_count"]
+            )
+            processed.append(res)
+
+        return JSONResponse(content={"success": True, "processed": processed})
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 @app.get("/api/receipts")
 def list_receipts(

@@ -28,11 +28,21 @@ def get_active_policy(db: Session) -> Dict[str, Any]:
         "monthly_limit": 167000.0,
         "approval_threshold": 16700.0,
         "city_daily_caps": {
+            "Mumbai": 4000.0,
+            "Bengaluru": 3500.0,
+            "Delhi NCR": 3500.0,
+            "Hyderabad": 3000.0,
+            "Pune": 3000.0,
+            "Chennai": 3000.0,
+            "Kolkata": 2500.0,
+            "Ahmedabad": 2500.0,
+            "Jaipur": 2500.0,
             "New York": 8350.0,
             "San Francisco": 7515.0,
             "Chicago": 6263.0,
             "Austin": 6263.0,
-            "Default": 6263.0
+            "London": 8500.0,
+            "Default": 2500.0
         },
         "category_caps": {
             "Meals": 8350.0,
