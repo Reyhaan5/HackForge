@@ -16,7 +16,7 @@ import {
   Check
 } from 'lucide-react';
 import { useReceipts } from '../../context/ReceiptContext';
-import { getEmployees, processReceipt } from '../../services/api';
+import { getEmployees, processReceipt, simulateEmailReceipt } from '../../services/api';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import ReceiptSplitView from '../../components/ReceiptSplitView/ReceiptSplitView';
 import AuditStatusPill from '../../components/AuditStatusPill/AuditStatusPill';
@@ -101,13 +101,17 @@ export const SmartSubmit = () => {
   const isPrivileged = ['Admin', 'Finance'].includes(user?.role);
   const cityCaps = policyRules?.city_daily_caps || {};
 
-  // Form states
   const [channel, setChannel] = useState('web');
   const [city, setCity] = useState('');
   const [category, setCategory] = useState('');
   const [clientName, setClientName] = useState('');
   const [employees, setEmployees] = useState([]);
   const [employeeId, setEmployeeId] = useState(user?.employee_id || '');
+
+  // Email Ingestion Simulation States
+  const [emailSender, setEmailSender] = useState(user?.email || 'sarah.connor@company.com');
+  const [emailSubject, setEmailSubject] = useState('[NYC] Business Lunch with Acme Corp');
+  const [emailBody, setEmailBody] = useState('City: New York, Category: Meals, Client: Acme Corp, Attendees: 2');
 
   // File states
   const [file, setFile] = useState(null);
@@ -277,19 +281,67 @@ export const SmartSubmit = () => {
       setError('Please select or drop a receipt image or PDF first.');
       return;
     }
-    if (isPrivileged && !employeeId) {
-      setError('Select an employee before submitting a receipt for them.');
-      return;
-    }
-    if (!city || !category) {
-      setError('Choose the expense city and category before submitting.');
-      return;
+    if (channel !== 'email') {
+      if (isPrivileged && !employeeId) {
+        setError('Select an employee before submitting a receipt for them.');
+        return;
+      }
+      if (!city || !category) {
+        setError('Choose the expense city and category before submitting.');
+        return;
+      }
     }
 
     setIsProcessing(true);
     setError(null);
 
     try {
+      if (channel === 'email') {
+        const emailRes = await simulateEmailReceipt(file, emailSender, emailSubject, emailBody);
+        if (!emailRes?.success || !emailRes.receipt) {
+          throw new Error(emailRes?.error || 'Email ingestion failed.');
+        }
+        const rData = emailRes.receipt;
+        const res = {
+          success: true,
+          receipt_id: rData.receipt_id,
+          image_url: rData.preview_url,
+          submission_channel: 'email',
+          currency: rData.currency,
+          original_amount: rData.original_amount,
+          exchange_rate: 1.0,
+          base_amount_usd: rData.base_amount_usd,
+          extracted: {
+            vendor: rData.vendor,
+            date: rData.date,
+            total_amount: rData.original_amount,
+            currency: rData.currency,
+            line_items: []
+          },
+          validation: {
+            status: rData.status,
+            flags: rData.flags || [],
+            reimbursement_amount: rData.approved_amount
+          },
+          decision: {
+            status: rData.status,
+            approved_amount: rData.approved_amount,
+            flags: rData.flags || [],
+            explanation: rData.explanation
+          }
+        };
+        setResult(res);
+        addProcessedReceipt(res, {
+          city: emailRes.metadata_inferred?.city || city || 'Default',
+          category: emailRes.metadata_inferred?.category || category || 'Meals',
+          client_name: emailRes.metadata_inferred?.client_name || clientName,
+          submission_channel: 'email',
+          imageUrl: previewUrl || rData.preview_url
+        });
+        await refreshSession();
+        return;
+      }
+
       // Call FastAPI backend POST /api/process-receipt
       const res = await processReceipt(file, city, category, clientName, {
         employeeId: user?.employee_id || employeeId,
@@ -406,7 +458,78 @@ export const SmartSubmit = () => {
             </div>
           </div>
 
-          <div className={styles.metaGrid}>
+          {channel === 'email' && (
+            <div style={{
+              background: 'rgba(59, 130, 246, 0.07)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '12px',
+              padding: '20px',
+              marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#60a5fa', fontWeight: 600, fontSize: '1rem' }}>
+                  <Mail size={20} />
+                  <span>Stage 1 Automated Ingestion: Inbound Corporate Gateway</span>
+                </div>
+                <span style={{
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '0.75rem',
+                  background: 'rgba(34, 197, 94, 0.15)',
+                  color: '#4ade80',
+                  border: '1px solid rgba(34, 197, 94, 0.3)'
+                }}>
+                  ● IMAP Listener Active
+                </span>
+              </div>
+              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
+                Simulate forwarding an invoice or receipt to <strong>receipts@company.com</strong>. The ingestion daemon automatically resolves the employee from the sender, infers city and category from email tags, discards email signature junk (&lt;4KB logos), and fires the Gemini extraction pipeline.
+              </p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                    From (Sender Employee Email):
+                  </label>
+                  <input
+                    type="email"
+                    className={styles.input}
+                    value={emailSender}
+                    onChange={e => setEmailSender(e.target.value)}
+                    placeholder="employee@company.com"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                    To (Automated Ingestion Inbox):
+                  </label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value="receipts@company.com (Automated Intake)"
+                    disabled
+                    style={{ opacity: 0.75, cursor: 'not-allowed', background: 'rgba(0,0,0,0.15)' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-secondary)' }}>
+                  Email Subject Line (supports smart tags like [NYC], [London], etc.):
+                </label>
+                <input
+                  type="text"
+                  className={styles.input}
+                  value={emailSubject}
+                  onChange={e => setEmailSubject(e.target.value)}
+                  placeholder="[NYC] Business Lunch with Acme Corp"
+                />
+              </div>
+            </div>
+          )}
+
+          {channel !== 'email' && (
+            <div className={styles.metaGrid}>
             <div className={styles.formGroup}>
               <label className={styles.label}>City Location (Policy Limit)</label>
               <select
@@ -471,6 +594,7 @@ export const SmartSubmit = () => {
               </div>
             )}
           </div>
+          )}
 
           {/* Drag & Drop Zone */}
           {!file ? (
@@ -535,7 +659,11 @@ export const SmartSubmit = () => {
                 onClick={handleProcess}
               >
                 <Sparkles size={18} />
-                <span>{isPrivileged ? 'Exhume & Smart Submit' : 'Submit Receipt for Admin Processing'}</span>
+                <span>
+                  {channel === 'email' 
+                    ? '⚡ Ingest Forwarded Email Receipt' 
+                    : (isPrivileged ? 'Exhume & Smart Submit' : 'Submit Receipt for Admin Processing')}
+                </span>
               </button>
             </div>
           )}

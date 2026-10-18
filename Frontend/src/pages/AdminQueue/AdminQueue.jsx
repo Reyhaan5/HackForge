@@ -256,7 +256,25 @@ export const AdminQueue = () => {
                   </div>
                   <div className={styles.metaRow}>
                     <span className={styles.metaLabel}>Expense Date</span>
-                    <span className={styles.metaValue}>{currentItem.receipt.date}</span>
+                    <span className={styles.metaValue}>{currentItem.receipt.date || 'N/A'}</span>
+                  </div>
+                  <div className={styles.metaRow}>
+                    <span className={styles.metaLabel}>Ingested Timestamp</span>
+                    <span className={styles.metaValue} style={{ color: 'var(--text-secondary)' }}>
+                      {(() => {
+                        if (!currentItem.timestamp) return 'N/A';
+                        const s = String(currentItem.timestamp);
+                        const d = s.endsWith('Z') || s.includes('+') ? new Date(s) : new Date(s + 'Z');
+                        return isNaN(d.getTime()) ? 'N/A' : d.toLocaleString([], {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit'
+                        });
+                      })()}
+                    </span>
                   </div>
                   <div className={styles.metaRow}>
                     <span className={styles.metaLabel}>Location & Category</span>
