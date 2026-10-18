@@ -14,12 +14,6 @@ from database import Login, get_db
 
 
 SECRET_KEY = os.getenv("JWT_SECRET", "").strip()
-if len(SECRET_KEY.encode("utf-8")) < 32:
-    raise RuntimeError(
-        "JWT_SECRET must be configured with at least 32 characters. "
-        "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
-    )
-
 JWT_ALGORITHM = "HS256"
 JWT_ISSUER = "hackforge-expense-api"
 JWT_AUDIENCE = "hackforge-expense-clients"

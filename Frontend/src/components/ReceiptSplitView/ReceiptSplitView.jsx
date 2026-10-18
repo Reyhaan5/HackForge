@@ -19,6 +19,9 @@ const ReceiptSplitView = ({
   const context = [city, category, clientName].filter(Boolean).join(' · ');
   const formatAmount = (amount) =>
     amount == null ? 'Not read from receipt' : `${extracted.currency || ''} ${Number(amount).toFixed(2)}`.trim();
+  const formatINR = amount => new Intl.NumberFormat('en-IN', {
+    style: 'currency', currency: 'INR', minimumFractionDigits: 2
+  }).format(Number(amount) || 0);
 
   return (
     <div className={styles.reviewLayout}>
@@ -47,9 +50,15 @@ const ReceiptSplitView = ({
             </div>
           )}
           <div className={`${styles.detailRow} ${styles.totalRow}`}>
-            <dt>Total</dt>
+            <dt>Receipt total</dt>
             <dd>{formatAmount(extracted.total_amount)}</dd>
           </div>
+          {receiptData?.base_amount_inr != null && (
+            <div className={`${styles.detailRow} ${styles.totalRow}`}>
+              <dt>Base amount (INR)</dt>
+              <dd>{formatINR(receiptData.base_amount_inr)}</dd>
+            </div>
+          )}
         </dl>
 
         {lineItems.length > 0 && (

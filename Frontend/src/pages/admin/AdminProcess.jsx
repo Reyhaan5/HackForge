@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Scan,
   Globe,
@@ -14,9 +15,7 @@ import {
   FileText,
   Receipt,
   User,
-  Building,
   ArrowRight,
-  RefreshCw,
   Sparkles,
   ShieldAlert,
   Eye,
@@ -24,7 +23,6 @@ import {
   X
 } from 'lucide-react';
 import { useReceipts } from '../../context/ReceiptContext';
-import { getEmployees, processReceipt } from '../../services/api';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import styles from './AdminProcess.module.css';
 
@@ -51,8 +49,7 @@ const getChannelDetails = (channelId) => {
 };
 
 export const AdminProcess = () => {
-  const { history, updateReceiptStatus, addProcessedReceipt } = useReceipts();
-  const [employees, setEmployees] = useState([]);
+  const { history, updateReceiptStatus } = useReceipts();
   const [selectedChannel, setSelectedChannel] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState(null);
@@ -60,25 +57,6 @@ export const AdminProcess = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
-
-  // Admin Direct Upload Tool State
-  const [directFile, setDirectFile] = useState(null);
-  const [directPreview, setDirectPreview] = useState(null);
-  const [directChannel, setDirectChannel] = useState('web');
-  const [directEmployeeId, setDirectEmployeeId] = useState('');
-  const [directCity, setDirectCity] = useState('New York');
-  const [directCategory, setDirectCategory] = useState('Meals');
-  const [isProcessingDirect, setIsProcessingDirect] = useState(false);
-  const fileInputRef = useRef(null);
-
-  useEffect(() => {
-    getEmployees().then(list => {
-      setEmployees(list || []);
-      if (list?.length > 0) setDirectEmployeeId(list[0].id);
-    }).catch(err => {
-      console.warn('Could not load employees:', err);
-    });
-  }, []);
 
   // Filter receipts by channel and search
   const filteredReceipts = useMemo(() => {
@@ -159,44 +137,6 @@ export const AdminProcess = () => {
     }
   };
 
-  // Admin Direct Process & Submit
-  const handleDirectProcess = async () => {
-    if (!directFile) {
-      setActionError('Please select a receipt file to process.');
-      return;
-    }
-    setIsProcessingDirect(true);
-    setActionError('');
-    setActionSuccess('');
-    try {
-      const result = await processReceipt(
-        directFile,
-        directCity,
-        directCategory,
-        '',
-        directChannel,
-        directEmployeeId,
-        1
-      );
-      if (addProcessedReceipt) {
-        addProcessedReceipt(result, {
-          city: directCity,
-          category: directCategory,
-          client_name: '',
-          submission_channel: directChannel,
-          imageUrl: directPreview
-        });
-      }
-      setActionSuccess(`Receipt processed and smart-submitted for ${directEmployeeId} via ${directChannel.toUpperCase()} channel!`);
-      setDirectFile(null);
-      setDirectPreview(null);
-    } catch (err) {
-      setActionError(err.message || 'Processing failed. Check backend connection.');
-    } finally {
-      setIsProcessingDirect(false);
-    }
-  };
-
   return (
     <div className={styles.container}>
       {/* Header */}
@@ -206,9 +146,6 @@ export const AdminProcess = () => {
             <Scan size={24} className={styles.titleIcon} />
             <h2 className={styles.title}>Admin Receipt Intake & Smart Processing</h2>
           </div>
-          <p className={styles.subtitle}>
-            Manage, smart-audit, and verify incoming receipts submitted by employees across all ingestion channels.
-          </p>
         </div>
 
         <div className={styles.headerMetrics}>
@@ -277,7 +214,7 @@ export const AdminProcess = () => {
         </div>
       </div>
 
-      {/* Main Grid: Submissions Table & Direct Ingest */}
+      {/* Incoming submissions */}
       <div className={styles.mainGrid}>
         
         {/* Table of Submissions */}
@@ -363,7 +300,7 @@ export const AdminProcess = () => {
                         {/* Amount */}
                         <td className={styles.alignRight}>
                           <span className={styles.amountText}>
-                            {new Intl.NumberFormat(undefined, { style: 'currency', currency: item.receipt?.currency || 'USD' }).format(Number(item.receipt?.total_amount) || 0)}
+                            {new Intl.NumberFormat(undefined, { style: 'currency', currency: 'INR' }).format(Number(item.receipt?.base_amount_inr ?? item.receipt?.total_amount) || 0)}
                           </span>
                         </td>
 
@@ -395,121 +332,16 @@ export const AdminProcess = () => {
           )}
         </div>
 
-        {/* Direct Admin Smart Ingestion Card */}
         <div className={styles.directIngestCard}>
           <div className={styles.directHeader}>
             <Sparkles size={18} className={styles.directIcon} />
-            <h3 className={styles.cardHeading}>Admin Direct Ingest</h3>
+            <h3 className={styles.cardHeading}>Submit a receipt</h3>
           </div>
-          <p className={styles.directDesc}>
-            Upload or ingest receipts directly into the company ledger on behalf of employees across any channel.
-          </p>
-
-          <div
-            className={styles.directDropBox}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,application/pdf"
-              className={styles.hiddenFile}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) {
-                  setDirectFile(f);
-                  setDirectPreview(URL.createObjectURL(f));
-                }
-              }}
-            />
-            {directPreview ? (
-              <div className={styles.directPreviewWrap}>
-                <img src={directPreview} alt="Receipt preview" className={styles.previewThumb} />
-                <span className={styles.directFileName}>{directFile?.name}</span>
-              </div>
-            ) : (
-              <div className={styles.directDropPrompt}>
-                <Receipt size={28} />
-                <span>Click to select receipt image or PDF</span>
-              </div>
-            )}
-          </div>
-
-          <div className={styles.directFields}>
-            <div className={styles.formGroup}>
-              <label>Assign to Employee</label>
-              <select
-                value={directEmployeeId}
-                onChange={(e) => setDirectEmployeeId(e.target.value)}
-                className={styles.selectBox}
-              >
-                {employees.map(emp => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.name} ({emp.id}) — {emp.department}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>Ingestion Channel</label>
-              <select
-                value={directChannel}
-                onChange={(e) => setDirectChannel(e.target.value)}
-                className={styles.selectBox}
-              >
-                <option value="web">🌐 Web Portal</option>
-                <option value="slack">💬 Slack Bot (@Resolver)</option>
-                <option value="email">✉️ Email Ingestion</option>
-                <option value="mobile">📱 Mobile Camera</option>
-              </select>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>City & Category</label>
-              <div className={styles.cityCatRow}>
-                <select
-                  value={directCity}
-                  onChange={(e) => setDirectCity(e.target.value)}
-                  className={styles.selectBox}
-                >
-                  <option value="New York">New York</option>
-                  <option value="San Francisco">San Francisco</option>
-                  <option value="Chicago">Chicago</option>
-                  <option value="Austin">Austin</option>
-                </select>
-                <select
-                  value={directCategory}
-                  onChange={(e) => setDirectCategory(e.target.value)}
-                  className={styles.selectBox}
-                >
-                  <option value="Meals">Meals</option>
-                  <option value="Transport">Transport</option>
-                  <option value="Travel">Travel</option>
-                  <option value="Office Supplies">Office Supplies</option>
-                </select>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              disabled={isProcessingDirect || !directFile}
-              onClick={handleDirectProcess}
-              className={styles.directSubmitBtn}
-            >
-              {isProcessingDirect ? (
-                <>
-                  <RefreshCw size={15} className={styles.spin} />
-                  <span>Processing...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={15} />
-                  <span>Smart Process & Ingest</span>
-                </>
-              )}
-            </button>
-          </div>
+          <Link to="/submit" className={styles.directSubmitBtn}>
+            <Sparkles size={15} />
+            <span>Open Smart Submit</span>
+            <ArrowRight size={15} />
+          </Link>
         </div>
 
       </div>
@@ -573,7 +405,7 @@ export const AdminProcess = () => {
                 <div className={styles.statusRow}>
                   <StatusBadge status={selectedReceipt.result?.status} />
                   <span className={styles.approvedSum}>
-                    Reimbursable: ${Number(selectedReceipt.result?.reimbursement_amount ?? selectedReceipt.result?.approved_amount ?? selectedReceipt.receipt?.total_amount ?? 0).toFixed(2)}
+                    Reimbursable: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(selectedReceipt.result?.reimbursement_amount ?? selectedReceipt.result?.approved_amount ?? selectedReceipt.receipt?.base_amount_inr ?? selectedReceipt.receipt?.total_amount ?? 0))}
                   </span>
                 </div>
 
@@ -609,7 +441,7 @@ export const AdminProcess = () => {
                         selectedReceipt.receipt.line_items.map((line, idx) => (
                           <tr key={idx} className={line.disallowed ? styles.rowDisallowed : ''}>
                             <td>{line.description || 'Expense item'}</td>
-                            <td className={styles.alignRight}>${Number(line.amount || 0).toFixed(2)}</td>
+                            <td className={styles.alignRight}>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(line.amount || 0) * Number(selectedReceipt.receipt?.exchange_rate || 1))}</td>
                             <td className={styles.alignRight}>
                               {line.disallowed ? (
                                 <span className={styles.badgeDisallowed}>Disallowed</span>
@@ -622,7 +454,7 @@ export const AdminProcess = () => {
                       ) : (
                         <tr>
                           <td>General Line Item</td>
-                          <td className={styles.alignRight}>${Number(selectedReceipt.receipt?.total_amount || 0).toFixed(2)}</td>
+                          <td className={styles.alignRight}>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(selectedReceipt.receipt?.base_amount_inr ?? selectedReceipt.receipt?.total_amount ?? 0))}</td>
                           <td className={styles.alignRight}><span className={styles.badgeAllowed}>Eligible</span></td>
                         </tr>
                       )}

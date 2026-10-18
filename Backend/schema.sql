@@ -39,10 +39,10 @@ CREATE TABLE receipts (
     attendee_count INTEGER DEFAULT 1,        -- For client entertainment & attendee verification
     client_name VARCHAR(255),                -- Mandatory if client lunch/dinner
     
-    currency VARCHAR(10) DEFAULT 'USD',
+    currency VARCHAR(10) DEFAULT 'INR',
     original_amount NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
     exchange_rate NUMERIC(12, 6) NOT NULL DEFAULT 1.000000,
-    base_amount_usd NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    base_amount_inr NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
     
     -- Itemized breakdown in JSONB:
     -- [{"description": "Cheeseburger", "amount": 16.50}, {"description": "IPA Beer", "amount": 8.00, "disallowed": true}]
@@ -68,20 +68,20 @@ INSERT INTO policies (id, is_active, rules) VALUES (
     'DEFAULT-EXPENSE-POLICY',
     TRUE,
     '{
-        "monthly_limit": 2000.0,
-        "approval_threshold": 200.0,
+        "monthly_limit": 167000.0,
+        "approval_threshold": 16700.0,
         "city_daily_caps": {
-            "New York": 100.0,
-            "San Francisco": 90.0,
-            "Chicago": 75.0,
-            "Austin": 75.0,
-            "Default": 75.0
+            "New York": 8350.0,
+            "San Francisco": 7515.0,
+            "Chicago": 6263.0,
+            "Austin": 6263.0,
+            "Default": 6263.0
         },
         "category_caps": {
-            "Office Supplies": 150.0,
-            "Transport": 100.0
+            "Office Supplies": 12525.0,
+            "Transport": 8350.0
         },
-        "client_meal_per_person_limit": 60.0,
+        "client_meal_per_person_limit": 5010.0,
         "non_reimbursable_keywords": [
             "alcohol", "wine", "beer", "liquor", "cocktail", 
             "spa", "massage", "movie", "casino", "gift", "tobacco"

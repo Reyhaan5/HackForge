@@ -12,6 +12,42 @@
   --cta-gold: #FFD13B;
   --cta-gold-hover: #F0C428;
   --warning-amber: #F59D2A;
+  --warning-text: #B45309;
+  --status-approved-bg: #ecfdf5;
+  --status-approved-border: #6ee7b7;
+  --status-approved-text: #065f46;
+  --status-approved-accent: #059669;
+  --status-approved-strong: #047857;
+  --status-partial-bg: #fffbeb;
+  --status-partial-border: #fcd34d;
+  --status-partial-text: #78350f;
+  --status-partial-accent: #d97706;
+  --status-partial-strong: #b45309;
+  --status-pending-bg: #f0f9ff;
+  --status-pending-border: #7dd3fc;
+  --status-pending-text: #075985;
+  --status-pending-accent: #0284c7;
+  --status-pending-strong: #0369a1;
+  --status-rejected-bg: #fef2f2;
+  --status-rejected-border: #fca5a5;
+  --status-rejected-text: #991b1b;
+  --status-rejected-accent: #dc2626;
+  --status-rejected-strong: #b91c1c;
+
+  --channel-web-bg: #e0f2fe;
+  --channel-web-text: #0369a1;
+  --channel-slack-bg: #f3e8ff;
+  --channel-slack-text: #6b21a8;
+  --channel-email-bg: #fef3c7;
+  --channel-email-text: #b45309;
+  --channel-mobile-bg: #dcfce7;
+  --channel-mobile-text: #15803d;
+
+  /* Keep scanned and simulated receipt previews looking like paper in both themes. */
+  --receipt-paper: #ffffff;
+  --receipt-ink: #111827;
+  --receipt-muted: #475569;
+  --receipt-rule: #94a3b8;
   --success-emerald: #10B981;
   --fraud-crimson: #EF4444;
   --border-hairpin: rgba(42, 42, 42, 0.08);
@@ -120,6 +156,46 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
+  /* Pleo and legacy tokens share the same dark palette. */
+  --bg-canvas: #0c0a09;
+  --bg-container: #201d1a;
+  --surface-white: #171412;
+  --text-charcoal: #f5f5f4;
+  --text-muted: #a8a29e;
+  --cta-gold: #f97316;
+  --cta-gold-hover: #fb923c;
+  --warning-text: #fcd34d;
+  --border-hairpin: rgba(245, 245, 244, 0.1);
+  --status-approved-bg: #021a12;
+  --status-approved-border: #064e3b;
+  --status-approved-text: #a7f3d0;
+  --status-approved-accent: #34d399;
+  --status-approved-strong: #6ee7b7;
+  --status-partial-bg: #1c1304;
+  --status-partial-border: #78350f;
+  --status-partial-text: #fde68a;
+  --status-partial-accent: #fbbf24;
+  --status-partial-strong: #fcd34d;
+  --status-pending-bg: #06193a;
+  --status-pending-border: #003674;
+  --status-pending-text: #93c5fd;
+  --status-pending-accent: #60a5fa;
+  --status-pending-strong: #bfdbfe;
+  --status-rejected-bg: #200707;
+  --status-rejected-border: #7f1d1d;
+  --status-rejected-text: #fecaca;
+  --status-rejected-accent: #f87171;
+  --status-rejected-strong: #fca5a5;
+
+  --channel-web-bg: #082f49;
+  --channel-web-text: #7dd3fc;
+  --channel-slack-bg: #3b0764;
+  --channel-slack-text: #d8b4fe;
+  --channel-email-bg: #451a03;
+  --channel-email-text: #fcd34d;
+  --channel-mobile-bg: #052e16;
+  --channel-mobile-text: #86efac;
+
   /* Keep older page styles on the same theme as the shared palette. */
   --background: #0c0a09;
   --surface: #171412;
@@ -127,9 +203,9 @@
   --text-secondary: #a8a29e;
   --border-color: #292524;
   --border-focus: #f97316;
-  --primary-color: #f97316;
+  --primary-color: #c2410c;
   --primary-light: rgba(249, 115, 22, 0.14);
-  --primary-hover: #fb923c;
+  --primary-hover: #ea580c;
   --success-color: #34d399;
   --success-light: rgba(16, 185, 129, 0.14);
   --warning-color: #fbbf24;
@@ -153,7 +229,7 @@
 
   /* Brand colors */
   --primary: #f97316;
-  --primary-foreground: #ffffff;
+  --primary-foreground: #1c1917;
   --primary-hover: #fb923c;
   --orange-light: #fdba74;
   --primary-glow: rgba(249, 115, 22, 0.12);

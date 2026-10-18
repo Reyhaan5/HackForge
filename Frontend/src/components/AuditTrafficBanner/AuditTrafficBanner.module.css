@@ -7,7 +7,7 @@
   border: 1px solid transparent;
   gap: 20px;
   transition: all 0.25s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--box-shadow);
 }
 
 .contentLeft {
@@ -75,8 +75,8 @@
   font-weight: 600;
   padding: 3px 9px;
   border-radius: 9999px;
-  background: rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
   display: inline-flex;
   align-items: center;
 }
@@ -104,59 +104,59 @@
 
 /* ================= 🟢 APPROVED ================= */
 .bannerApproved {
-  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
-  border-color: #6ee7b7;
-  color: #065f46;
+  background: var(--status-approved-bg);
+  border-color: var(--status-approved-border);
+  color: var(--status-approved-text);
 }
 
 .bannerApproved .statusIcon {
-  color: #059669;
+  color: var(--status-approved-accent);
 }
 
 .bannerApproved .badgeCode {
-  background: #059669;
+  background: var(--status-approved-accent);
   color: #ffffff;
 }
 
 .bannerApproved .amountDisplay {
-  color: #047857;
+  color: var(--status-approved-strong);
 }
 
 /* ================= 🟡 PARTIAL / FLAGGED ================= */
 .bannerPartial {
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-  border-color: #fcd34d;
-  color: #92400e;
+  background: var(--status-partial-bg);
+  border-color: var(--status-partial-border);
+  color: var(--status-partial-text);
 }
 
 .bannerPartial .statusIcon {
-  color: #d97706;
+  color: var(--status-partial-accent);
 }
 
 .bannerPartial .badgeCode {
-  background: #d97706;
+  background: var(--status-partial-accent);
   color: #ffffff;
 }
 
 .bannerPartial .amountDisplay {
-  color: #b45309;
+  color: var(--status-partial-strong);
 }
 
 .bannerPartial .flagChip {
-  background: rgba(217, 119, 6, 0.12);
-  border-color: rgba(217, 119, 6, 0.25);
-  color: #78350f;
+  background: color-mix(in srgb, var(--status-partial-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-partial-accent) 25%, transparent);
+  color: var(--status-partial-text);
 }
 
 /* ================= 🟠 PENDING_APPROVAL ================= */
 .bannerPending {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border-color: #7dd3fc;
-  color: #075985;
+  background: var(--status-pending-bg);
+  border-color: var(--status-pending-border);
+  color: var(--status-pending-text);
 }
 
 .bannerPending .statusIcon {
-  color: #0284c7;
+  color: var(--status-pending-accent);
   animation: spinSlow 8s linear infinite;
 }
 
@@ -166,38 +166,38 @@
 }
 
 .bannerPending .badgeCode {
-  background: #0284c7;
+  background: var(--status-pending-accent);
   color: #ffffff;
 }
 
 .bannerPending .amountDisplay {
-  color: #0369a1;
+  color: var(--status-pending-strong);
 }
 
 /* ================= 🔴 REJECTED ================= */
 .bannerRejected {
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-  border-color: #fca5a5;
-  color: #991b1b;
+  background: var(--status-rejected-bg);
+  border-color: var(--status-rejected-border);
+  color: var(--status-rejected-text);
 }
 
 .bannerRejected .statusIcon {
-  color: #dc2626;
+  color: var(--status-rejected-accent);
 }
 
 .bannerRejected .badgeCode {
-  background: #dc2626;
+  background: var(--status-rejected-accent);
   color: #ffffff;
 }
 
 .bannerRejected .amountDisplay {
-  color: #b91c1c;
+  color: var(--status-rejected-strong);
 }
 
 .bannerRejected .flagChip {
-  background: rgba(220, 38, 38, 0.12);
-  border-color: rgba(220, 38, 38, 0.25);
-  color: #7f1d1d;
+  background: color-mix(in srgb, var(--status-rejected-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-rejected-accent) 25%, transparent);
+  color: var(--status-rejected-text);
 }
 
 @media (max-width: 768px) {

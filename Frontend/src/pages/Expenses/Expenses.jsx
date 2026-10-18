@@ -14,7 +14,7 @@ import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import tableStyles from '../../components/Table/Table.module.css';
 import styles from './Expenses.module.css';
 
-const formatCurrency = (amount, currency = 'USD') => {
+const formatCurrency = (amount, currency = 'INR') => {
   try {
     return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(amount) || 0);
   } catch {
@@ -46,7 +46,7 @@ export const Expenses = () => {
   });
 
   const totalIncurred = history.reduce(
-    (acc, curr) => acc + (curr.receipt.base_amount_usd ?? curr.receipt.total_amount ?? 0),
+    (acc, curr) => acc + (curr.receipt.base_amount_inr ?? curr.receipt.total_amount ?? 0),
     0
   );
 
@@ -59,7 +59,7 @@ export const Expenses = () => {
       item =>
         item.result.status === 'PENDING_APPROVAL' || item.result.status === 'FLAGGED'
     )
-    .reduce((acc, curr) => acc + (curr.receipt.base_amount_usd ?? curr.receipt.total_amount ?? 0), 0);
+    .reduce((acc, curr) => acc + (curr.receipt.base_amount_inr ?? curr.receipt.total_amount ?? 0), 0);
 
   const handleExportCSV = async () => {
     try {
@@ -76,9 +76,6 @@ export const Expenses = () => {
       <div className={styles.topBar}>
         <div className={styles.titleArea}>
           <h2 className={styles.pageTitle}>All Expense Records</h2>
-          <p className={styles.pageSubtitle}>
-            Full ledger of submitted and AI-processed receipts, reimbursement statuses, and compliance flags.
-          </p>
         </div>
 
         <div className={styles.headerActions}>
@@ -104,15 +101,15 @@ export const Expenses = () => {
           <span className={styles.statMiniValue}>{history.length}</span>
         </div>
         <div className={styles.statMiniCard}>
-          <span className={styles.statMiniLabel}>Total Incurred (USD)</span>
+          <span className={styles.statMiniLabel}>Total Incurred (INR)</span>
           <span className={styles.statMiniValue}>{formatCurrency(totalIncurred)}</span>
         </div>
         <div className={styles.statMiniCard}>
-          <span className={styles.statMiniLabel}>Total Approved (USD)</span>
+          <span className={styles.statMiniLabel}>Total Approved (INR)</span>
           <span className={styles.statMiniValue}>{formatCurrency(totalReimbursed)}</span>
         </div>
         <div className={styles.statMiniCard}>
-          <span className={styles.statMiniLabel}>Pending In Review (USD)</span>
+          <span className={styles.statMiniLabel}>Pending In Review (INR)</span>
           <span className={styles.statMiniValue}>{formatCurrency(totalPending)}</span>
         </div>
       </div>
@@ -205,7 +202,7 @@ export const Expenses = () => {
                     {item.city || 'Standard'}
                   </td>
                   <td className={tableStyles.tdAmount}>
-                    {formatCurrency(item.receipt.total_amount, item.receipt.currency)}
+                    {formatCurrency(item.receipt.base_amount_inr ?? item.receipt.total_amount, 'INR')}
                   </td>
                   <td className={tableStyles.td}>
                     <StatusBadge status={item.result.status} />
@@ -266,14 +263,14 @@ export const Expenses = () => {
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>Total Incurred</span>
                 <span className={styles.detailValue}>
-                  {formatCurrency(selectedReceipt.receipt.total_amount, selectedReceipt.receipt.currency)}
+                  {formatCurrency(selectedReceipt.receipt.base_amount_inr ?? selectedReceipt.receipt.total_amount, 'INR')}
                 </span>
               </div>
 
               <div className={styles.detailRow}>
                 <span className={styles.detailLabel}>Approved Reimbursement</span>
                 <span className={styles.detailValue}>
-                  {formatCurrency(selectedReceipt.result.reimbursement_amount, 'USD')}
+                  {formatCurrency(selectedReceipt.result.reimbursement_amount, 'INR')}
                 </span>
               </div>
 
@@ -320,7 +317,7 @@ export const Expenses = () => {
                       {selectedReceipt.receipt.line_items.map((li, idx) => (
                         <div key={idx} className={styles.itemEntry}>
                           <span>{li.description}</span>
-                          <span>{formatCurrency(li.amount, selectedReceipt.receipt.currency)}</span>
+                          <span>{formatCurrency(Number(li.amount || 0) * Number(selectedReceipt.receipt.exchange_rate || 1), 'INR')}</span>
                         </div>
                       ))}
                     </div>

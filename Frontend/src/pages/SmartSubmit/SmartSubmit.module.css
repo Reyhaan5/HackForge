@@ -22,51 +22,32 @@
   margin: 0;
 }
 
+.sampleButton {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.sampleButton:hover {
+  border-color: var(--primary-color);
+  background: var(--card-hover);
+}
+
 .introDesc {
   font-size: 0.9rem;
   color: var(--text-secondary);
   margin: 0;
-}
-
-/* Quick test pill bar */
-.quickPills {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-
-.pillLabel {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.samplePill {
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 6px 14px;
-  background-color: var(--card-hover);
-  border: 1px solid #CBD5E1;
-  border-radius: 9999px;
-  cursor: pointer;
-  color: var(--text-primary);
-  transition: all 0.2s ease;
-}
-
-.samplePill:hover {
-  background-color: var(--primary-light);
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-}
-
-.samplePillActive {
-  background-color: var(--primary-light);
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-  box-shadow: 0 0 0 1px var(--primary-color);
-  font-weight: 700;
 }
 
 /* Multi-Channel Ingestion Bar */
@@ -192,7 +173,7 @@
 /* Drag and Drop Zone */
 .dropZone {
   position: relative;
-  border: 2px dashed #CBD5E1;
+  border: 2px dashed var(--border-color);
   border-radius: 12px;
   background-color: var(--bg);
   padding: 48px 24px;
@@ -395,25 +376,25 @@
 .bannerApproved {
   background-color: var(--success-light);
   border: 1px solid var(--success-color);
-  color: #065F46;
+  color: var(--status-approved-text);
 }
 
 .bannerFlagged {
   background-color: var(--warning-light);
   border: 1px solid var(--warning-color);
-  color: #92400E;
+  color: var(--warning-text);
 }
 
 .bannerPending {
   background-color: var(--warning-light);
   border: 1px solid var(--warning-color);
-  color: #78350F;
+  color: var(--warning-text);
 }
 
 .bannerRejected {
   background-color: var(--danger-light);
   border: 1px solid var(--danger-color);
-  color: #991B1B;
+  color: var(--status-rejected-text);
 }
 
 .bannerLeft {
@@ -457,7 +438,7 @@
 .flagsHeader {
   font-size: 0.88rem;
   font-weight: 700;
-  color: #92400E;
+  color: var(--warning-text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -465,7 +446,7 @@
 
 .flagItem {
   font-size: 0.85rem;
-  color: #78350F;
+  color: var(--warning-text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -570,9 +551,9 @@
 
 /* Paste Success Banner */
 .pasteSuccessBanner {
-  background: #ecfdf5;
-  border: 1px solid #10b981;
-  color: #065f46;
+  background: var(--status-approved-bg);
+  border: 1px solid var(--status-approved-border);
+  color: var(--status-approved-text);
   padding: 12px 18px;
   border-radius: var(--border-radius);
   display: flex;
@@ -585,7 +566,7 @@
 }
 
 .pasteIcon {
-  color: #059669;
+  color: var(--status-approved-accent);
   flex-shrink: 0;
 }
 

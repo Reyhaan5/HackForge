@@ -27,7 +27,7 @@
 .saveButton:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
 .saveButton:disabled { cursor: wait; opacity: .65; }
 .error, .success { margin: 0; padding: 11px 13px; border: 1px solid var(--danger-color); border-radius: 7px; color: var(--danger-color); font-size: .84rem; }
-.success { border-color: color-mix(in srgb, #059669 38%, var(--border-color)); color: #047857; }
+.success { border-color: color-mix(in srgb, var(--success-color) 38%, var(--border-color)); color: var(--success-color); }
 .empty, .loading { color: var(--text-secondary); font-size: .85rem; }
 .srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .form button:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }

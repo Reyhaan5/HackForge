@@ -130,18 +130,45 @@ export async function processReceipt(
   formData.append('attendee_count', String(attendees));
   if (empId) formData.append('employee_id', empId);
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 120000);
   try {
-    const response = await apiClient.post('/api/process-receipt', formData);
-    return response.data;
+    // Let the browser create the multipart Content-Type boundary. Axios
+    // interceptors or default headers can otherwise leave FastAPI unable to
+    // parse the uploaded form body.
+    const response = await fetch(`${BASE_URL}/api/process-receipt`, {
+      method: 'POST',
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      body: formData,
+      signal: controller.signal,
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (response.status === 401) {
+        clearAccessToken();
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event('hackforge:unauthorized'));
+      }
+      throw Object.assign(new Error(data.detail || data.error || `Request failed (${response.status})`), {
+        status: response.status,
+        responseData: data,
+      });
+    }
+    return data;
   } catch (error) {
-    console.error('Failed to process receipt with backend:', error);
+    const backendMessage = error.responseData?.detail || error.responseData?.error;
+    console.error('Failed to process receipt with backend:', JSON.stringify({
+      status: error.status,
+      message: backendMessage || error.message,
+      response: error.responseData,
+    }));
     throw new Error(
-      error.response?.data?.detail ||
-      error.response?.data?.error ||
+      backendMessage ||
       error.message ||
       'Failed to reach receipt processing engine at http://localhost:8000',
       { cause: error }
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

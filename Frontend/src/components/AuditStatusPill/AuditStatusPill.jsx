@@ -8,6 +8,8 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import styles from './AuditStatusPill.module.css';
 
+const formatINR = amount => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(Number(amount) || 0);
+
 // SVG Seal Badge matching the user's uploaded icon
 const ApprovedSealIcon = ({ size = 20, color = "#34d399", className = "" }) => (
   <svg
@@ -55,7 +57,7 @@ export const AuditStatusPill = ({
   status = 'APPROVED',
   approvedAmount = 0,
   requestedAmount = 0,
-  currency = 'USD',
+  currency = 'INR',
   flags = [],
   explanation = '',
   onClose,
@@ -69,52 +71,52 @@ export const AuditStatusPill = ({
       case 'APPROVED':
         return {
           label: 'APPROVED',
-          desc: `Full reimbursement ($${Number(approvedAmount || requestedAmount).toFixed(2)} ${currency})`,
+          desc: `Full reimbursement (${formatINR(approvedAmount || requestedAmount)})`,
           isApprovedSeal: true,
           containerClass: styles.pillApproved,
           btnClass: styles.btnApproved,
           descClass: styles.descApproved,
           closeClass: styles.closeApproved,
-          iconFill: '#34d399',
+          iconFill: 'var(--status-approved-accent)',
         };
 
       case 'PARTIAL':
       case 'FLAGGED':
         return {
           label: 'PARTIALLY APPROVED',
-          desc: `$${Number(approvedAmount).toFixed(2)} of $${Number(requestedAmount).toFixed(2)} (deductions applied)`,
+          desc: `${formatINR(approvedAmount)} of ${formatINR(requestedAmount)} (deductions applied)`,
           Icon: Split,
           containerClass: styles.pillPartial,
           btnClass: styles.btnPartial,
           descClass: styles.descPartial,
           closeClass: styles.closePartial,
-          iconFill: '#fbbf24',
+          iconFill: 'var(--status-partial-accent)',
         };
 
       case 'PENDING_APPROVAL':
       case 'PENDING':
         return {
           label: 'PENDING APPROVAL',
-          desc: `Requires manager sign-off ($${Number(requestedAmount).toFixed(2)} ${currency})`,
+          desc: `Requires manager sign-off (${formatINR(requestedAmount)})`,
           Icon: Clock,
           containerClass: styles.pillPending,
           btnClass: styles.btnPending,
           descClass: styles.descPending,
           closeClass: styles.closePending,
-          iconFill: '#60a5fa',
+          iconFill: 'var(--status-pending-accent)',
         };
 
       case 'REJECTED':
       default:
         return {
           label: 'REJECTED',
-          desc: explanation || (flags.length > 0 ? flags[0] : 'Policy violation detected ($0.00 reimbursable)'),
+          desc: explanation || (flags.length > 0 ? flags[0] : `Policy violation detected (${formatINR(0)} reimbursable)`),
           Icon: ShieldAlert,
           containerClass: styles.pillRejected,
           btnClass: styles.btnRejected,
           descClass: styles.descRejected,
           closeClass: styles.closeRejected,
-          iconFill: '#f87171',
+          iconFill: 'var(--status-rejected-accent)',
         };
     }
   };

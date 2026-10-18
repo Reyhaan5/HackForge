@@ -19,7 +19,7 @@ const getFullImageUrl = (url) => {
   return `http://localhost:8000${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
-const formatCurrency = (amount, currency = 'USD') => {
+const formatCurrency = (amount, currency = 'INR') => {
   try {
     return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(amount) || 0);
   } catch {
@@ -90,9 +90,7 @@ export const AdminQueue = () => {
       <div className={styles.headerCard}>
         <div className={styles.titleArea}>
           <h2 className={styles.title}>Manager Approval Queue</h2>
-          <p className={styles.subtitle}>
-            Review receipts flagged by backend policy checks{policyRules?.approval_threshold != null ? `, including the $${Number(policyRules.approval_threshold).toFixed(2)} approval threshold` : ''}.
-          </p>
+          
         </div>
         <div className={styles.badgePending}>
           <ShieldAlert size={16} />
@@ -128,7 +126,7 @@ export const AdminQueue = () => {
                 <div className={styles.queueCardSub}>
                   <span>{item.city}</span>
                   <span className={styles.queueCardAmount}>
-                    {formatCurrency(item.receipt.total_amount, item.receipt.currency)}
+                    {formatCurrency(item.receipt.base_amount_inr ?? item.receipt.total_amount, 'INR')}
                   </span>
                 </div>
                 <div style={{ marginTop: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
@@ -219,13 +217,13 @@ export const AdminQueue = () => {
                           currentItem.receipt.line_items.map((line, lidx) => (
                             <div key={lidx} className={styles.simLineRow}>
                               <span>{line.description}</span>
-                              <span>${(line.amount || 0).toFixed(2)}</span>
+                              <span>{formatCurrency(Number(line.amount || 0) * Number(currentItem.receipt.exchange_rate || 1), 'INR')}</span>
                             </div>
                           ))
                         ) : (
                           <div className={styles.simLineRow}>
                             <span>Subtotal Items</span>
-                            <span>{formatCurrency(currentItem.receipt.total_amount, currentItem.receipt.currency)}</span>
+                            <span>{formatCurrency(currentItem.receipt.base_amount_inr ?? currentItem.receipt.total_amount, 'INR')}</span>
                           </div>
                         )}
                       </div>
@@ -233,7 +231,7 @@ export const AdminQueue = () => {
                       <div className={styles.simTotalRow}>
                         <span>TOTAL PAID</span>
                         <span>
-                          {formatCurrency(currentItem.receipt.total_amount, currentItem.receipt.currency)}
+                          {formatCurrency(currentItem.receipt.base_amount_inr ?? currentItem.receipt.total_amount, 'INR')}
                         </span>
                       </div>
                     </div>
@@ -273,7 +271,7 @@ export const AdminQueue = () => {
                   <div className={styles.metaRow}>
                     <span className={styles.metaLabel}>Total Incurred</span>
                     <span className={styles.metaValue}>
-                      {formatCurrency(currentItem.receipt.total_amount, currentItem.receipt.currency)}
+                      {formatCurrency(currentItem.receipt.base_amount_inr ?? currentItem.receipt.total_amount, 'INR')}
                     </span>
                   </div>
                   <div className={styles.metaRow}>

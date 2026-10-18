@@ -59,10 +59,10 @@ class Receipt(Base):
     attendee_count = Column(Integer, default=1)
     client_name = Column(String(255), nullable=True)
     
-    currency = Column(String(10), default="USD")
+    currency = Column(String(10), default="INR")
     original_amount = Column(Numeric(10, 2), default=0.00, nullable=False)
     exchange_rate = Column(Numeric(12, 6), default=1.000000, nullable=False)
-    base_amount_usd = Column(Numeric(10, 2), default=0.00, nullable=False)
+    base_amount_inr = Column(Numeric(10, 2), default=0.00, nullable=False)
     
     # Itemized lines in JSONB: [{"description": "Lunch", "amount": 25.0, "disallowed": false}]
     line_items = Column(JSONB, default=list)
@@ -106,20 +106,20 @@ def init_db():
                 id="DEFAULT-EXPENSE-POLICY",
                 is_active=True,
                 rules={
-                    "monthly_limit": 2000.0,
-                    "approval_threshold": 200.0,
+                    "monthly_limit": 167000.0,
+                    "approval_threshold": 16700.0,
                     "city_daily_caps": {
-                        "New York": 100.0,
-                        "San Francisco": 90.0,
-                        "Chicago": 75.0,
-                        "Austin": 75.0,
-                        "Default": 75.0
+                        "New York": 8350.0,
+                        "San Francisco": 7515.0,
+                        "Chicago": 6263.0,
+                        "Austin": 6263.0,
+                        "Default": 6263.0
                     },
                     "category_caps": {
-                        "Office Supplies": 150.0,
-                        "Transport": 100.0
+                        "Office Supplies": 12525.0,
+                        "Transport": 8350.0
                     },
-                    "client_meal_per_person_limit": 60.0,
+                    "client_meal_per_person_limit": 5010.0,
                     "non_reimbursable_keywords": [
                         "alcohol", "wine", "beer", "liquor", "cocktail",
                         "spa", "massage", "movie", "casino", "gift", "tobacco"

@@ -1,11 +1,10 @@
-from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, Query
+from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, date
-import tempfile
 import os
 import shutil
 from uuid import uuid4
@@ -18,6 +17,21 @@ from pydantic import BaseModel
 from typing import Optional
 
 app = FastAPI(title="Expense Graveyard Policy Engine API", version="2.0")
+
+@app.exception_handler(HTTPException)
+async def log_bad_request_body(request: Request, exc: HTTPException):
+    if exc.status_code == 400 and exc.detail == "There was an error parsing the body":
+        cause = exc.__cause__ or exc.__context__
+        print(
+            "[UPLOAD PARSE ERROR] "
+            f"cause={cause!r} content-type={request.headers.get('content-type')!r} "
+            f"content-length={request.headers.get('content-length')!r}"
+        )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=exc.headers,
+    )
 
 app.add_middleware(
     CORSMiddleware,
@@ -46,7 +60,6 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
     if not user or not verify_password(payload.password.strip(), user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
-    # Automatically upgrade legacy plaintext password to secure PBKDF2 hash
     if "$" not in user.password_hash:
         user.password_hash = hash_password(payload.password.strip())
         db.commit()
@@ -81,9 +94,7 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     existing = db.query(Login).filter_by(username=payload.username.strip()).first()
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
-
-    # Public registration always creates a new employee identity. Callers cannot
-    # link an account to another employee or assign themselves a privileged role.
+    
     emp_id = f"EMP-{uuid4().hex[:12].upper()}"
     db.add(Employee(
         id=emp_id,
@@ -144,10 +155,6 @@ async def process_receipt(
     current_user: Login = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Ingests and validates a receipt from any submission channel (web, email, mobile, slack, api).
-    Extracts structured data using a cloud model, enforces layered policies, and stores results.
-    """
     if current_user.role in ["Admin", "Finance"]:
         employee_id = employee_id.strip() if employee_id else current_user.employee_id
         if not employee_id:
@@ -161,7 +168,6 @@ async def process_receipt(
 
     print(f"\n[Ingest] Ingesting receipt: {file.filename} | Employee: {employee_id} | Channel: {submission_channel} | City: {city}")
 
-    # Check employee existence
     emp = db.query(Employee).filter_by(id=employee_id).first()
     if not emp:
         # Auto-create if new
@@ -222,7 +228,7 @@ async def process_receipt(
             currency=decision.currency,
             original_amount=decision.requested_amount_original,
             exchange_rate=decision.exchange_rate,
-            base_amount_usd=decision.base_amount_usd,
+            base_amount_inr=decision.base_amount_inr,
             line_items=decision.processed_line_items,
             status=decision.status,
             approved_amount=decision.approved_amount,
@@ -249,7 +255,7 @@ async def process_receipt(
             "currency": decision.currency,
             "original_amount": decision.requested_amount_original,
             "exchange_rate": decision.exchange_rate,
-            "base_amount_usd": decision.base_amount_usd,
+            "base_amount_inr": decision.base_amount_inr,
             "extracted": extracted.model_dump(),
             "validation": {
                 "status": decision.status,
@@ -263,7 +269,7 @@ async def process_receipt(
             "decision": {
                 "status": decision.status,
                 "requested_amount_original": decision.requested_amount_original,
-                "base_amount_usd": decision.base_amount_usd,
+                "base_amount_inr": decision.base_amount_inr,
                 "approved_amount": decision.approved_amount,
                 "flags": decision.flags,
                 "explanation": decision.explanation
@@ -274,6 +280,9 @@ async def process_receipt(
             }
         })
 
+    except ValueError as e:
+        db.rollback()
+        return JSONResponse(status_code=422, content={"success": False, "error": str(e)})
     except Exception as e:
         db.rollback()
         print(f"[ERROR] Error processing receipt: {str(e)}")
@@ -317,7 +326,7 @@ def list_receipts(
             "currency": r.currency,
             "original_amount": float(r.original_amount),
             "exchange_rate": float(r.exchange_rate),
-            "base_amount_usd": float(r.base_amount_usd),
+            "base_amount_inr": float(r.base_amount_inr),
             "approved_amount": float(r.approved_amount),
             "status": r.status,
             "flags": r.flags,
@@ -350,7 +359,7 @@ def update_receipt_status(
     receipt.status = new_status
     if new_status == "APPROVED":
         if float(receipt.approved_amount) <= 0:
-            receipt.approved_amount = receipt.base_amount_usd
+            receipt.approved_amount = receipt.base_amount_inr
         if receipt.flags and isinstance(receipt.flags, list):
             receipt.flags = [
                 f for f in receipt.flags 
@@ -479,8 +488,9 @@ def get_session_data(current_user: Login = Depends(get_current_user), db: Sessio
                 "vendor": r.vendor or "Unknown",
                 "date": str(r.transaction_date) if r.transaction_date else "",
                 "total_amount": float(r.original_amount),
-                "currency": r.currency or "USD",
-                "base_amount_usd": float(r.base_amount_usd),
+                "currency": r.currency or "INR",
+                "base_amount_inr": float(r.base_amount_inr),
+                "exchange_rate": float(r.exchange_rate),
                 "line_items": r.line_items or [],
                 "is_itemized": bool(r.line_items)
             },
@@ -519,7 +529,7 @@ def export_csv(current_user: Login = Depends(get_current_user), db: Session = De
     receipts = query.all()
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["ID", "Date", "Vendor", "Amount", "Currency", "Category", "City", "Status", "Approved Amount", "Flags", "Employee ID"])
+    writer.writerow(["ID", "Date", "Vendor", "Original Amount", "Original Currency", "Amount (INR)", "Category", "City", "Status", "Approved Amount (INR)", "Flags", "Employee ID"])
     
     for r in receipts:
         flags_str = "; ".join(r.flags) if isinstance(r.flags, list) else str(r.flags or "")
@@ -528,7 +538,8 @@ def export_csv(current_user: Login = Depends(get_current_user), db: Session = De
             str(r.transaction_date or ""),
             r.vendor or "",
             float(r.original_amount),
-            r.currency or "USD",
+            r.currency or "INR",
+            float(r.base_amount_inr),
             r.category or "",
             r.city or "",
             r.status,

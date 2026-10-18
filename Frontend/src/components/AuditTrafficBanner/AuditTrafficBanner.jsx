@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import styles from './AuditTrafficBanner.module.css';
 
+const formatINR = amount => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(Number(amount) || 0);
+
 /**
  * AuditTrafficBanner
  * Matches schema: 'APPROVED', 'PARTIAL', 'PENDING_APPROVAL', 'REJECTED', 'FLAGGED'
@@ -15,7 +17,7 @@ export const AuditTrafficBanner = ({
   requestedAmount = 0,
   approvedAmount = 0,
   flags = [],
-  currency = 'USD',
+  currency = 'INR',
   explanation = ''
 }) => {
   const normStatus = (status || '').toUpperCase();
@@ -29,7 +31,7 @@ export const AuditTrafficBanner = ({
           title: 'Full Reimbursement Approved',
           subtitle: 'Clean audit pass • All items comply with active corporate policy',
           amountLabel: 'Approved Payout',
-          amountDisplay: `$${Number(approvedAmount || requestedAmount).toFixed(2)} ${currency}`,
+          amountDisplay: formatINR(approvedAmount || requestedAmount),
         };
 
       case 'PARTIAL':
@@ -40,7 +42,7 @@ export const AuditTrafficBanner = ({
           title: 'Partially Approved (Line Disallowance)',
           subtitle: explanation || 'Specific non-compliant items were excluded from reimbursement',
           amountLabel: 'Adjusted Payout',
-          amountDisplay: `$${Number(approvedAmount).toFixed(2)} of $${Number(requestedAmount).toFixed(2)}`,
+          amountDisplay: `${formatINR(approvedAmount)} of ${formatINR(requestedAmount)}`,
         };
 
       case 'PENDING_APPROVAL':
@@ -49,9 +51,9 @@ export const AuditTrafficBanner = ({
           bannerClass: styles.bannerPending,
           icon: <Clock className={styles.statusIcon} />,
           title: 'Manager Approval Required',
-          subtitle: explanation || 'Amount exceeds executive sign-off limit ($200.00)',
+          subtitle: explanation || 'Amount exceeds the manager approval threshold.',
           amountLabel: 'Requested Claim',
-          amountDisplay: `$${Number(requestedAmount).toFixed(2)} ${currency}`,
+          amountDisplay: formatINR(requestedAmount),
         };
 
       case 'REJECTED':
@@ -62,7 +64,7 @@ export const AuditTrafficBanner = ({
           title: 'Expense Claim Rejected',
           subtitle: explanation || 'Receipt violated corporate compliance guidelines',
           amountLabel: 'Reimbursable',
-          amountDisplay: `$0.00 ${currency}`,
+          amountDisplay: formatINR(0),
         };
     }
   };

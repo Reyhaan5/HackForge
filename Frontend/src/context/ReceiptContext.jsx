@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { clearAccessToken, getAccessToken, getPolicy, getSession, resetSession as apiResetSession, updateReceiptStatus as apiUpdateReceiptStatus } from '../services/api';
 
-const DEFAULT_MONTHLY_LIMIT = 2000.0;
+const DEFAULT_MONTHLY_LIMIT = 167000.0;
 
 const ReceiptContext = createContext(undefined);
 
@@ -103,7 +103,7 @@ export const ReceiptProvider = ({ children }) => {
       const newItem = {
         id: res.receipt_id != null ? `rec_${res.receipt_id}` : `rec_${crypto.randomUUID()}`,
         timestamp: new Date().toISOString(),
-        receipt: res.extracted,
+        receipt: { ...res.extracted, base_amount_inr: res.base_amount_inr, exchange_rate: res.exchange_rate },
         result: res.validation,
         city: metadata.city,
         category: metadata.category,

@@ -1,6 +1,7 @@
 import os
 import hashlib
-from datetime import datetime
+import re
+from datetime import date, datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
@@ -12,7 +13,7 @@ from google.genai.errors import APIError
 from google.genai import types
 import httpx
 
-from fx_converter import OFFLINE_RATES_TO_USD, normalize_currency
+from fx_converter import OFFLINE_RATES_TO_INR, normalize_currency
 
 ENV_PATH = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(ENV_PATH)
@@ -20,6 +21,45 @@ load_dotenv()
 
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 GEMINI_FALLBACK_MODEL = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.6-flash")
+
+
+def normalize_receipt_date(value: str) -> Optional[str]:
+    """Convert common, unambiguous receipt dates to YYYY-MM-DD."""
+    text = re.sub(r"(\d)(st|nd|rd|th)\b", r"\1", value.strip(), flags=re.IGNORECASE)
+    if not text:
+        return None
+
+    for date_format in ("%Y-%m-%d", "%Y/%m/%d", "%Y.%m.%d"):
+        try:
+            return datetime.strptime(text[:10], date_format).date().isoformat()
+        except ValueError:
+            pass
+
+    numeric_date = re.fullmatch(r"(\d{1,2})[./-](\d{1,2})[./-](\d{4})", text)
+    if numeric_date:
+        first, second, year = (int(part) for part in numeric_date.groups())
+        if first > 12 and second <= 12:
+            day_value, month_value = first, second
+        elif second > 12 and first <= 12:
+            month_value, day_value = first, second
+        else:
+            return None
+        try:
+            return date(year, month_value, day_value).isoformat()
+        except ValueError:
+            return None
+
+    for date_format in (
+        "%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y",
+        "%B %d %Y", "%b %d %Y", "%d %B, %Y", "%d %b, %Y",
+        "%d-%B-%Y", "%d-%b-%Y", "%B-%d-%Y", "%b-%d-%Y",
+    ):
+        try:
+            return datetime.strptime(text, date_format).date().isoformat()
+        except ValueError:
+            pass
+
+    return None
 
 
 class LineItem(BaseModel):
@@ -126,7 +166,7 @@ def extract_receipt(image_path: str) -> ExtractedReceipt:
     if not api_key:
         raise RuntimeError("Receipt extraction is unavailable: GEMINI_API_KEY is not configured.")
 
-    prompt = """Read only information visible in the uploaded receipt. Return null for fields that are missing, obscured, or ambiguous; never guess or substitute typical values. Preserve the printed currency and date. Extract each visible line item and amount. Do not infer expense category, city, or business purpose from the merchant. Only calculate a total from visible amounts when the printed total is unreadable, and leave it null if it cannot be calculated reliably."""
+    prompt = """Read only information visible in the uploaded receipt. Return null for fields that are missing, obscured, or ambiguous; never guess or substitute typical values. Return the receipt date as YYYY-MM-DD. If the order of a numeric date is ambiguous, return null. Preserve the printed currency. Extract each visible line item and amount. Do not infer expense category, city, or business purpose from the merchant. Only calculate a total from visible amounts when the printed total is unreadable, and leave it null if it cannot be calculated reliably."""
     try:
         client = genai.Client(api_key=api_key)
         with open(image_path, "rb") as f:
@@ -141,15 +181,10 @@ def extract_receipt(image_path: str) -> ExtractedReceipt:
             raise ValueError("The receipt total could not be read reliably. Please upload a clearer image.")
         if not data.currency:
             raise ValueError("The receipt currency could not be identified. Please upload a clearer image.")
-        if not data.date:
-            raise ValueError("The receipt date could not be read. Please upload a clearer image.")
-        try:
-            datetime.strptime(data.date, "%Y-%m-%d")
-        except ValueError as e:
-            raise ValueError("The receipt date could not be interpreted reliably. Please upload a clearer image.") from e
+        data.date = normalize_receipt_date(data.date) if data.date else None
 
         normalized_currency = normalize_currency(data.currency)
-        if normalized_currency not in OFFLINE_RATES_TO_USD:
+        if normalized_currency not in OFFLINE_RATES_TO_INR:
             raise ValueError(f"Currency '{data.currency}' is not supported for reliable conversion.")
 
         data.image_hash = img_hash
