@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { LogOut } from "lucide-react";
 import styles from "../styles/Modal.module.css";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
 import { clearAccessToken } from "../../services/api";
+import ArrowFillButton from "../../components/ArrowFillButton";
 
 export default function ProfileModal({ isOpen, onClose }){
     const navigate=useNavigate();
@@ -46,9 +48,16 @@ export default function ProfileModal({ isOpen, onClose }){
                     <button onClick={onClose} className={styles.primaryButton}>
                         Close
                     </button>
-                    <button onClick={handleLogout} className={styles.dangerButton}>
-                        Logout
-                    </button>
+                    <ArrowFillButton
+                        btnText="Logout"
+                        onClick={handleLogout}
+                        icon={LogOut}
+                        size="sm"
+                        bgColor="#dc2626"
+                        textColor="#ffffff"
+                        fillBgColor="#ffffff"
+                        fillTextColor="#dc2626"
+                    />
                 </div>
             </div>
         </div>

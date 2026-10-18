@@ -5,6 +5,7 @@ import ThemeToggle from "../components/ThemeToggle.jsx";
 import { useTheme } from "../context/ThemeProvider.jsx";
 import { useReceipts } from "../context/ReceiptContext.jsx";
 import { clearAccessToken, login, register } from "../services/api.js";
+import ArrowFillButton from "../components/ArrowFillButton.jsx";
 import styles from "./styles/Login.module.css";
 
 const PixelTrail = lazy(() => import("../components/PixelTrail.jsx"));
@@ -167,13 +168,17 @@ function Login() {
                                 onChange={handleChange}
                                 className={styles.loginInput}
                             />
-                            <button
+                            <ArrowFillButton
                                 type="submit"
-                                className={styles.btn}
+                                btnText={loading ? "Creating Account..." : "Register"}
                                 disabled={loading}
-                            >
-                                {loading ? "Creating Account..." : "Register"}
-                            </button>
+                                size="md"
+                                bgColor={theme === "dark" ? "#f97316" : "#ea580c"}
+                                textColor="#ffffff"
+                                fillBgColor="#ffffff"
+                                fillTextColor={theme === "dark" ? "#f97316" : "#ea580c"}
+                                className="w-full justify-center shadow-lg shadow-orange-500/25 mb-4"
+                            />
                         </form>
                     )}
                     
@@ -206,13 +211,17 @@ function Login() {
                                 onChange={handleChange}
                                 className={styles.loginInput}
                             />
-                            <button
+                            <ArrowFillButton
                                 type="submit"
-                                className={styles.btn}
+                                btnText={loading ? "Authenticating..." : "Login"}
                                 disabled={loading}
-                            >
-                                {loading ? "Authenticating..." : "Login"}
-                            </button>
+                                size="md"
+                                bgColor={theme === "dark" ? "#f97316" : "#ea580c"}
+                                textColor="#ffffff"
+                                fillBgColor="#ffffff"
+                                fillTextColor={theme === "dark" ? "#f97316" : "#ea580c"}
+                                className="w-full justify-center shadow-lg shadow-orange-500/25 mb-4"
+                            />
                         </form>
                     )}
                     

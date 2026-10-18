@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useReceipts } from '../../context/ReceiptContext';
 import ThemeToggle from '../ThemeToggle';
+import ArrowFillButton from '../ArrowFillButton';
 import projectLogo from '../../assets/logo.svg';
 import styles from './Layout.module.css';
 
@@ -197,15 +198,18 @@ export const Layout = ({ children }) => {
             )}
 
             {/* Sign Out / Switch account */}
-            <button
-              type="button"
-              className={styles.logoutButton}
+            <ArrowFillButton
+              btnText="Sign Out"
               onClick={handleLogout}
+              icon={LogOut}
+              size="sm"
+              bgColor="#dc2626"
+              textColor="#ffffff"
+              fillBgColor="#ffffff"
+              fillTextColor="#dc2626"
+              className="shadow-sm shadow-red-500/20"
               title="Sign out or switch accounts"
-            >
-              <LogOut size={15} />
-              <span>Sign Out</span>
-            </button>
+            />
           </div>
         </header>
 

@@ -1,0 +1,107 @@
+.arrow-fill-btn {
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+/* Base circle state */
+.arrow-fill-bg {
+  position: absolute;
+  z-index: 20;
+  border-radius: 9999px;
+  pointer-events: none;
+  top: var(--circle-inset-y, 6px);
+  right: var(--icon-right, 6px);
+  width: var(--icon-circle, 24px);
+  height: var(--icon-circle, 24px);
+  background-color: var(--btn-fill-bg);
+  transition: all 450ms cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+
+.arrow-fill-btn:hover .arrow-fill-bg,
+.arrow-fill-btn[data-pressed="true"] .arrow-fill-bg {
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 9999px !important;
+  background-color: var(--btn-fill-bg-hover) !important;
+}
+
+/* Text clip-path overlay */
+.arrow-fill-text-clip {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  clip-path: inset(var(--circle-inset-y, 6px) var(--icon-right, 6px) var(--circle-inset-y, 6px) calc(100% - var(--icon-right, 6px) - var(--icon-circle, 24px)) round 9999px);
+  color: var(--btn-fill-text);
+  transition: clip-path 450ms cubic-bezier(0.785, 0.135, 0.15, 0.86), color 450ms cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+
+.arrow-fill-btn:hover .arrow-fill-text-clip,
+.arrow-fill-btn[data-pressed="true"] .arrow-fill-text-clip {
+  clip-path: inset(0 0 0 0 round 9999px) !important;
+  color: var(--btn-fill-text-hover) !important;
+}
+
+/* Icon container circle */
+.arrow-fill-icon-circle {
+  position: absolute;
+  right: var(--icon-right, 6px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--icon-circle, 24px);
+  height: var(--icon-circle, 24px);
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  background-color: var(--btn-fill-bg);
+  color: var(--btn-arrow);
+  transition: background-color 450ms cubic-bezier(0.785, 0.135, 0.15, 0.86), color 450ms cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+
+.arrow-fill-btn:hover .arrow-fill-icon-circle,
+.arrow-fill-btn[data-pressed="true"] .arrow-fill-icon-circle {
+  background-color: var(--btn-fill-bg-hover) !important;
+  color: var(--btn-arrow-hover) !important;
+}
+
+/* Sliding icon transitions */
+.arrow-fill-icon-in {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-170%, -50%) scale(0);
+  opacity: 0;
+  transition: transform 450ms cubic-bezier(0.785, 0.135, 0.15, 0.86), opacity 300ms ease;
+}
+
+.arrow-fill-btn:hover .arrow-fill-icon-in,
+.arrow-fill-btn[data-pressed="true"] .arrow-fill-icon-in {
+  transform: translate(-50%, -50%) scale(1) !important;
+  opacity: 1 !important;
+}
+
+.arrow-fill-icon-out {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  transition: transform 450ms cubic-bezier(0.785, 0.135, 0.15, 0.86), opacity 300ms ease;
+}
+
+.arrow-fill-btn:hover .arrow-fill-icon-out,
+.arrow-fill-btn[data-pressed="true"] .arrow-fill-icon-out {
+  transform: translate(170%, -50%) scale(0) !important;
+  opacity: 0 !important;
+}
