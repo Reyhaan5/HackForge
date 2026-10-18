@@ -205,7 +205,7 @@
 /* Main Grid */
 .mainGrid {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -277,7 +277,6 @@
 
 .tableRowSelected {
   background-color: var(--primary-glow-soft);
-  border-left: 3px solid var(--primary);
 }
 
 .alignRight {
@@ -297,23 +296,23 @@
 }
 
 .channelWeb {
-  background-color: #E0F2FE;
-  color: #0369A1;
+  background-color: var(--channel-web-bg);
+  color: var(--channel-web-text);
 }
 
 .channelSlack {
-  background-color: #F3E8FF;
-  color: #6B21A8;
+  background-color: var(--channel-slack-bg);
+  color: var(--channel-slack-text);
 }
 
 .channelEmail {
-  background-color: #FEF3C7;
-  color: #B45309;
+  background-color: var(--channel-email-bg);
+  color: var(--channel-email-text);
 }
 
 .channelMobile {
-  background-color: #DCFCE7;
-  color: #15803D;
+  background-color: var(--channel-mobile-bg);
+  color: var(--channel-mobile-text);
 }
 
 /* Table Cells */
@@ -428,92 +427,6 @@
   line-height: 1.45;
 }
 
-.directDropBox {
-  border: 2px dashed var(--border-color);
-  border-radius: 8px;
-  padding: 20px 12px;
-  text-align: center;
-  cursor: pointer;
-  background-color: var(--background);
-  transition: border-color 150ms ease;
-}
-
-.directDropBox:hover {
-  border-color: var(--primary);
-}
-
-.hiddenFile {
-  display: none;
-}
-
-.directDropPrompt {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-}
-
-.directPreviewWrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.previewThumb {
-  max-height: 90px;
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
-}
-
-.directFileName {
-  font-size: 0.78rem;
-  font-weight: 650;
-  color: var(--text-primary);
-}
-
-.directFields {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.formGroup label {
-  font-size: 0.74rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-}
-
-.selectBox {
-  height: 38px;
-  padding: 6px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background-color: var(--surface);
-  color: var(--text-primary);
-  font-size: 0.84rem;
-  outline: none;
-}
-
-.selectBox:focus {
-  border-color: var(--primary);
-}
-
-.cityCatRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-
 .directSubmitBtn {
   display: inline-flex;
   align-items: center;
@@ -532,13 +445,8 @@
   margin-top: 4px;
 }
 
-.directSubmitBtn:hover:not(:disabled) {
+.directSubmitBtn:hover {
   background-color: var(--primary-hover);
-}
-
-.directSubmitBtn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .spin {

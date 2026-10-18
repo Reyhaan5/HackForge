@@ -8,12 +8,12 @@ export const EditableReceiptForm = ({
   category: initialCategory = 'Meals',
   clientName: initialClientName = '',
   onSave,
-  readOnly = false
+  readOnly=false
 }) => {
   const [vendor, setVendor] = useState(initialData.vendor || '');
   const [date, setDate] = useState(initialData.date || new Date().toISOString().split('T')[0]);
   const [totalAmount, setTotalAmount] = useState(initialData.total_amount?.toString() || '0');
-  const [currency, setCurrency] = useState(initialData.currency || 'USD');
+  const [currency, setCurrency]=useState(initialData.currency || 'INR');
   const [city, setCity] = useState(initialCity || 'New York');
   const [category, setCategory] = useState(initialCategory || 'Meals');
   const [clientName, setClientName] = useState(initialClientName || '');
@@ -138,11 +138,11 @@ export const EditableReceiptForm = ({
             onChange={e => setCity(e.target.value)}
             disabled={readOnly}
           >
-            <option value="New York">New York (Meal Cap $100)</option>
-            <option value="San Francisco">San Francisco (Meal Cap $90)</option>
-            <option value="Chicago">Chicago (Meal Cap $75)</option>
-            <option value="Austin">Austin (Meal Cap $75)</option>
-            <option value="Default">Other / Default ($75)</option>
+            <option value="New York">New York (Meal Cap ?8,350)</option>
+            <option value="San Francisco">San Francisco (Meal Cap ?7,515)</option>
+            <option value="Chicago">Chicago (Meal Cap ?6,263)</option>
+            <option value="Austin">Austin (Meal Cap ?6,263)</option>
+            <option value="Default">Other / Default (?6,263)</option>
           </select>
         </div>
 

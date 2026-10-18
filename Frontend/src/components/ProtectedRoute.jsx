@@ -6,7 +6,7 @@ export default function ProtectedRoute({ children, requiredRole }) {
     if (!user) {
         return <Navigate to="/login" replace />;
     }
-    const allowedRoles = requiredRole ? (Array.isArray(requiredRole) ? requiredRole : [requiredRole]) : null;
+    const allowedRoles=requiredRole ? (Array.isArray(requiredRole) ? requiredRole:[requiredRole]):null;
     if (allowedRoles && !allowedRoles.some(role => user.role?.toLowerCase() === role.toLowerCase())) {
         return <Navigate to="/" replace />;
     }

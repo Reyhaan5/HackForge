@@ -67,23 +67,23 @@
 
 /* Status themes */
 .pillApproved {
-  background: #021a12;
-  border: 1px solid #064e3b;
+  background: var(--status-approved-bg);
+  border: 1px solid var(--status-approved-border);
 }
 
 .pillPartial {
-  background: #1c1304;
-  border: 1px solid #78350f;
+  background: var(--status-partial-bg);
+  border: 1px solid var(--status-partial-border);
 }
 
 .pillPending {
-  background: #06193a;
-  border: 1px solid #003674;
+  background: var(--status-pending-bg);
+  border: 1px solid var(--status-pending-border);
 }
 
 .pillRejected {
-  background: #200707;
-  border: 1px solid #7f1d1d;
+  background: var(--status-rejected-bg);
+  border: 1px solid var(--status-rejected-border);
 }
 
 /* Button & Underline */
@@ -105,39 +105,39 @@
 }
 
 .btnApproved {
-  color: #34d399;
-  text-decoration-color: #065f46;
+  color: var(--status-approved-accent);
+  text-decoration-color: var(--status-approved-border);
 }
 .btnApproved:hover {
-  color: #6ee7b7;
-  text-decoration-color: #10b981;
+  color: var(--status-approved-strong);
+  text-decoration-color: var(--status-approved-accent);
 }
 
 .btnPartial {
-  color: #fbbf24;
-  text-decoration-color: #92400e;
+  color: var(--status-partial-accent);
+  text-decoration-color: var(--status-partial-border);
 }
 .btnPartial:hover {
-  color: #fde68a;
-  text-decoration-color: #f59e0b;
+  color: var(--status-partial-strong);
+  text-decoration-color: var(--status-partial-accent);
 }
 
 .btnPending {
-  color: #60a5fa;
-  text-decoration-color: #1e40af;
+  color: var(--status-pending-accent);
+  text-decoration-color: var(--status-pending-border);
 }
 .btnPending:hover {
-  color: #93c5fd;
-  text-decoration-color: #3b82f6;
+  color: var(--status-pending-strong);
+  text-decoration-color: var(--status-pending-accent);
 }
 
 .btnRejected {
-  color: #f87171;
-  text-decoration-color: #991b1b;
+  color: var(--status-rejected-accent);
+  text-decoration-color: var(--status-rejected-border);
 }
 .btnRejected:hover {
-  color: #fca5a5;
-  text-decoration-color: #ef4444;
+  color: var(--status-rejected-strong);
+  text-decoration-color: var(--status-rejected-accent);
 }
 
 /* Description text */
@@ -150,19 +150,19 @@
 }
 
 .descApproved {
-  color: #a7f3d0;
+  color: var(--status-approved-text);
 }
 
 .descPartial {
-  color: #fde68a;
+  color: var(--status-partial-text);
 }
 
 .descPending {
-  color: #93c5fd;
+  color: var(--status-pending-text);
 }
 
 .descRejected {
-  color: #fecaca;
+  color: var(--status-rejected-text);
 }
 
 /* Right side actions / close */
@@ -187,29 +187,29 @@
 }
 
 .closeApproved {
-  color: #34d399;
+  color: var(--status-approved-accent);
 }
 .closeApproved:hover {
-  background: rgba(52, 211, 153, 0.15);
+  background: color-mix(in srgb, var(--status-approved-accent) 15%, transparent);
 }
 
 .closePartial {
-  color: #fbbf24;
+  color: var(--status-partial-accent);
 }
 .closePartial:hover {
-  background: rgba(251, 191, 36, 0.15);
+  background: color-mix(in srgb, var(--status-partial-accent) 15%, transparent);
 }
 
 .closePending {
-  color: #60a5fa;
+  color: var(--status-pending-accent);
 }
 .closePending:hover {
-  background: rgba(96, 165, 250, 0.15);
+  background: color-mix(in srgb, var(--status-pending-accent) 15%, transparent);
 }
 
 .closeRejected {
-  color: #f87171;
+  color: var(--status-rejected-accent);
 }
 .closeRejected:hover {
-  background: rgba(248, 113, 113, 0.15);
+  background: color-mix(in srgb, var(--status-rejected-accent) 15%, transparent);
 }

@@ -16,12 +16,12 @@ function Login() {
         password: "",
     });
     const [isRegister, setIsRegister] = useState(false);
-    const [selectedRole, setSelectedRole] = useState("Employee");
+    const [selectedRole, setSelectedRole]=useState("Employee");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     const { theme } = useTheme();
-    const { loginUser, refreshSession } = useReceipts();
+    const { loginUser, refreshSession }=useReceipts();
     const trailColor = theme === "dark" ? "#f97316" : "#ea580c";
 
     function handleChange(e) {
@@ -170,13 +170,13 @@ function Login() {
                             />
                             <ArrowFillButton
                                 type="submit"
-                                btnText={loading ? "Creating Account..." : "Register"}
+                                btnText={loading ? "Creating Account...":"Register"}
                                 disabled={loading}
                                 size="md"
-                                bgColor={theme === "dark" ? "#f97316" : "#ea580c"}
+                                bgColor={theme === "dark" ? "#f97316":"#ea580c"}
                                 textColor="#ffffff"
                                 fillBgColor="#ffffff"
-                                fillTextColor={theme === "dark" ? "#f97316" : "#ea580c"}
+                                fillTextColor={theme === "dark" ? "#f97316":"#ea580c"}
                                 className="w-full justify-center shadow-lg shadow-orange-500/25 mb-4"
                             />
                         </form>
@@ -213,13 +213,13 @@ function Login() {
                             />
                             <ArrowFillButton
                                 type="submit"
-                                btnText={loading ? "Authenticating..." : "Login"}
+                                btnText={loading ? "Authenticating...":"Login"}
                                 disabled={loading}
                                 size="md"
-                                bgColor={theme === "dark" ? "#f97316" : "#ea580c"}
+                                bgColor={theme === "dark" ? "#f97316":"#ea580c"}
                                 textColor="#ffffff"
                                 fillBgColor="#ffffff"
-                                fillTextColor={theme === "dark" ? "#f97316" : "#ea580c"}
+                                fillTextColor={theme === "dark" ? "#f97316":"#ea580c"}
                                 className="w-full justify-center shadow-lg shadow-orange-500/25 mb-4"
                             />
                         </form>

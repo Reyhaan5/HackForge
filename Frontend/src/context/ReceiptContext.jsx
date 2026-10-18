@@ -1,14 +1,14 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { clearAccessToken, getAccessToken, getPolicy, getSession, resetSession as apiResetSession, updateReceiptStatus as apiUpdateReceiptStatus } from '../services/api';
 
-const DEFAULT_MONTHLY_LIMIT = 2000.0;
+const DEFAULT_MONTHLY_LIMIT=167000.0;
 
 const ReceiptContext = createContext(undefined);
 
 export const ReceiptProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
+  const [user, setUser]=useState(() => {
     try {
-      return getAccessToken() ? JSON.parse(window.sessionStorage.getItem('hackforge.user') || 'null') : null;
+      return getAccessToken() ? JSON.parse(window.sessionStorage.getItem('hackforge.user') || 'null'):null;
     } catch {
       return null;
     }
@@ -16,9 +16,9 @@ export const ReceiptProvider = ({ children }) => {
   const sessionRequestRef = useRef(0);
 
   const [history, setHistory] = useState([]);
-  const [monthlySpent, setMonthlySpent] = useState(0);
-  const [monthlyLimit, setMonthlyLimit] = useState(DEFAULT_MONTHLY_LIMIT);
-  const [policyRules, setPolicyRules] = useState(null);
+  const [monthlySpent, setMonthlySpent]=useState(0);
+  const [monthlyLimit, setMonthlyLimit]=useState(DEFAULT_MONTHLY_LIMIT);
+  const [policyRules, setPolicyRules]=useState(null);
 
   const loginUser = useCallback((userData) => {
     sessionRequestRef.current += 1;
@@ -62,9 +62,9 @@ export const ReceiptProvider = ({ children }) => {
       }));
 
       setHistory(current => {
-        const localById = new Map(current.map(item => [item.id, item]));
+        const localById=new Map(current.map(item => [item.id, item]));
         return backendItems.map(item => {
-          const local = localById.get(item.id);
+          const local=localById.get(item.id);
           return {
             ...local,
             ...item,
@@ -82,7 +82,7 @@ export const ReceiptProvider = ({ children }) => {
       }
     }
     try {
-      const policy = await getPolicy();
+      const policy=await getPolicy();
       if (requestId === sessionRequestRef.current) {
         setPolicyRules(policy?.rules || null);
         setMonthlyLimit(Number(policy?.rules?.monthly_limit) || DEFAULT_MONTHLY_LIMIT);
@@ -101,9 +101,9 @@ export const ReceiptProvider = ({ children }) => {
   const addProcessedReceipt = useCallback(
     (res, metadata) => {
       const newItem = {
-        id: res.receipt_id != null ? `rec_${res.receipt_id}` : `rec_${crypto.randomUUID()}`,
+        id: res.receipt_id != null ? `rec_${res.receipt_id}`:`rec_${crypto.randomUUID()}`,
         timestamp: new Date().toISOString(),
-        receipt: res.extracted,
+        receipt: { ...res.extracted, base_amount_inr: res.base_amount_inr, exchange_rate: res.exchange_rate },
         result: res.validation,
         city: metadata.city,
         category: metadata.category,
@@ -118,8 +118,8 @@ export const ReceiptProvider = ({ children }) => {
     []
   );
 
-  const updateReceiptStatus = useCallback(async (id, newStatus, notes = '') => {
-    const saved = await apiUpdateReceiptStatus(id, newStatus, notes);
+  const updateReceiptStatus=useCallback(async (id, newStatus, notes='') => {
+    const saved=await apiUpdateReceiptStatus(id, newStatus, notes);
     setHistory(prev => prev.map(item => item.id === id ? {
       ...item,
       result: {

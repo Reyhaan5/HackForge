@@ -43,23 +43,27 @@ export default function ThemeToggle({ className="", duration=400 }) {
       Math.max(top, window.innerHeight - top)
     );
 
-    await document.startViewTransition(() => {
-      flushSync(() => setTheme(newTheme));
-    }).ready;
+    try {
+      await document.startViewTransition(() => {
+        flushSync(() => setTheme(newTheme));
+      }).ready;
 
-    document.documentElement.animate(
-      {
-        clipPath:[
-          `circle(0px at ${x}px ${y}px)`,
-          `circle(${maxRadius}px at ${x}px ${y}px)`,
-        ],
-      },
-      {
-        duration,
-        easing:"ease-in-out",
-        pseudoElement:"::view-transition-new(root)",
-      }
-    );
+      document.documentElement.animate(
+        {
+          clipPath:[
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${maxRadius}px at ${x}px ${y}px)`,
+          ],
+        },
+        {
+          duration,
+          easing:"ease-in-out",
+          pseudoElement:"::view-transition-new(root)",
+        }
+      );
+    } catch {
+      setTheme(newTheme);
+    }
   }, [isDark, setTheme, duration]);
 
   return (

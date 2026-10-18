@@ -60,7 +60,7 @@
 
 .exportBtn:hover {
   background-color: var(--bg);
-  border-color: #CBD5E1;
+  border-color: var(--border-hover);
 }
 
 .newExpenseBtn {
@@ -286,7 +286,7 @@
 }
 
 .warningText {
-  color: #92400E;
+  color: var(--warning-text);
   font-size: 0.85rem;
   font-weight: 500;
 }

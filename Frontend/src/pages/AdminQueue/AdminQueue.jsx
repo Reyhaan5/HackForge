@@ -13,13 +13,13 @@ import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import { useReceipts } from '../../context/ReceiptContext';
 import styles from './AdminQueue.module.css';
 
-const getFullImageUrl = (url) => {
+const getFullImageUrl=(url) => {
   if (!url) return null;
   if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('http')) return url;
-  return `http://localhost:8000${url.startsWith('/') ? '' : '/'}${url}`;
+  return `http://localhost:8000${url.startsWith('/') ? '':'/'}${url}`;
 };
 
-const formatCurrency = (amount, currency = 'USD') => {
+const formatCurrency=(amount, currency='INR') => {
   try {
     return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(amount) || 0);
   } catch {
@@ -28,7 +28,7 @@ const formatCurrency = (amount, currency = 'USD') => {
 };
 
 export const AdminQueue = () => {
-  const { history, policyRules, updateReceiptStatus } = useReceipts();
+  const { history, policyRules, updateReceiptStatus }=useReceipts();
 
   // Find all receipts pending approval or flagged
   const queueItems = history.filter(
@@ -39,14 +39,14 @@ export const AdminQueue = () => {
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [managerNotes, setManagerNotes] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [actionError, setActionError] = useState('');
-  const [viewMode, setViewMode] = useState('scanned'); // 'scanned' | 'simulated'
+  const [isSubmitting, setIsSubmitting]=useState(false);
+  const [actionError, setActionError]=useState('');
+  const [viewMode, setViewMode]=useState('scanned'); // 'scanned' | 'simulated'
 
   // Selected item
   const currentItem = queueItems[selectedIndex] || queueItems[0] || null;
 
-  const handleApprove = async () => {
+  const handleApprove=async () => {
     if (!currentItem || isSubmitting) return;
     setActionError('');
     setIsSubmitting(true);
@@ -63,7 +63,7 @@ export const AdminQueue = () => {
     }
   };
 
-  const handleReject = async () => {
+  const handleReject=async () => {
     if (!currentItem || isSubmitting) return;
     if (!managerNotes.trim()) {
       setActionError('Add a short reason so the employee understands why this receipt was rejected.');
@@ -90,9 +90,7 @@ export const AdminQueue = () => {
       <div className={styles.headerCard}>
         <div className={styles.titleArea}>
           <h2 className={styles.title}>Manager Approval Queue</h2>
-          <p className={styles.subtitle}>
-            Review receipts flagged by backend policy checks{policyRules?.approval_threshold != null ? `, including the $${Number(policyRules.approval_threshold).toFixed(2)} approval threshold` : ''}.
-          </p>
+          
         </div>
         <div className={styles.badgePending}>
           <ShieldAlert size={16} />
@@ -128,7 +126,7 @@ export const AdminQueue = () => {
                 <div className={styles.queueCardSub}>
                   <span>{item.city}</span>
                   <span className={styles.queueCardAmount}>
-                    {formatCurrency(item.receipt.total_amount, item.receipt.currency)}
+                    {formatCurrency(item.receipt.base_amount_inr ?? item.receipt.total_amount, 'INR')}
                   </span>
                 </div>
                 <div style={{ marginTop: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
@@ -155,7 +153,7 @@ export const AdminQueue = () => {
                   <div className={styles.artifactToggle}>
                     <button
                       type="button"
-                      className={`${styles.toggleBtn} ${viewMode === 'scanned' ? styles.toggleBtnActive : ''}`}
+                      className={`${styles.toggleBtn} ${viewMode === 'scanned' ? styles.toggleBtnActive:''}`}
                       onClick={() => setViewMode('scanned')}
                       title="View original uploaded photo"
                     >
@@ -164,7 +162,7 @@ export const AdminQueue = () => {
                     </button>
                     <button
                       type="button"
-                      className={`${styles.toggleBtn} ${viewMode === 'simulated' ? styles.toggleBtnActive : ''}`}
+                      className={`${styles.toggleBtn} ${viewMode === 'simulated' ? styles.toggleBtnActive:''}`}
                       onClick={() => setViewMode('simulated')}
                       title="View digital paper ledger"
                     >
@@ -186,7 +184,7 @@ export const AdminQueue = () => {
                           className={styles.receiptImg}
                         />
                       </div>
-                    ) : (
+                    ):(
                       <div className={styles.noScanNotice}>
                         <Camera size={44} className={styles.noScanIcon} />
                         <h4 className={styles.noScanTitle}>No Scanned Image File</h4>
@@ -219,13 +217,13 @@ export const AdminQueue = () => {
                           currentItem.receipt.line_items.map((line, lidx) => (
                             <div key={lidx} className={styles.simLineRow}>
                               <span>{line.description}</span>
-                              <span>${(line.amount || 0).toFixed(2)}</span>
+                              <span>{formatCurrency(Number(line.amount || 0) * Number(currentItem.receipt.exchange_rate || 1), 'INR')}</span>
                             </div>
                           ))
                         ) : (
                           <div className={styles.simLineRow}>
                             <span>Subtotal Items</span>
-                            <span>{formatCurrency(currentItem.receipt.total_amount, currentItem.receipt.currency)}</span>
+                            <span>{formatCurrency(currentItem.receipt.base_amount_inr ?? currentItem.receipt.total_amount, 'INR')}</span>
                           </div>
                         )}
                       </div>
@@ -233,7 +231,7 @@ export const AdminQueue = () => {
                       <div className={styles.simTotalRow}>
                         <span>TOTAL PAID</span>
                         <span>
-                          {formatCurrency(currentItem.receipt.total_amount, currentItem.receipt.currency)}
+                          {formatCurrency(currentItem.receipt.base_amount_inr ?? currentItem.receipt.total_amount, 'INR')}
                         </span>
                       </div>
                     </div>
@@ -291,7 +289,7 @@ export const AdminQueue = () => {
                   <div className={styles.metaRow}>
                     <span className={styles.metaLabel}>Total Incurred</span>
                     <span className={styles.metaValue}>
-                      {formatCurrency(currentItem.receipt.total_amount, currentItem.receipt.currency)}
+                      {formatCurrency(currentItem.receipt.base_amount_inr ?? currentItem.receipt.total_amount, 'INR')}
                     </span>
                   </div>
                   <div className={styles.metaRow}>
@@ -353,7 +351,7 @@ export const AdminQueue = () => {
                     disabled={isSubmitting}
                   >
                     <CheckCircle2 size={18} />
-                    <span>{isSubmitting ? 'Approving...' : 'Approve Expense'}</span>
+                    <span>{isSubmitting ? 'Approving...':'Approve Expense'}</span>
                   </button>
 
                   <button
@@ -363,7 +361,7 @@ export const AdminQueue = () => {
                     disabled={isSubmitting}
                   >
                     <XCircle size={18} />
-                    <span>{isSubmitting ? 'Rejecting...' : 'Reject Expense'}</span>
+                    <span>{isSubmitting ? 'Rejecting...':'Reject Expense'}</span>
                   </button>
                 </div>
               </div>

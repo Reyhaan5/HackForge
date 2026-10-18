@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Scan,
   Globe,
@@ -14,9 +15,7 @@ import {
   FileText,
   Receipt,
   User,
-  Building,
   ArrowRight,
-  RefreshCw,
   Sparkles,
   ShieldAlert,
   Eye,
@@ -24,11 +23,10 @@ import {
   X
 } from 'lucide-react';
 import { useReceipts } from '../../context/ReceiptContext';
-import { getEmployees, processReceipt } from '../../services/api';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import styles from './AdminProcess.module.css';
 
-const CHANNELS = [
+const CHANNELS=[
   { id: 'all', label: 'All Channels', icon: Filter },
   { id: 'web', label: 'Web Portal', icon: Globe },
   { id: 'slack', label: 'Slack Bot', icon: MessageSquare },
@@ -36,7 +34,7 @@ const CHANNELS = [
   { id: 'mobile', label: 'Mobile Camera', icon: Smartphone },
 ];
 
-const getChannelDetails = (channelId) => {
+const getChannelDetails=(channelId) => {
   switch ((channelId || '').toLowerCase()) {
     case 'slack':
       return { label: 'Slack Bot', icon: MessageSquare, badgeClass: styles.channelSlack };
@@ -50,71 +48,51 @@ const getChannelDetails = (channelId) => {
   }
 };
 
-export const AdminProcess = () => {
-  const { history, updateReceiptStatus, addProcessedReceipt } = useReceipts();
-  const [employees, setEmployees] = useState([]);
-  const [selectedChannel, setSelectedChannel] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedReceipt, setSelectedReceipt] = useState(null);
-  const [managerNotes, setManagerNotes] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [actionError, setActionError] = useState('');
-  const [actionSuccess, setActionSuccess] = useState('');
+export const AdminProcess=() => {
+  const { history, updateReceiptStatus }=useReceipts();
+  const [selectedChannel, setSelectedChannel]=useState('all');
+  const [searchQuery, setSearchQuery]=useState('');
+  const [selectedReceipt, setSelectedReceipt]=useState(null);
+  const [managerNotes, setManagerNotes]=useState('');
+  const [isSubmitting, setIsSubmitting]=useState(false);
+  const [actionError, setActionError]=useState('');
+  const [actionSuccess, setActionSuccess]=useState('');
 
-  // Admin Direct Upload Tool State
-  const [directFile, setDirectFile] = useState(null);
-  const [directPreview, setDirectPreview] = useState(null);
-  const [directChannel, setDirectChannel] = useState('web');
-  const [directEmployeeId, setDirectEmployeeId] = useState('');
-  const [directCity, setDirectCity] = useState('New York');
-  const [directCategory, setDirectCategory] = useState('Meals');
-  const [isProcessingDirect, setIsProcessingDirect] = useState(false);
-  const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    getEmployees().then(list => {
-      setEmployees(list || []);
-      if (list?.length > 0) setDirectEmployeeId(list[0].id);
-    }).catch(err => {
-      console.warn('Could not load employees:', err);
-    });
-  }, []);
-
-  // Filter receipts by channel and search
-  const filteredReceipts = useMemo(() => {
+  const filteredReceipts=useMemo(() => {
     return (history || []).filter(item => {
-      // Channel filter
+
       if (selectedChannel !== 'all') {
-        const itemChannel = (item.submission_channel || 'web').toLowerCase();
+        const itemChannel=(item.submission_channel || 'web').toLowerCase();
         if (itemChannel !== selectedChannel) return false;
       }
 
-      // Search filter
+
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const vendor = (item.receipt?.vendor || '').toLowerCase();
-        const emp = (item.employee_id || '').toLowerCase();
-        const city = (item.city || '').toLowerCase();
-        const channel = (item.submission_channel || '').toLowerCase();
+        const q=searchQuery.toLowerCase();
+        const vendor=(item.receipt?.vendor || '').toLowerCase();
+        const emp=(item.employee_id || '').toLowerCase();
+        const city=(item.city || '').toLowerCase();
+        const channel=(item.submission_channel || '').toLowerCase();
         return vendor.includes(q) || emp.includes(q) || city.includes(q) || channel.includes(q);
       }
       return true;
     });
   }, [history, selectedChannel, searchQuery]);
 
-  // Channel breakdown counts
-  const channelCounts = useMemo(() => {
-    const counts = { all: history.length, web: 0, slack: 0, email: 0, mobile: 0 };
+
+  const channelCounts=useMemo(() => {
+    const counts={ all: history.length, web: 0, slack: 0, email: 0, mobile: 0 };
     (history || []).forEach(r => {
-      const ch = (r.submission_channel || 'web').toLowerCase();
+      const ch=(r.submission_channel || 'web').toLowerCase();
       if (counts[ch] !== undefined) counts[ch]++;
       else counts.web++;
     });
     return counts;
   }, [history]);
 
-  // Handle Approve
-  const handleApprove = async () => {
+
+  const handleApprove=async () => {
     if (!selectedReceipt || isSubmitting) return;
     setIsSubmitting(true);
     setActionError('');
@@ -126,7 +104,7 @@ export const AdminProcess = () => {
       setSelectedReceipt(prev => prev ? {
         ...prev,
         result: { ...prev.result, status: 'APPROVED' }
-      } : null);
+      }:null);
     } catch (err) {
       setActionError(err.response?.data?.detail || err.message || 'Could not approve receipt.');
     } finally {
@@ -134,8 +112,8 @@ export const AdminProcess = () => {
     }
   };
 
-  // Handle Reject
-  const handleReject = async () => {
+
+  const handleReject=async () => {
     if (!selectedReceipt || isSubmitting) return;
     if (!managerNotes.trim()) {
       setActionError('Please provide a rejection reason so the submitting employee understands the policy conflict.');
@@ -151,7 +129,7 @@ export const AdminProcess = () => {
       setSelectedReceipt(prev => prev ? {
         ...prev,
         result: { ...prev.result, status: 'REJECTED' }
-      } : null);
+      }:null);
     } catch (err) {
       setActionError(err.response?.data?.detail || err.message || 'Could not reject receipt.');
     } finally {
@@ -159,56 +137,15 @@ export const AdminProcess = () => {
     }
   };
 
-  // Admin Direct Process & Submit
-  const handleDirectProcess = async () => {
-    if (!directFile) {
-      setActionError('Please select a receipt file to process.');
-      return;
-    }
-    setIsProcessingDirect(true);
-    setActionError('');
-    setActionSuccess('');
-    try {
-      const result = await processReceipt(
-        directFile,
-        directCity,
-        directCategory,
-        '',
-        directChannel,
-        directEmployeeId,
-        1
-      );
-      if (addProcessedReceipt) {
-        addProcessedReceipt(result, {
-          city: directCity,
-          category: directCategory,
-          client_name: '',
-          submission_channel: directChannel,
-          imageUrl: directPreview
-        });
-      }
-      setActionSuccess(`Receipt processed and smart-submitted for ${directEmployeeId} via ${directChannel.toUpperCase()} channel!`);
-      setDirectFile(null);
-      setDirectPreview(null);
-    } catch (err) {
-      setActionError(err.message || 'Processing failed. Check backend connection.');
-    } finally {
-      setIsProcessingDirect(false);
-    }
-  };
-
   return (
     <div className={styles.container}>
-      {/* Header */}
+      {}
       <div className={styles.headerCard}>
         <div className={styles.titleArea}>
           <div className={styles.titleRow}>
             <Scan size={24} className={styles.titleIcon} />
             <h2 className={styles.title}>Admin Receipt Intake & Smart Processing</h2>
           </div>
-          <p className={styles.subtitle}>
-            Manage, smart-audit, and verify incoming receipts submitted by employees across all ingestion channels.
-          </p>
         </div>
 
         <div className={styles.headerMetrics}>
@@ -223,7 +160,7 @@ export const AdminProcess = () => {
         </div>
       </div>
 
-      {/* Notifications */}
+      {}
       {actionSuccess && (
         <div className={styles.successBanner}>
           <CheckCircle2 size={16} />
@@ -243,18 +180,18 @@ export const AdminProcess = () => {
         </div>
       )}
 
-      {/* Channel Filters Bar */}
+      {}
       <div className={styles.channelBar}>
         <div className={styles.channelTabs}>
           {CHANNELS.map(ch => {
-            const Icon = ch.icon;
-            const count = channelCounts[ch.id] || 0;
-            const isActive = selectedChannel === ch.id;
+            const Icon=ch.icon;
+            const count=channelCounts[ch.id] || 0;
+            const isActive=selectedChannel === ch.id;
             return (
               <button
                 key={ch.id}
                 type="button"
-                className={`${styles.channelFilterBtn} ${isActive ? styles.channelFilterBtnActive : ''}`}
+                className={`${styles.channelFilterBtn} ${isActive ? styles.channelFilterBtnActive:''}`}
                 onClick={() => setSelectedChannel(ch.id)}
               >
                 <Icon size={15} />
@@ -277,10 +214,10 @@ export const AdminProcess = () => {
         </div>
       </div>
 
-      {/* Main Grid: Submissions Table & Direct Ingest */}
+      {}
       <div className={styles.mainGrid}>
         
-        {/* Table of Submissions */}
+        {}
         <div className={styles.tableCard}>
           <div className={styles.tableCardHeader}>
             <h3 className={styles.cardHeading}>
@@ -298,7 +235,7 @@ export const AdminProcess = () => {
               <h4>No receipts found</h4>
               <p>No submissions match the selected channel filter or search query.</p>
             </div>
-          ) : (
+          ):(
             <div className={styles.tableOverflow}>
               <table className={styles.queueTable}>
                 <thead>
@@ -314,21 +251,21 @@ export const AdminProcess = () => {
                 </thead>
                 <tbody>
                   {filteredReceipts.map(item => {
-                    const channelInfo = getChannelDetails(item.submission_channel);
-                    const ChannelIcon = channelInfo.icon;
-                    const isSelected = selectedReceipt?.id === item.id;
+                    const channelInfo=getChannelDetails(item.submission_channel);
+                    const ChannelIcon=channelInfo.icon;
+                    const isSelected=selectedReceipt?.id === item.id;
 
                     return (
                       <tr
                         key={item.id}
-                        className={`${styles.tableRow} ${isSelected ? styles.tableRowSelected : ''}`}
+                        className={`${styles.tableRow} ${isSelected ? styles.tableRowSelected:''}`}
                         onClick={() => {
                           setSelectedReceipt(item);
                           setActionError('');
                           setActionSuccess('');
                         }}
                       >
-                        {/* Channel Badge */}
+                        {}
                         <td>
                           <span className={`${styles.channelPill} ${channelInfo.badgeClass}`}>
                             <ChannelIcon size={13} />
@@ -336,7 +273,7 @@ export const AdminProcess = () => {
                           </span>
                         </td>
 
-                        {/* Employee */}
+                        {}
                         <td>
                           <div className={styles.empCell}>
                             <User size={14} className={styles.empIcon} />
@@ -344,7 +281,7 @@ export const AdminProcess = () => {
                           </div>
                         </td>
 
-                        {/* Vendor */}
+                        {}
                         <td>
                           <div className={styles.vendorCell}>
                             <span className={styles.vendorName}>{item.receipt?.vendor || 'Unknown'}</span>
@@ -352,7 +289,7 @@ export const AdminProcess = () => {
                           </div>
                         </td>
 
-                        {/* Date & City */}
+                        {}
                         <td>
                           <div className={styles.dateCell}>
                             <span>{item.receipt?.date || 'N/A'}</span>
@@ -360,19 +297,19 @@ export const AdminProcess = () => {
                           </div>
                         </td>
 
-                        {/* Amount */}
+                        {}
                         <td className={styles.alignRight}>
                           <span className={styles.amountText}>
-                            {new Intl.NumberFormat(undefined, { style: 'currency', currency: item.receipt?.currency || 'USD' }).format(Number(item.receipt?.total_amount) || 0)}
+                            {new Intl.NumberFormat(undefined, { style: 'currency', currency: 'INR' }).format(Number(item.receipt?.base_amount_inr ?? item.receipt?.total_amount) || 0)}
                           </span>
                         </td>
 
-                        {/* Status */}
+                        {}
                         <td>
                           <StatusBadge status={item.result?.status} />
                         </td>
 
-                        {/* Action */}
+                        {}
                         <td className={styles.alignRight}>
                           <button
                             type="button"
@@ -395,126 +332,21 @@ export const AdminProcess = () => {
           )}
         </div>
 
-        {/* Direct Admin Smart Ingestion Card */}
         <div className={styles.directIngestCard}>
           <div className={styles.directHeader}>
             <Sparkles size={18} className={styles.directIcon} />
-            <h3 className={styles.cardHeading}>Admin Direct Ingest</h3>
+            <h3 className={styles.cardHeading}>Submit a receipt</h3>
           </div>
-          <p className={styles.directDesc}>
-            Upload or ingest receipts directly into the company ledger on behalf of employees across any channel.
-          </p>
-
-          <div
-            className={styles.directDropBox}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,application/pdf"
-              className={styles.hiddenFile}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) {
-                  setDirectFile(f);
-                  setDirectPreview(URL.createObjectURL(f));
-                }
-              }}
-            />
-            {directPreview ? (
-              <div className={styles.directPreviewWrap}>
-                <img src={directPreview} alt="Receipt preview" className={styles.previewThumb} />
-                <span className={styles.directFileName}>{directFile?.name}</span>
-              </div>
-            ) : (
-              <div className={styles.directDropPrompt}>
-                <Receipt size={28} />
-                <span>Click to select receipt image or PDF</span>
-              </div>
-            )}
-          </div>
-
-          <div className={styles.directFields}>
-            <div className={styles.formGroup}>
-              <label>Assign to Employee</label>
-              <select
-                value={directEmployeeId}
-                onChange={(e) => setDirectEmployeeId(e.target.value)}
-                className={styles.selectBox}
-              >
-                {employees.map(emp => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.name} ({emp.id}) — {emp.department}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>Ingestion Channel</label>
-              <select
-                value={directChannel}
-                onChange={(e) => setDirectChannel(e.target.value)}
-                className={styles.selectBox}
-              >
-                <option value="web">🌐 Web Portal</option>
-                <option value="slack">💬 Slack Bot (@Resolver)</option>
-                <option value="email">✉️ Email Ingestion</option>
-                <option value="mobile">📱 Mobile Camera</option>
-              </select>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>City & Category</label>
-              <div className={styles.cityCatRow}>
-                <select
-                  value={directCity}
-                  onChange={(e) => setDirectCity(e.target.value)}
-                  className={styles.selectBox}
-                >
-                  <option value="New York">New York</option>
-                  <option value="San Francisco">San Francisco</option>
-                  <option value="Chicago">Chicago</option>
-                  <option value="Austin">Austin</option>
-                </select>
-                <select
-                  value={directCategory}
-                  onChange={(e) => setDirectCategory(e.target.value)}
-                  className={styles.selectBox}
-                >
-                  <option value="Meals">Meals</option>
-                  <option value="Transport">Transport</option>
-                  <option value="Travel">Travel</option>
-                  <option value="Office Supplies">Office Supplies</option>
-                </select>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              disabled={isProcessingDirect || !directFile}
-              onClick={handleDirectProcess}
-              className={styles.directSubmitBtn}
-            >
-              {isProcessingDirect ? (
-                <>
-                  <RefreshCw size={15} className={styles.spin} />
-                  <span>Processing...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={15} />
-                  <span>Smart Process & Ingest</span>
-                </>
-              )}
-            </button>
-          </div>
+          <Link to="/submit" className={styles.directSubmitBtn}>
+            <Sparkles size={15} />
+            <span>Open Smart Submit</span>
+            <ArrowRight size={15} />
+          </Link>
         </div>
 
       </div>
 
-      {/* Review & Smart Audit Split Drawer/Modal */}
+      {}
       {selectedReceipt && (
         <div className={styles.modalBackdrop} onClick={() => setSelectedReceipt(null)}>
           <div className={styles.modalPanel} onClick={(e) => e.stopPropagation()}>
@@ -534,12 +366,12 @@ export const AdminProcess = () => {
             </div>
 
             <div className={styles.modalBody}>
-              {/* Left Pane: Receipt Photo & Channel Tag */}
+              {}
               <div className={styles.modalLeftPane}>
                 <div className={styles.modalChannelStrip}>
                   {(() => {
-                    const info = getChannelDetails(selectedReceipt.submission_channel);
-                    const Icon = info.icon;
+                    const info=getChannelDetails(selectedReceipt.submission_channel);
+                    const Icon=info.icon;
                     return (
                       <span className={`${styles.channelPill} ${info.badgeClass}`}>
                         <Icon size={14} />
@@ -559,7 +391,7 @@ export const AdminProcess = () => {
                       alt="Uploaded receipt"
                       className={styles.modalImage}
                     />
-                  ) : (
+                  ):(
                     <div className={styles.modalNoImage}>
                       <Receipt size={48} />
                       <span>Original physical scan</span>
@@ -568,16 +400,16 @@ export const AdminProcess = () => {
                 </div>
               </div>
 
-              {/* Right Pane: Audited Line Items, Policy Checks, and Actions */}
+              {}
               <div className={styles.modalRightPane}>
                 <div className={styles.statusRow}>
                   <StatusBadge status={selectedReceipt.result?.status} />
                   <span className={styles.approvedSum}>
-                    Reimbursable: ${Number(selectedReceipt.result?.reimbursement_amount ?? selectedReceipt.result?.approved_amount ?? selectedReceipt.receipt?.total_amount ?? 0).toFixed(2)}
+                    Reimbursable: {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(selectedReceipt.result?.reimbursement_amount ?? selectedReceipt.result?.approved_amount ?? selectedReceipt.receipt?.base_amount_inr ?? selectedReceipt.receipt?.total_amount ?? 0))}
                   </span>
                 </div>
 
-                {/* Flags if any */}
+                {}
                 {selectedReceipt.result?.flags?.length > 0 && (
                   <div className={styles.modalFlagsBox}>
                     <div className={styles.flagsHead}>
@@ -593,7 +425,7 @@ export const AdminProcess = () => {
                   </div>
                 )}
 
-                {/* Line Items Table */}
+                {}
                 <div className={styles.lineItemsWrap}>
                   <h4 className={styles.subHeading}>Itemized Breakdown</h4>
                   <table className={styles.modalTable}>
@@ -607,22 +439,22 @@ export const AdminProcess = () => {
                     <tbody>
                       {(selectedReceipt.receipt?.line_items || []).length > 0 ? (
                         selectedReceipt.receipt.line_items.map((line, idx) => (
-                          <tr key={idx} className={line.disallowed ? styles.rowDisallowed : ''}>
+                          <tr key={idx} className={line.disallowed ? styles.rowDisallowed:''}>
                             <td>{line.description || 'Expense item'}</td>
-                            <td className={styles.alignRight}>${Number(line.amount || 0).toFixed(2)}</td>
+                            <td className={styles.alignRight}>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(line.amount || 0) * Number(selectedReceipt.receipt?.exchange_rate || 1))}</td>
                             <td className={styles.alignRight}>
                               {line.disallowed ? (
                                 <span className={styles.badgeDisallowed}>Disallowed</span>
-                              ) : (
+                              ):(
                                 <span className={styles.badgeAllowed}>Eligible</span>
                               )}
                             </td>
                           </tr>
                         ))
-                      ) : (
+                      ):(
                         <tr>
                           <td>General Line Item</td>
-                          <td className={styles.alignRight}>${Number(selectedReceipt.receipt?.total_amount || 0).toFixed(2)}</td>
+                          <td className={styles.alignRight}>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(selectedReceipt.receipt?.base_amount_inr ?? selectedReceipt.receipt?.total_amount ?? 0))}</td>
                           <td className={styles.alignRight}><span className={styles.badgeAllowed}>Eligible</span></td>
                         </tr>
                       )}
@@ -630,7 +462,7 @@ export const AdminProcess = () => {
                   </table>
                 </div>
 
-                {/* Admin Notes & Actions */}
+                {}
                 <div className={styles.modalActionSection}>
                   <label className={styles.notesLabel}>Admin Reviewer Notes</label>
                   <textarea

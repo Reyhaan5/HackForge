@@ -7,18 +7,18 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from dotenv import load_dotenv
 
-ENV_PATH = os.path.join(os.path.dirname(__file__), ".env")
+ENV_PATH=os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(ENV_PATH)
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL=os.getenv("DATABASE_URL")
 if not DATABASE_URL:
-    db_user = os.getenv("DB_USER", "postgres")
-    db_pass = os.getenv("DB_PASSWORD", "postgres")
-    db_host = os.getenv("DB_HOST", "localhost")
-    db_port = os.getenv("DB_PORT", "5432")
-    db_name = os.getenv("DB_NAME", "HackForge")
-    DATABASE_URL = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+    db_user=os.getenv("DB_USER", "postgres")
+    db_pass=os.getenv("DB_PASSWORD", "postgres")
+    db_host=os.getenv("DB_HOST", "localhost")
+    db_port=os.getenv("DB_PORT", "5432")
+    db_name=os.getenv("DB_NAME", "HackForge")
+    DATABASE_URL=f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
 
-engine = create_engine(DATABASE_URL)
+engine=create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -37,7 +37,7 @@ class Policy(Base):
 
     id = Column(String(50), primary_key=True)  # e.g., 'DEFAULT-EXPENSE-POLICY'
     is_active = Column(Boolean, default=True)
-    rules = Column(JSONB, nullable=False)
+    rules=Column(JSONB, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Receipt(Base):
@@ -59,18 +59,18 @@ class Receipt(Base):
     attendee_count = Column(Integer, default=1)
     client_name = Column(String(255), nullable=True)
     
-    currency = Column(String(10), default="USD")
+    currency=Column(String(10), default="INR")
     original_amount = Column(Numeric(10, 2), default=0.00, nullable=False)
     exchange_rate = Column(Numeric(12, 6), default=1.000000, nullable=False)
-    base_amount_usd = Column(Numeric(10, 2), default=0.00, nullable=False)
+    base_amount_inr=Column(Numeric(10, 2), default=0.00, nullable=False)
     
     # Itemized lines in JSONB: [{"description": "Lunch", "amount": 25.0, "disallowed": false}]
-    line_items = Column(JSONB, default=list)
+    line_items=Column(JSONB, default=list)
     
     # Decision output
     status = Column(String(50), default="APPROVED", index=True) # 'APPROVED', 'PARTIAL', 'PENDING_APPROVAL', 'REJECTED'
     approved_amount = Column(Numeric(10, 2), default=0.00, nullable=False)
-    flags = Column(JSONB, default=list)
+    flags=Column(JSONB, default=list)
     explanation = Column(Text, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -98,6 +98,17 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+
+    # Auto-migrate legacy column base_amount_usd to base_amount_inr if found
+    from sqlalchemy import inspect, text
+    with engine.connect() as conn:
+        inspector=inspect(engine)
+        if "receipts" in inspector.get_table_names():
+            cols=[col["name"] for col in inspector.get_columns("receipts")]
+            if "base_amount_usd" in cols and "base_amount_inr" not in cols:
+                conn.execute(text("ALTER TABLE receipts RENAME COLUMN base_amount_usd TO base_amount_inr;"))
+                conn.commit()
+
     db = SessionLocal()
     try:
         # Seed default policy if missing
@@ -106,20 +117,20 @@ def init_db():
                 id="DEFAULT-EXPENSE-POLICY",
                 is_active=True,
                 rules={
-                    "monthly_limit": 2000.0,
-                    "approval_threshold": 200.0,
+                    "monthly_limit": 167000.0,
+                    "approval_threshold": 16700.0,
                     "city_daily_caps": {
-                        "New York": 100.0,
-                        "San Francisco": 90.0,
-                        "Chicago": 75.0,
-                        "Austin": 75.0,
-                        "Default": 75.0
+                        "New York": 8350.0,
+                        "San Francisco": 7515.0,
+                        "Chicago": 6263.0,
+                        "Austin": 6263.0,
+                        "Default": 6263.0
                     },
                     "category_caps": {
-                        "Office Supplies": 150.0,
-                        "Transport": 100.0
+                        "Office Supplies": 12525.0,
+                        "Transport": 8350.0
                     },
-                    "client_meal_per_person_limit": 60.0,
+                    "client_meal_per_person_limit": 5010.0,
                     "non_reimbursable_keywords": [
                         "alcohol", "wine", "beer", "liquor", "cocktail",
                         "spa", "massage", "movie", "casino", "gift", "tobacco"
@@ -148,12 +159,12 @@ def init_db():
             ("finance", "finance123", "Admin", None),
         ]
         for uname, pwd, r, empid in sample_logins:
-            user_entry = db.query(Login).filter_by(username=uname).first()
+            user_entry=db.query(Login).filter_by(username=uname).first()
             if not user_entry:
                 db.add(Login(username=uname, password_hash=hash_password(pwd), role=r, employee_id=empid))
             elif not "$" in user_entry.password_hash:
                 # Upgrade legacy plaintext password to secure hash
-                user_entry.password_hash = hash_password(pwd)
+                user_entry.password_hash=hash_password(pwd)
         
         db.commit()
     finally:

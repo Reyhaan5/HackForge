@@ -20,22 +20,24 @@ import { useReceipts } from '../../context/ReceiptContext';
 import { exportCSV } from '../../services/api';
 import styles from './AdminAnalytics.module.css';
 
+const formatINR=amount => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(amount) || 0);
+
 const STATUS_COLORS = {
-  APPROVED: '#10B981',
-  PARTIAL: '#3B82F6',
-  FLAGGED: '#F59E0B',
-  PENDING_APPROVAL: '#EAB308',
-  REJECTED: '#EF4444'
+  APPROVED: 'var(--status-approved-accent)',
+  PARTIAL: 'var(--status-partial-accent)',
+  FLAGGED: 'var(--status-partial-accent)',
+  PENDING_APPROVAL: 'var(--status-pending-accent)',
+  REJECTED: 'var(--status-rejected-accent)'
 };
 
 export const AdminAnalytics = () => {
-  const { history, monthlySpent } = useReceipts();
+  const { history, monthlySpent }=useReceipts();
 
   // Aggregate category spend
   const categoryMap = {};
   history.forEach(item => {
     const cat = item.category || 'General';
-    const amt = item.receipt.base_amount_usd ?? item.result.reimbursement_amount ?? 0;
+    const amt=item.receipt.base_amount_inr ?? item.result.reimbursement_amount ?? 0;
     if (!categoryMap[cat]) {
       categoryMap[cat] = { total: 0, count: 0 };
     }
@@ -74,11 +76,11 @@ export const AdminAnalytics = () => {
           ? 'Pending Approval'
           : st.charAt(0) + st.slice(1).toLowerCase(),
       value: statusMap[st],
-      color: STATUS_COLORS[st] || '#6B7280'
+      color: STATUS_COLORS[st] || 'var(--text-secondary)'
     }));
 
   const totalSpend = history.reduce(
-    (acc, curr) => acc + (curr.receipt.base_amount_usd ?? curr.result.reimbursement_amount ?? 0),
+    (acc, curr) => acc + (curr.receipt.base_amount_inr ?? curr.result.reimbursement_amount ?? 0),
     0
   );
 
@@ -109,9 +111,6 @@ export const AdminAnalytics = () => {
       <div className={styles.topBar}>
         <div className={styles.titleArea}>
           <h2 className={styles.pageTitle}>Admin Spend Analytics & Compliance</h2>
-          <p className={styles.pageSubtitle}>
-            Aggregated corporate reimbursement breakdown, policy compliance health, and visual category trends.
-          </p>
         </div>
 
         <button
@@ -128,7 +127,7 @@ export const AdminAnalytics = () => {
       <div className={styles.metricsGrid}>
         <div className={styles.metricCard}>
           <span className={styles.metricLabel}>Total Spend Incurred</span>
-          <h3 className={styles.metricValue}>${totalSpend.toFixed(2)}</h3>
+          <h3 className={styles.metricValue}>{formatINR(totalSpend)}</h3>
           <span className={styles.metricSub}>Across {history.length} submitted receipts</span>
         </div>
 
@@ -140,13 +139,13 @@ export const AdminAnalytics = () => {
 
         <div className={styles.metricCard}>
           <span className={styles.metricLabel}>Average Receipt</span>
-          <h3 className={styles.metricValue}>${avgReceipt}</h3>
+          <h3 className={styles.metricValue}>{formatINR(totalSpend / Math.max(history.length, 1))}</h3>
           <span className={styles.metricSub}>Mean transaction value</span>
         </div>
 
         <div className={styles.metricCard}>
-          <span className={styles.metricLabel}>Company Spend This Month (USD)</span>
-          <h3 className={styles.metricValue}>${monthlySpent.toFixed(2)}</h3>
+          <span className={styles.metricLabel}>Company Spend This Month (INR)</span>
+          <h3 className={styles.metricValue}>{formatINR(monthlySpent)}</h3>
           <span className={styles.metricSub}>Current-month policy spend across employees</span>
         </div>
       </div>
@@ -158,40 +157,40 @@ export const AdminAnalytics = () => {
           <div className={styles.chartHeader}>
             <div>
               <h3 className={styles.chartTitle}>Spend by Category</h3>
-          <p className={styles.chartDesc}>Receipt totals converted to USD by the backend</p>
+          <p className={styles.chartDesc}>Receipt totals converted to INR by the backend</p>
             </div>
-            <CreditCard size={20} color="#4F46E5" />
+            <CreditCard size={20} color="var(--primary-color)" />
           </div>
 
           <div className={styles.chartContainer}>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={categoryChartData} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
                 <XAxis
                   dataKey="category"
-                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                  tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
                   tickLine={false}
-                  axisLine={{ stroke: '#CBD5E1' }}
+                  axisLine={{ stroke: 'var(--border-color)' }}
                 />
                 <YAxis
-                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                  tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={val => `$${val}`}
+                  tickFormatter={val => formatINR(val)}
                 />
                 <Tooltip
-                  formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Spend']}
+                  formatter={value => [formatINR(value), 'Spend']}
                   contentStyle={{
                     backgroundColor: 'var(--card)',
                     border: '1px solid var(--border)',
-                    color: 'var(--text)',
+                    color: 'var(--text-primary)',
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                   }}
                 />
                 <Bar
                   dataKey="spend"
-                  fill="#4F46E5"
+                  fill="var(--primary-color)"
                   radius={[6, 6, 0, 0]}
                   maxBarSize={48}
                 />
@@ -207,7 +206,7 @@ export const AdminAnalytics = () => {
               <h3 className={styles.chartTitle}>Status Distribution</h3>
               <p className={styles.chartDesc}>Audit compliance and review workload ratio</p>
             </div>
-            <CheckCircle size={20} color="#10B981" />
+            <CheckCircle size={20} color="var(--success-color)" />
           </div>
 
           <div className={styles.chartContainer}>
@@ -231,7 +230,7 @@ export const AdminAnalytics = () => {
                   contentStyle={{
                     backgroundColor: 'var(--card)',
                     border: '1px solid var(--border)',
-                    color: 'var(--text)',
+                    color: 'var(--text-primary)',
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                   }}
@@ -239,7 +238,7 @@ export const AdminAnalytics = () => {
                 <Legend
                   verticalAlign="bottom"
                   iconType="circle"
-                  wrapperStyle={{ paddingTop: '16px' }}
+                  wrapperStyle={{ paddingTop: '16px', color: 'var(--text-secondary)' }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -258,7 +257,7 @@ export const AdminAnalytics = () => {
                 <span className={styles.categoryCount}>
                   {cat.count} {cat.count === 1 ? 'receipt' : 'receipts'}
                 </span>
-                <span className={styles.categoryTotal}>${cat.spend.toFixed(2)}</span>
+                <span className={styles.categoryTotal}>₹{cat.spend.toFixed(2)}</span>
               </div>
             </div>
           ))}
