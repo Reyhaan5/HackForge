@@ -11,7 +11,7 @@ import secrets
 import time
 from uuid import uuid4
 
-from database import init_db, get_db, Receipt, Employee, Policy, Login
+from database import init_db, get_db, SessionLocal, Receipt, Employee, Policy, Login
 from extractor import extract_receipt, compute_image_hash
 from policy_engine import validate_receipt
 from auth import SECRET_KEY, hash_password, verify_password, create_access_token, get_current_user, require_admin
@@ -26,8 +26,36 @@ from email_ingest import (
 from s3_ingest import S3BucketPoller, extract_meta_from_s3_key
 from pydantic import BaseModel
 from typing import Optional, List
+import asyncio
 
 app = FastAPI(title="Expense Graveyard Policy Engine API", version="2.0")
+
+# Background autonomous S3 ingestion task
+async def s3_background_watcher():
+    """Periodically checks s3://<bucket>/inbox/ every 30 seconds for new receipts."""
+    await asyncio.sleep(5) # Brief delay to let app initialize
+    poller = S3BucketPoller()
+    if not poller.is_configured():
+        print("[S3AutoWatcher] S3 bucket is not configured. Background watcher idle.")
+        return
+
+    print(f"[S3AutoWatcher] Active: Watching s3://{poller.bucket_name}/{poller.inbox_prefix} every 30s")
+    while True:
+        try:
+            db = SessionLocal()
+            try:
+                res = poller.sync_inbox(db=db, max_files=10)
+                if res.get("receipts_created", 0) > 0:
+                    print(f"[S3AutoWatcher] Autonomous ingestion: {res['receipts_created']} receipt(s) ingested!")
+            finally:
+                db.close()
+        except Exception as err:
+            print(f"[S3AutoWatcher] Error during auto-poll: {err}")
+        await asyncio.sleep(30)
+
+@app.on_event("startup")
+async def start_background_tasks():
+    asyncio.create_task(s3_background_watcher())
 
 @app.exception_handler(HTTPException)
 async def log_bad_request_body(request: Request, exc: HTTPException):

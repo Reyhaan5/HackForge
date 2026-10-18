@@ -192,15 +192,18 @@ class S3BucketPoller:
                     target_folder = "processed/" if res["status"] in ["APPROVED", "PARTIAL"] else "quarantine/"
                     target_key = f"{target_folder}{emp_id}_{filename}"
 
-                    # Copy to archive folder
-                    client.copy_object(
-                        Bucket=self.bucket_name,
-                        CopySource={"Bucket": self.bucket_name, "Key": key},
-                        Key=target_key
-                    )
-                    # Delete from inbox/
-                    client.delete_object(Bucket=self.bucket_name, Key=key)
-                    print(f"[S3Ingest] Ingested #{res['receipt_id']} and moved {key} -> {target_key}")
+                    try:
+                        import urllib.parse
+                        copy_source = f"{self.bucket_name}/{urllib.parse.quote(key)}"
+                        client.copy_object(
+                            Bucket=self.bucket_name,
+                            CopySource=copy_source,
+                            Key=target_key
+                        )
+                        client.delete_object(Bucket=self.bucket_name, Key=key)
+                        print(f"[S3Ingest] Ingested #{res['receipt_id']} and moved {key} -> {target_key}")
+                    except Exception as move_err:
+                        print(f"[S3Ingest] Ingested #{res['receipt_id']}, but archive move note: {move_err}")
 
                 except Exception as proc_err:
                     skipped.append({"key": key, "reason": f"Processing error: {str(proc_err)}"})
