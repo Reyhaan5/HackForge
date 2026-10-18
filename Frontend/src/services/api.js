@@ -232,11 +232,46 @@ export async function updateReceiptStatus(receiptId, status, notes='') {
   return response.data;
 }
 
+/**
+ * Ingest receipt via simulated email forwarding (Channel A)
+ */
+export async function simulateEmailReceipt(file, fromEmail, subject, body = '') {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('from_email', fromEmail);
+  formData.append('subject', subject);
+  formData.append('body', body);
+
+  const response = await apiClient.post('/api/ingest/email/simulate', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+}
+
+/**
+ * Check IMAP inbox listener configuration status
+ */
+export async function getEmailIngestStatus() {
+  const response = await apiClient.get('/api/ingest/email/status');
+  return response.data;
+}
+
+/**
+ * Trigger manual check of IMAP inbox
+ */
+export async function syncEmailInbox(maxEmails = 10) {
+  const response = await apiClient.post(`/api/ingest/email/sync?max_emails=${maxEmails}`);
+  return response.data;
+}
+
 export default {
   processReceipt,
   getSession,
   resetSession,
   exportCSV,
   updateReceiptStatus,
+  simulateEmailReceipt,
+  getEmailIngestStatus,
+  syncEmailInbox,
 };
 

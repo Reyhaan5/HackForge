@@ -1,0 +1,30 @@
+meta {
+  name: Ingest Email Receipt
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/ingest/email/simulate
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  from_email: emp-101@company.com
+  subject: [NYC] Client Lunch with Acme
+  body: City: New York, Category: Meals, Client: Acme, Attendees: 2
+  file: @file(../test/test_images/receipt_normal_usd.jpg)
+}
+
+tests {
+  test("email ingestion processes successfully and resolves metadata", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.success).to.equal(true);
+    expect(body.channel).to.equal("email");
+    expect(body.metadata_inferred.city).to.equal("New York");
+    expect(body.receipt.receipt_id).to.exist;
+    expect(body.receipt.employee_id).to.equal("EMP-101");
+  });
+}

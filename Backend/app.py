@@ -15,8 +15,16 @@ from database import init_db, get_db, Receipt, Employee, Policy, Login
 from extractor import extract_receipt, compute_image_hash
 from policy_engine import validate_receipt
 from auth import SECRET_KEY, hash_password, verify_password, create_access_token, get_current_user, require_admin
+from email_ingest import (
+    process_single_receipt_document,
+    process_mime_email,
+    IMAPInboxPoller,
+    resolve_or_create_employee,
+    parse_metadata_from_text,
+    is_valid_receipt_attachment
+)
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 app = FastAPI(title="Expense Graveyard Policy Engine API", version="2.0")
 
@@ -381,6 +389,116 @@ async def process_receipt(
             _remove_files((saved_file_path, preview_file_path))
         print(f"[ERROR] Error processing receipt: {str(e)}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+# =====================================================================
+# STAGE 1: AUTOMATED INGESTION (CHANNEL A: INBOUND EMAIL)
+# =====================================================================
+
+@app.post("/api/ingest/email-webhook")
+@app.post("/api/ingest/email/simulate")
+async def ingest_email_endpoint(
+    file: UploadFile = File(...),
+    from_email: str = Form("emp-101@company.com"),
+    subject: str = Form("Expense Receipt"),
+    body: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """
+    Automated Email Ingestion (Channel A):
+    Receives forwarded receipts (via webhook or email simulator),
+    auto-resolves employee identity from sender email, parses metadata
+    (city/category/client hints) from subject & body, rejects signature junk,
+    and executes the automated extraction & policy validation pipeline.
+    """
+    file_bytes = await file.read()
+    filename = file.filename or "receipt.jpg"
+
+    is_valid, reason = is_valid_receipt_attachment(filename, file_bytes)
+    if not is_valid:
+        return JSONResponse(status_code=400, content={
+            "success": False,
+            "error": reason,
+            "filename": filename
+        })
+
+    # Resolve Employee
+    emp = resolve_or_create_employee(db, from_email)
+
+    # Parse metadata hints from email subject & body
+    meta = parse_metadata_from_text(subject, body)
+
+    try:
+        result = process_single_receipt_document(
+            db=db,
+            file_bytes=file_bytes,
+            original_filename=filename,
+            employee_id=emp.id,
+            submission_channel="email",
+            city=meta["city"],
+            category=meta["category"],
+            client_name=meta["client_name"],
+            attendee_count=meta["attendee_count"]
+        )
+
+        return JSONResponse(content={
+            "success": True,
+            "channel": "email",
+            "sender": {
+                "email": emp.email,
+                "name": emp.name,
+                "employee_id": emp.id
+            },
+            "subject": subject,
+            "metadata_inferred": meta,
+            "receipt": result
+        })
+    except Exception as e:
+        db.rollback()
+        print(f"[EmailIngest] Error: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+@app.post("/api/ingest/email/raw")
+async def ingest_raw_mime_email(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Parses a full raw RFC822 (.eml) MIME email file containing headers,
+    body, and multiple attachments.
+    """
+    raw_bytes = await file.read()
+    try:
+        summary = process_mime_email(raw_bytes, db)
+        return JSONResponse(content=summary)
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+@app.get("/api/ingest/email/status")
+def get_email_ingest_status():
+    """Returns the configuration status of the IMAP email listener."""
+    poller = IMAPInboxPoller()
+    return {
+        "channel": "email",
+        "imap_configured": poller.is_configured(),
+        "host": poller.host if poller.is_configured() else "Not Configured",
+        "folder": poller.folder,
+        "supported_formats": [".pdf", ".png", ".jpg", ".jpeg", ".webp"],
+        "junk_filtering_enabled": True
+    }
+
+@app.post("/api/ingest/email/sync")
+def sync_email_inbox(
+    max_emails: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db)
+):
+    """
+    Manually triggers an IMAP inbox check for unread receipt emails.
+    """
+    poller = IMAPInboxPoller()
+    result = poller.sync_inbox(db=db, max_emails=max_emails)
+    status_code = 200 if result.get("success") else 400
+    return JSONResponse(status_code=status_code, content=result)
 
 @app.get("/api/receipts")
 def list_receipts(

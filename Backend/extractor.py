@@ -130,7 +130,6 @@ def compute_image_hash(image_path: str) -> str:
         except Exception:
             return hashlib.md5(str(image_path).encode()).hexdigest()
 
-
 def generate_receipt_content(client, image_part, prompt):
     models=list(dict.fromkeys((GEMINI_MODEL, GEMINI_FALLBACK_MODEL)))
     for index, model in enumerate(models):

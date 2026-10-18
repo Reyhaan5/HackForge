@@ -27,23 +27,39 @@ export const Expenses = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [channelFilter, setChannelFilter] = useState('ALL');
   const [selectedReceipt, setSelectedReceipt] = useState(null);
 
-  // Filter items
-  const filteredHistory = history.filter(item => {
-    const matchesSearch =
-      (item.receipt.vendor || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.city || '').toLowerCase().includes(searchTerm.toLowerCase());
+  const parseUtcDate = (ts) => {
+    if (!ts) return null;
+    const str = String(ts);
+    return str.endsWith('Z') || str.includes('+') ? new Date(str) : new Date(str + 'Z');
+  };
 
-    const matchesStatus =
-      statusFilter === 'ALL' || item.result.status === statusFilter;
+  // Filter and sort items: NEWEST ALWAYS AT TOP
+  const filteredHistory = history
+    .filter(item => {
+      const matchesSearch =
+        (item.receipt.vendor || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.city || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesCategory =
-      categoryFilter === 'ALL' || item.category === categoryFilter;
+      const matchesStatus =
+        statusFilter === 'ALL' || item.result.status === statusFilter;
 
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
+      const matchesCategory =
+        categoryFilter === 'ALL' || item.category === categoryFilter;
+
+      const matchesChannel =
+        channelFilter === 'ALL' || (item.submission_channel || 'web') === channelFilter;
+
+      return matchesSearch && matchesStatus && matchesCategory && matchesChannel;
+    })
+    .sort((a, b) => {
+      const dateA = parseUtcDate(a.timestamp)?.getTime() || 0;
+      const dateB = parseUtcDate(b.timestamp)?.getTime() || 0;
+      return dateB - dateA;
+    });
 
   const totalIncurred = history.reduce(
     (acc, curr) => acc + (curr.receipt.base_amount_inr ?? curr.receipt.total_amount ?? 0),
@@ -153,6 +169,19 @@ export const Expenses = () => {
           <option value="Software">Software</option>
           <option value="Other">Other</option>
         </select>
+
+        <select
+          className={styles.filterSelect}
+          value={channelFilter}
+          onChange={e => setChannelFilter(e.target.value)}
+          title="Filter by Ingestion Channel"
+        >
+          <option value="ALL">All Ingestion Channels</option>
+          <option value="email">✉️ Email Ingestion</option>
+          <option value="web">🌐 Web Portal</option>
+          <option value="slack">💬 Slack Bot</option>
+          <option value="mobile">📱 Mobile Camera</option>
+        </select>
       </div>
 
       {/* Custom Clean HTML Table */}
@@ -161,7 +190,7 @@ export const Expenses = () => {
           <thead className={tableStyles.tableHead}>
             <tr>
               <th className={tableStyles.th}>Date</th>
-              <th className={tableStyles.th}>Vendor & Category</th>
+              <th className={tableStyles.th}>Vendor & Channel</th>
               <th className={tableStyles.th}>City</th>
               <th className={tableStyles.thRight}>Amount</th>
               <th className={tableStyles.th}>Status</th>
@@ -185,7 +214,16 @@ export const Expenses = () => {
               filteredHistory.map(item => (
                 <tr key={item.id} className={tableStyles.tr}>
                   <td className={tableStyles.tdMuted}>
-                    {item.receipt.date || 'N/A'}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
+                        {item.receipt.date || (item.timestamp ? parseUtcDate(item.timestamp).toLocaleDateString() : 'N/A')}
+                      </span>
+                      {item.timestamp && (
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                          {parseUtcDate(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className={tableStyles.td}>
                     <div className={tableStyles.vendorCell}>
@@ -195,6 +233,28 @@ export const Expenses = () => {
                       <span className={tableStyles.vendorSub}>
                         {item.category || 'General'}
                         {item.client_name ? ` • ${item.client_name}` : ''}
+                        <span style={{
+                          display: 'inline-block',
+                          marginLeft: '6px',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          fontSize: '0.68rem',
+                          fontWeight: 500,
+                          background: (item.submission_channel === 'email' || item.submissionChannel === 'email')
+                            ? 'rgba(59, 130, 246, 0.18)' 
+                            : 'rgba(255, 255, 255, 0.08)',
+                          color: (item.submission_channel === 'email' || item.submissionChannel === 'email')
+                            ? '#60a5fa' 
+                            : 'inherit',
+                          border: (item.submission_channel === 'email' || item.submissionChannel === 'email')
+                            ? '1px solid rgba(96, 165, 250, 0.3)' 
+                            : 'none'
+                        }}>
+                          {(item.submission_channel === 'email' || item.submissionChannel === 'email') ? '✉️ Email' :
+                           (item.submission_channel === 'slack' || item.submissionChannel === 'slack') ? '💬 Slack' :
+                           (item.submission_channel === 'mobile' || item.submissionChannel === 'mobile') ? '📱 Mobile' :
+                           '🌐 Web'}
+                        </span>
                       </span>
                     </div>
                   </td>
@@ -257,6 +317,22 @@ export const Expenses = () => {
                 <span className={styles.detailLabel}>Transaction Date</span>
                 <span className={styles.detailValue}>
                   {selectedReceipt.receipt.date || 'N/A'}
+                </span>
+              </div>
+
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Ingested Timestamp</span>
+                <span className={styles.detailValue} style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                  {selectedReceipt.timestamp 
+                    ? parseUtcDate(selectedReceipt.timestamp).toLocaleString([], { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric', 
+                        hour: '2-digit', 
+                        minute: '2-digit', 
+                        second: '2-digit' 
+                      }) 
+                    : 'N/A'}
                 </span>
               </div>
 
