@@ -141,9 +141,6 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
         email=f"{emp_id.lower()}@company.com",
         department="General",
     ))
-
-    # Security fix: Public registration strictly assigns "Employee" role
-    # Admin/Finance roles cannot be self-assigned through public registration
     new_login = Login(
         username=payload.username.strip(),
         password_hash=hash_password(payload.password.strip()),
@@ -171,15 +168,12 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
             "department": "General"
         }
     }
-
-# Create uploads storage folder
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 ALLOWED_UPLOAD_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".pdf"}
 MEDIA_URL_TTL_SECONDS = 24 * 60 * 60
 MEDIA_URL_SECRET = (os.getenv("MEDIA_URL_SECRET") or SECRET_KEY).encode("utf-8") or secrets.token_bytes(32)
-
 
 def _current_month_range():
     today = date.today()
@@ -188,7 +182,6 @@ def _current_month_range():
     next_month = 1 if today.month == 12 else today.month + 1
     next_month_start = date(next_year, next_month, 1)
     return month_start, next_month_start
-
 
 def _receipt_media_url(request: Request, image_path: Optional[str]):
     if not image_path:
@@ -276,11 +269,6 @@ def get_uploaded_receipt(
 
     return FileResponse(safe_path, headers={"Cache-Control": "private, no-store"})
 
-@app.on_event("startup")
-def startup_event():
-    init_db()
-    print("[DB] Database initialized and ready.")
-
 @app.post("/api/process-receipt")
 async def process_receipt(
     request: Request,
@@ -331,11 +319,7 @@ async def process_receipt(
             if rendered_png != saved_file_path and os.path.exists(rendered_png):
                 temp_filename=os.path.basename(rendered_png)
                 preview_file_path=rendered_png
-
-        # 1. Cloud Model Vision Extraction
         extracted = extract_receipt(saved_file_path)
-        
-        # 2. Run Layered Policy Engine (Calculations on the fly)
         decision = validate_receipt(
             receipt=extracted,
             employee_id=employee_id,
@@ -346,15 +330,12 @@ async def process_receipt(
             attendee_count=attendee_count,
             db=db
         )
-
         parsed_date = None
         if extracted.date:
             try:
                 parsed_date = datetime.strptime(extracted.date, "%Y-%m-%d").date()
             except ValueError:
                 parsed_date = date.today()
-
-        # 3. Store Receipt & Decision
         receipt_record = Receipt(
             employee_id=employee_id,
             image_path=saved_file_path,
@@ -380,8 +361,6 @@ async def process_receipt(
         db.commit()
         receipt_committed = True
         db.refresh(receipt_record)
-
-        # 4. On-the-fly Monthly Total for this employee
         month_start, next_month_start = _current_month_range()
         monthly_spent = db.query(func.coalesce(func.sum(Receipt.approved_amount), 0.0)).filter(
             Receipt.employee_id == employee_id,
