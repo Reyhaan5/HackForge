@@ -36,6 +36,10 @@ An intelligent, multi-channel expense receipt auditor and policy compliance plat
 
 ---
 
+## Video
+[<img src="https://youtu.be/Y1RQUvaVM5M" width="100%">](https://youtube.com)
+
+
 ## 🌟 Key Features
 
 - **Multi-Modal Receipt Extraction**: Leverages Google Gemini Vision (`gemini-2.5-flash` / `gemini-1.5-flash`) via `google-genai` and PyMuPDF to extract dates, vendors, line items, taxes, totals, and foreign currencies from images and PDFs.
